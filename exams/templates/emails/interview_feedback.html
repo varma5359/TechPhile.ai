@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Interview Feedback</title>
+</head>
+<body>
+    <h2>Your Interview Feedback</h2>
+    <p>Hello {{ interview.first_name }},</p>
+    
+    <p>Thank you for participating in our mock interview process. Here's your feedback:</p>
+    
+    <div style="background: #f8f9fa; padding: 15px; border-radius: 5px; margin: 20px 0;">
+        <p><strong>Rating:</strong> {{ interview.rating }}/5.0</p>
+        <p><strong>Evaluator:</strong> {{ interview.evaluator_name }}</p>
+        <p><strong>Feedback:</strong></p>
+        <div style="white-space: pre-line;">{{ interview.feedback }}</div>
+    </div>
+    
+    <p>We hope this feedback helps you in your preparation. Feel free to schedule another mock interview anytime!</p>
+    
+    <p>Best regards,<br>Mock Interview Team</p>
+</body>
+</html>

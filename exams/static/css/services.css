@@ -1,0 +1,23 @@
+
+   
+ /* background of services page*/
+
+
+ /* Responsive Styles */
+ @media (max-width: 768px) {
+     .breadcrumb-section{
+         max-height:200px;
+     }
+     .breadcrumb-section {
+         background-size: contain; /* Ensures full visibility of the image */
+         background-position: center top;
+         height: 200px; /* Adjust height for mobile screens */
+     }
+ }
+
+ @media (max-width: 480px) {
+     .breadcrumb-section {
+         background-size: cover;
+         height: 180px; /* Further reduce height for smaller screens */
+     }
+ }

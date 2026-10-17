@@ -1,0 +1,11 @@
+<!-- templates/exams/no_questions.html -->
+{% extends "exams/exam_base.html" %}
+{% block content %}
+<div class="container mt-5">
+    <div class="alert alert-warning">
+        <h4>No Questions Found</h4>
+        <p>There are currently no questions available for <strong>{{ level|title }}</strong> level, Set {{ set_number }}.</p>
+        <a href="{% url 'exams:exam_list' %}" class="btn btn-primary mt-3">Back to Exams</a>
+    </div>
+</div>
+{% endblock %}

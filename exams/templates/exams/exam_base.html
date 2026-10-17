@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}TechPhile.ai Mock Exams{% endblock %}</title>
+    
+    <!-- Bootstrap and other CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        /* Navigation specific styles */
+        .navbar {
+            background: #1a183f;
+            border-bottom: 1px solid #2d3238;
+            
+        }
+        
+        .navbar-brand img {
+            height: 60px;
+        }
+        
+        .nav-link {
+            color: #f5f6fa;
+            font-weight: 500;
+            padding: 0.5rem 1rem;
+        }
+        
+        .nav-link:hover {
+            color: #8ecae6;
+        }
+        
+        .dropdown-menu {
+            background-color: #23272b;
+            border: 1px solid #2d3238;
+        }
+        
+        .dropdown-item {
+            color: #f5f6fa;
+        }
+        
+        .dropdown-item:hover {
+            background-color: #2d3238;
+            color: #8ecae6;
+        }
+        
+        .avatar-circle {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: #4361ee;
+            color: white;
+            font-weight: 600;
+        }
+        
+        /* Main content styles */
+        body {
+            background-color: #f8f9fa;
+            color: #212529;
+            font-family: 'Open Sans', sans-serif;
+        }
+        
+        
+        
+        /* Card styles for exam listings */
+        .exam-card {
+            transition: all 0.3s ease;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 1px solid #e9ecef;
+        }
+        
+        .exam-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+        }
+        
+        .card-header {
+            background: linear-gradient(135deg, #4361ee 0%, #3f37c9 100%);
+            color: white;
+        }
+        
+        /* Button styles */
+        .btn-primary {
+            background-color: #4361ee;
+            border-color: #3f37c9;
+        }
+        
+        .btn-outline-secondary {
+            color: #6c757d;
+            border-color: #6c757d;
+        }
+        
+        /* Text styles */
+        .gradient-text {
+            background: linear-gradient(90deg, #4361ee 0%, #4cc9f0 50%, #f72585 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .navbar-brand img {
+                height: 30px;
+            }
+            
+            .main-content {
+                padding:10x;
+            }
+        }
+    </style>
+
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <!-- Responsive Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-dark sticky-top" style="z-index:1030;">
+        <div class="container">
+<a class="navbar-brand position-relative" href="{% url 'home' %}" style="z-index: 10;">
+    <img src="{% static 'images/logo-nav.png' %}" alt="TechPhile.ai"
+         style="height: 120px; position: absolute; top: -50px; left: 0;">
+</a>
+
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNavbar" aria-controls="mainNavbar" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="mainNavbar">
+                <ul class="navbar-nav ms-auto align-items-center gap-lg-2">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'home' %}">
+                            <i class="fas fa-home me-1"></i>Home
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'exams:student_dashboard' %}">
+                            <i class="fas fa-chart-line me-1"></i>Dashboard
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'exams:profile_settings' %}">
+                            <i class="fas fa-cog me-1"></i>Settings
+                        </a>
+                    </li>
+{% if user.is_authenticated %}
+<li class="nav-item dropdown ms-lg-3">
+    <a href="#" class="nav-link dropdown-toggle d-flex align-items-center" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+        <span class="me-2">{{ user.get_full_name|default:user.username }}</span>
+        {% if user.profile.photo %}
+            <img src="{{ user.profile.photo.url }}" class="rounded-circle" width="40" height="40">
+        {% else %}
+            <div class="avatar-circle">
+                {{ user.first_name|first|default:user.username|first|upper }}
+            </div>
+        {% endif %}
+    </a>
+    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
+        <li>
+            <form method="post" action="{% url 'logout' %}">
+                {% csrf_token %}
+                <button type="submit" class="dropdown-item">
+                    <i class="fas fa-sign-out-alt me-2"></i>Logout
+                </button>
+            </form>
+        </li>
+    </ul>
+</li>
+{% else %}
+<li class="nav-item ms-lg-3">
+    <a class="nav-link" href="{% url 'login' %}">
+        <i class="fas fa-sign-in-alt me-2"></i>Login
+    </a>
+</li>
+{% endif %}
+
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <main class="container py-4">
+        <div class="main-content">
+            {% block content %}{% endblock %}
+        </div>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

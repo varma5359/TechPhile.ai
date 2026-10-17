@@ -1,0 +1,766 @@
+{% extends "exams/exam_base.html" %}
+
+{% load static %}
+{% block content %}
+
+<!-- Navigation Bar with Right-Aligned User Dropdown -->
+
+
+
+
+<div class="container-fluid px-4 mt-4" >
+
+    <!-- Unified Profile Header -->
+    <div class="row mb-4">
+        <div class="col-lg-3">
+            <div class="card shadow-sm border-0 rounded-lg">
+                <div class="card-body text-center">
+                    <!-- Profile Photo Section -->
+           <div class="position-relative d-inline-block">
+               {% if profile.photo %}
+                   <img src="{{ profile.photo.url }}" class="img-thumbnail rounded-circle" style="width: 150px; height: 150px; object-fit: cover;">
+               {% else %}
+                   <div class="img-thumbnail rounded-circle d-flex align-items-center justify-content-center"
+                        style="width: 150px; height: 150px; background-color: #6c757d; color: white; font-size: 60px; font-weight: bold;">
+                       {{ user.get_full_name|default:user.username|first|upper }}
+                   </div>
+               {% endif %}
+           </div>
+
+                    <h4 class="mt-3 mb-1">{{ user.get_full_name|default:user.username }}</h4>
+                    <!-- <p class="text-muted mb-3">{{ user.email }}</p> -->
+                    
+                    <!-- Unified Stats -->
+                    <div class="row">
+                        <div class="col-6 border-end">
+                            <h5 class="mb-0">{{ total_exams }}</h5>
+                            <small class="text-muted">Exams</small>
+                        </div>
+                        <div class="col-6">
+                            <h5 class="mb-0">{{ completed_interviews }}</h5>
+                            <small class="text-muted">Interviews</small>
+                        </div>
+                    </div>
+                    <div class="row mt-2">
+                        <div class="col-6 border-end">
+                            <h5 class="mb-0">{{ avg_score|floatformat:1 }}%</h5>
+                            <small class="text-muted">Exam Avg</small>
+                        </div>
+                        <div class="col-6">
+                            <h5 class="mb-0">{{ avg_interview_rating|floatformat:1 }}/5</h5>
+                            <small class="text-muted">Interview Avg</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Quick Access Cards -->
+            <div class="card shadow-sm border-0 rounded-lg mt-4">
+                <div class="card-body">
+                    <ul class="nav nav-tabs nav-justified mb-3" id="quickAccessTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="exams-tab" data-bs-toggle="tab" data-bs-target="#exams-tab-pane" type="button">
+                                <i class="fas fa-clipboard-list me-1"></i> Exams
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="interviews-tab" data-bs-toggle="tab" data-bs-target="#interviews-tab-pane" type="button">
+                                <i class="fas fa-user-tie me-1"></i> Interviews
+                            </button>
+                        </li>
+                    </ul>
+                    <div class="tab-content">
+                        <div class="tab-pane fade show active" id="exams-tab-pane">
+                            <a href="{% url 'exams:exam_list' %}" class="btn btn-primary w-100 mb-2">
+                                <i class="fas fa-play me-2"></i>Start Exam
+                            </a>
+                            <a href="#" class="btn btn-outline-primary w-100">
+                                <i class="fas fa-chart-line me-2"></i>Progress
+                            </a>
+                        </div>
+                        <div class="tab-pane fade" id="interviews-tab-pane">
+                            <a href="{% url 'exams:mock_interview_form' %}" class="btn btn-primary w-100 mb-2">
+                                <i class="fas fa-plus me-2"></i>Schedule
+                            </a>
+                            <a href="#" class="btn btn-outline-primary w-100">
+                                <i class="fas fa-video me-2"></i>Practice Room
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Main Dashboard Content -->
+        <div class="col-lg-9">
+            <!-- Performance Overview Tabs -->
+            <div class="card shadow-sm border-0 rounded-lg mb-4">
+                <div class="card-body">
+                    <ul class="nav nav-tabs mb-4" id="performanceTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="exams-performance-tab" data-bs-toggle="tab" data-bs-target="#exams-performance" type="button">
+                                <i class="fas fa-clipboard-check me-1"></i> Exam Performance
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="interviews-performance-tab" data-bs-toggle="tab" data-bs-target="#interviews-performance" type="button">
+                                <i class="fas fa-user-tie me-1"></i> Interview Performance
+                            </button>
+                        </li>
+                    </ul>
+                    <div class="tab-content">
+                        <!-- Exams Performance Tab -->
+                        <div class="tab-pane fade show active" id="exams-performance">
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <div class="card bg-gradient-primary text-white mb-4">
+                                        <div class="card-body">
+                                            <h6 class="text-white-50">Highest Score</h6>
+                                            <h2 class="mb-0">{{ highest_score|floatformat:0 }}%</h2>
+                                            <small>{{ highest_score_exam }}</small>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="card bg-gradient-success text-white mb-4">
+                                        <div class="card-body">
+                                            <h6 class="text-white-50">Recent Attempt</h6>
+                                            <h2 class="mb-0">
+                                                {% if latest_attempt %}
+                                                    {{ latest_attempt.score|floatformat:0 }}%
+                                                {% else %}
+                                                    --
+                                                {% endif %}
+                                            </h2>
+                                            <small>
+                                                {% if latest_attempt %}
+                                                    {{ latest_attempt.exam.title }}
+                                                {% else %}
+                                                    No attempts yet
+                                                {% endif %}
+                                            </small>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="card bg-gradient-info text-white mb-4">
+                                        <div class="card-body">
+                                            <h6 class="text-white-50">Improvement</h6>
+                                            <h2 class="mb-0">
+                                                {% if improvement >= 0 %}
+                                                    +{{ improvement|floatformat:1 }}%
+                                                {% else %}
+                                                    {{ improvement|floatformat:1 }}%
+                                                {% endif %}
+                                            </h2>
+                                            <small>Since last month</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- Category Performance -->
+                            {% if category_stats %}
+                            <h6 class="mt-3 mb-2"><i class="fas fa-folder-open me-1"></i> By Category</h6>
+                            <div class="row">
+                                {% for cat in category_stats %}
+                                <div class="col-md-4 mb-3">
+                                    <div class="card h-100">
+                                        <div class="card-body">
+                                            <h6 class="card-title">{{ cat.exam__category__name }}</h6>
+                                            <div class="d-flex justify-content-between mb-1">
+                                                <small class="text-muted">Avg Score</small>
+                                                <small>{{ cat.avg_score|floatformat:1 }}%</small>
+                                            </div>
+                                            <div class="progress" style="height: 6px;">
+                                                <div class="progress-bar 
+                                                    {% if cat.avg_score >= 70 %}bg-success
+                                                    {% elif cat.avg_score >= 40 %}bg-warning
+                                                    {% else %}bg-danger
+                                                    {% endif %}" 
+                                                    role="progressbar" 
+                                                    style="width: {{ cat.avg_score|default:0 }}%">
+                                                </div>
+                                            </div>
+                                            <small class="text-muted">{{ cat.total }} attempts</small>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- Interviews Performance Tab -->
+                        <div class="tab-pane fade" id="interviews-performance">
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <div class="card bg-gradient-primary text-white mb-4">
+                                        <div class="card-body">
+                                            <h6 class="text-white-50">Completed</h6>
+                                            <h2 class="mb-0">{{ completed_interviews }}</h2>
+                                            <small>{{ interview_types }} types</small>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="card bg-gradient-success text-white mb-4">
+                                        <div class="card-body">
+                                            <h6 class="text-white-50">Average Rating</h6>
+                                            <h2 class="mb-0">{{ avg_interview_rating|floatformat:1 }}/5</h2>
+                                            <small>From evaluators</small>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="card bg-gradient-info text-white mb-4">
+                                        <div class="card-body">
+                                            <h6 class="text-white-50">Improvement</h6>
+                                            <h2 class="mb-0">
+                                                {% if interview_improvement >= 0 %}
+                                                    +{{ interview_improvement|floatformat:1 }}%
+                                                {% else %}
+                                                    {{ interview_improvement|floatformat:1 }}%
+                                                {% endif %}
+                                            </h2>
+                                            <small>Since last month</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Skills Breakdown -->
+                            <h6 class="mt-3 mb-2"><i class="fas fa-star me-1"></i> Skills Evaluation</h6>
+                            <div class="row">
+                                {% for skill in interview_skills %}
+                                <div class="col-md-6 mb-3">
+                                    <div class="card h-100">
+                                        <div class="card-body">
+                                            <div class="d-flex justify-content-between">
+                                                <h6 class="card-title mb-1">{{ skill.name }}</h6>
+                                                <small>{{ skill.rating|floatformat:1 }}/5</small>
+                                            </div>
+                                            <div class="progress" style="height: 6px;">
+                                                <div class="progress-bar 
+                                                    {% if skill.rating >= 4 %}bg-success
+                                                    {% elif skill.rating >= 2.5 %}bg-warning
+                                                    {% else %}bg-danger
+                                                    {% endif %}" 
+                                                    role="progressbar" 
+                                                    style="width: calc({{ skill.rating }} * 20%)"
+                                                </div>
+                                            </div>
+                                            <small class="text-muted">{{ skill.feedback_count }} evaluations</small>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+           <!-- Recent Activity Section -->
+<div class="card shadow-sm border-0 rounded-lg">
+    <div class="card-body">
+        <ul class="nav nav-tabs mb-4" id="activityTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="exams-activity-tab" data-bs-toggle="tab" data-bs-target="#exams-activity" type="button">
+                    <i class="fas fa-clipboard-list me-1"></i> Exam History
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="interviews-activity-tab" data-bs-toggle="tab" data-bs-target="#interviews-activity" type="button">
+                    <i class="fas fa-user-tie me-1"></i> Interview History
+                </button>
+            </li>
+        </ul>
+        
+        <div class="tab-content">
+            <!-- Exams Activity Tab -->
+            <div class="tab-pane fade show active" id="exams-activity">
+                {% if attempts %}
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Exam</th>
+                                    <th>Category</th>
+                                    <th>Score</th>
+                                    <th>Date</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for a in attempts %}
+                                    <tr>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <div class="bg-light-primary rounded p-2 me-3">
+                                                    <i class="fas fa-file-alt text-primary"></i>
+                                                </div>
+                                                <div>
+                                                    <h6 class="mb-0">{{ a.exam.title }}</h6>
+                                                    <small class="text-muted">{{ a.exam.get_level_display }}</small>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>{{ a.exam.category.name }}</td>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <div style="width: 40px;" class="me-2">
+                                                    {{ a.score|floatformat:0 }}%
+                                                </div>
+                                                <div class="progress flex-grow-1" style="height: 6px;">
+                                                    <div class="progress-bar 
+                                                        {% if a.score >= 70 %}bg-success
+                                                        {% elif a.score >= 40 %}bg-warning
+                                                        {% else %}bg-danger
+                                                        {% endif %}" 
+                                                        role="progressbar" 
+                                                        style="width: {{ a.score }}%;">
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>{{ a.completed_at|date:"M d, Y" }}</td>
+                                        <td>
+                                            <a href="{% url 'exams:exam_result' a.id %}" class="btn btn-sm btn-outline-primary me-1">
+                                                <i class="fas fa-eye"></i>
+                                            </a>
+                                            <a href="{% url 'exams:exam_detail' a.exam.slug %}" class="btn btn-sm btn-outline-secondary">
+                                                <i class="fas fa-redo"></i>
+                                            </a>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                        
+                        {% if total_attempts_count > 4 %}
+                            <div class="text-center mt-3">
+                                <button class="btn btn-sm btn-outline-primary" 
+                                        data-bs-toggle="collapse" 
+                                        data-bs-target="#allExamAttempts"
+                                        onclick="toggleShowMore(this, 'exam')">
+                                    Show All ({{ total_attempts_count }})
+                                </button>
+                                
+                                <div id="allExamAttempts" class="collapse mt-3">
+                                    <table class="table table-hover align-middle">
+                                        <tbody>
+                                            {% for a in remaining_attempts %}
+                                                <tr>
+                                                    <td>
+                                                        <div class="d-flex align-items-center">
+                                                            <div class="bg-light-primary rounded p-2 me-3">
+                                                                <i class="fas fa-file-alt text-primary"></i>
+                                                            </div>
+                                                            <div>
+                                                                <h6 class="mb-0">{{ a.exam.title }}</h6>
+                                                                <small class="text-muted">{{ a.exam.get_level_display }}</small>
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                    <td>{{ a.exam.category.name }}</td>
+                                                    <td>
+                                                        <div class="d-flex align-items-center">
+                                                            <div style="width: 40px;" class="me-2">
+                                                                {{ a.score|floatformat:0 }}%
+                                                            </div>
+                                                            <div class="progress flex-grow-1" style="height: 6px;">
+                                                                <div class="progress-bar 
+                                                                    {% if a.score >= 70 %}bg-success
+                                                                    {% elif a.score >= 40 %}bg-warning
+                                                                    {% else %}bg-danger
+                                                                    {% endif %}" 
+                                                                    role="progressbar" 
+                                                                    style="width: {{ a.score }}%">
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                    <td>{{ a.completed_at|date:"M d, Y" }}</td>
+                                                    <td>
+                                                        <a href="{% url 'exams:exam_result' a.id %}" class="btn btn-sm btn-outline-primary me-1">
+                                                            <i class="fas fa-eye"></i>
+                                                        </a>
+                                                        <a href="{% url 'exams:exam_detail' a.exam.slug %}" class="btn btn-sm btn-outline-secondary">
+                                                            <i class="fas fa-redo"></i>
+                                                        </a>
+                                                    </td>
+                                                </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        {% endif %}
+                    </div>
+                {% else %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-clipboard-list fa-3x text-muted mb-4"></i>
+                        <h5 class="mb-3">No exam history yet</h5>
+                        <p class="text-muted mb-4">Start practicing to track your progress</p>
+                        <a href="{% url 'exams:exam_list' %}" class="btn btn-primary px-4">
+                            <i class="fas fa-play me-2"></i>Start Exam
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+            
+<!-- Interviews Activity Tab -->
+<div class="tab-pane fade" id="interviews-activity">
+    {% if interview_history %}
+        <div class="table-responsive">
+            <table class="table table-hover align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th>Type</th>
+                        <th>Evaluator</th>
+                        <th>Date</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for interview in interview_history %}
+                        <tr>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <div class="bg-light-warning rounded p-2 me-3">
+                                        <i class="fas fa-{{ interview.type_icon }} text-warning"></i>
+                                    </div>
+                                    <div>
+                                        <h6 class="mb-0">{{ interview.interview_type }}</h6>
+                                        <small class="text-muted">{{ interview.get_difficulty_display }}</small>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>{{ interview.interview_feedback.evaluator.name }}
+                            
+                            <td>{{ interview.interview_date }}</td>
+                            <td>
+                                <span class="badge 
+                                    {% if interview.status == 'completed' %}bg-success
+                                    {% elif interview.status == 'scheduled' %}bg-warning
+                                    {% elif interview.status == 'canceled' %}bg-danger
+                                    {% else %}bg-secondary
+                                    {% endif %}">
+                                    {{ interview.get_status_display }}
+                                </span>
+                            </td>
+                            <td>
+                                <div class="btn-group">
+                                    {% if interview.status == 'scheduled' %}
+                                        <a href="{% url 'exams:view_interview' interview.id %}" class="btn btn-sm btn-outline-primary">
+                                            <i class="fas fa-eye"></i> View
+                                        </a>
+                                        
+                                        <form method="post" action="{% url 'exams:cancel_interview' interview.pk %}" class="d-inline">
+                                            {% csrf_token %}
+                                            <button type="submit" class="btn btn-sm btn-outline-danger">
+                                                <i class="fas fa-times"></i> Cancel
+                                            </button>
+                                        </form>
+                                    {% elif interview.status == 'completed' %}
+                                        <a href="{% url 'exams:view_interview' interview.id %}" class="btn btn-sm btn-outline-primary">
+                                            <i class="fas fa-eye"></i> View
+                                        </a>
+                                        <a href="{% url 'exams:interview_feedback' interview.id %}" class="btn btn-sm btn-outline-warning">
+                                            <i class="fas fa-edit"></i> Feedback
+                                        </a>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+
+            {% if total_interviews_count > 4 %}
+                <div class="text-center mt-3">
+                    <button class="btn btn-sm btn-outline-primary" 
+                            data-bs-toggle="collapse" 
+                            data-bs-target="#allInterviews"
+                            onclick="toggleShowMore(this, 'interview')">
+                        Show All ({{ total_interviews_count }})
+                    </button>
+                    
+                    <div id="allInterviews" class="collapse mt-3">
+                        <table class="table table-hover align-middle">
+                            <tbody>
+                                {% for interview in remaining_interviews %}
+                                    <tr>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <div class="bg-light-warning rounded p-2 me-3">
+                                                    <i class="fas fa-{{ interview.type_icon }} text-warning"></i>
+                                                </div>
+                                                <div>
+                                                    <h6 class="mb-0">{{ interview.interview_type }}</h6>
+                                                    <small class="text-muted">{{ interview.get_difficulty_display }}</small>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>{{ interview.evaluator_name }}</td>
+                                        <td>
+                                            <div class="star-rating">
+                                                {% for i in "12345" %}
+                                                    <i class="fas fa-star{% if forloop.counter > interview.rating %} text-muted{% endif %}"></i>
+                                                {% endfor %}
+                                            </div>
+                                        </td>
+                                        <td>{{ interview.interview_date }}</td>
+                                        <td>
+                                            <span class="badge 
+                                                {% if interview.status == 'completed' %}bg-success
+                                                {% elif interview.status == 'scheduled' %}bg-warning
+                                                {% elif interview.status == 'canceled' %}bg-danger
+                                                {% else %}bg-secondary
+                                                {% endif %}">
+                                                {{ interview.get_status_display }}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <div class="btn-group">
+                                                {% if interview.status == 'scheduled' %}
+                                                    <a href="{% url 'exams:view_interview' interview.id %}" class="btn btn-sm btn-outline-primary">
+                                                        <i class="fas fa-eye"></i> View
+                                                    </a>
+                                                    <a href="{% url 'exams:interview_feedback' interview.id %}" class="btn btn-sm btn-outline-warning">
+                                                        <i class="fas fa-edit"></i> Feedback
+                                                    </a>
+                                                    <form method="post" action="{% url 'exams:cancel_interview' interview.pk %}" class="d-inline">
+                                                        {% csrf_token %}
+                                                        <button type="submit" class="btn btn-sm btn-outline-danger">
+                                                            <i class="fas fa-times"></i> Cancel
+                                                        </button>
+                                                    </form>
+                                                {% elif interview.status == 'completed' %}
+                                                    <a href="{% url 'exams:view_interview' interview.id %}" class="btn btn-sm btn-outline-primary">
+                                                        <i class="fas fa-eye"></i> View
+                                                    </a>
+                                                    <a href="{% url 'exams:interview_feedback' interview.id %}" class="btn btn-sm btn-outline-warning">
+                                                        <i class="fas fa-edit"></i> Feedback
+                                                    </a>
+                                                {% endif %}
+                                            </div>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+    {% else %}
+        <div class="text-center py-5">
+            <i class="fas fa-user-tie fa-3x text-muted mb-4"></i>
+            <h5 class="mb-3">No interview history yet</h5>
+            <p class="text-muted mb-4">Schedule your first mock interview</p>
+            <a href="{% url 'exams:mock_interview_form' %}" class="btn btn-primary px-4">
+                <i class="fas fa-plus me-2"></i>Schedule Now
+            </a>
+        </div>
+    {% endif %}
+</div>
+        </div>
+    </div>
+</div>
+
+
+        </div>
+    </div>
+</div>
+
+
+
+
+<!-- Custom CSS -->
+ 
+<style>
+    
+    /* Default styles (for desktop) */
+.table-responsive {
+    border: 1px solid #dee2e6;
+    border-radius: 0.375rem;
+    overflow: hidden;
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+}
+
+.table {
+    margin-bottom: 0;
+}
+
+/* Mobile styles */
+@media (max-width: 767.98px) {
+    /* Remove box styling for tables */
+    .table-responsive {
+        border: none;
+        box-shadow: none;
+        background: transparent;
+    }
+    
+    /* Make tables full width */
+    .table {
+        width: 100%;
+    }
+    
+    /* Adjust table layout for mobile */
+    .table thead {
+        display: none;
+    }
+    
+    .table tbody tr {
+        display: block;
+        margin-bottom: 1rem;
+        background: white;
+        border-radius: 0.375rem;
+        box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+        padding: 0.75rem;
+    }
+    
+    .table tbody tr td {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.5rem 0.75rem;
+        border: none;
+        border-bottom: 1px solid #f0f0f0;
+    }
+    
+    .table tbody tr td:last-child {
+        border-bottom: none;
+    }
+    
+    /* Add data labels */
+    .table tbody tr td::before {
+        content: attr(data-label);
+        font-weight: 600;
+        padding-right: 1rem;
+        color: #6c757d;
+        flex: 1;
+        text-align: left;
+    }
+    
+    /* Set data labels for each column */
+    .table tbody tr td:nth-child(1)::before { content: "Exam"; }
+    .table tbody tr td:nth-child(2)::before { content: "Category"; }
+    .table tbody tr td:nth-child(3)::before { content: "Score"; }
+    .table tbody tr td:nth-child(4)::before { content: "Date"; }
+    .table tbody tr td:nth-child(5)::before { content: "Actions"; }
+    
+    /* For interview table */
+    #interviews-activity .table tbody tr td:nth-child(1)::before { content: "Type"; }
+    #interviews-activity .table tbody tr td:nth-child(2)::before { content: "Evaluator"; }
+    #interviews-activity .table tbody tr td:nth-child(3)::before { content: "Date"; }
+    #interviews-activity .table tbody tr td:nth-child(4)::before { content: "Status"; }
+    #interviews-activity .table tbody tr td:nth-child(5)::before { content: "Actions"; }
+    
+    /* Adjust content alignment */
+    .table tbody tr td > div {
+        flex: 2;
+        text-align: right;
+        padding-left: 3px;
+    }
+    
+    /* Special handling for progress bars */
+    .progress {
+        min-width: 100px;
+    }
+    
+    /* Adjust buttons */
+    .btn-group {
+        flex-wrap: wrap;
+        justify-content: flex-end;
+    }
+    
+    .btn-group .btn {
+        margin: 0.25rem;
+    }
+    
+    /* Adjust the "Show All" button */
+    .text-center .btn {
+        width: 100%;
+        margin-bottom: 1rem;
+    }
+    
+    /* Adjust no-content message */
+    .text-center.py-5 {
+        padding: 2rem 0 !important;
+    }
+}
+    .card {
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    .card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 20px rgba(0,0,0,0.1) !important;
+    }
+    .bg-gradient-primary {
+        background: linear-gradient(135deg, #4a6bff 0%, #6c63ff 100%);
+    }
+    .bg-gradient-success {
+        background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+    }
+    .bg-gradient-info {
+        background: linear-gradient(135deg, #17a2b8 0%, #6f42c1 100%);
+    }
+    .star-rating {
+        color: #ffc107;
+    }
+    .nav-tabs .nav-link {
+        border: none;
+        padding: 0.75rem 1.25rem;
+        color: #6c757d;
+        font-weight: 500;
+    }
+    .nav-tabs .nav-link.active {
+        color: #4a6bff;
+        border-bottom: 3px solid #4a6bff;
+        background: transparent;
+    }
+    .progress-thin {
+        height: 6px;
+    }
+</style>
+
+<script>
+function toggleShowMore(button, type) {
+    const isExpanded = button.getAttribute('aria-expanded') === 'true';
+    if (isExpanded) {
+        button.textContent = `Show All ${type === 'exam' ? 'Exams' : 'Interviews'} (${button.dataset.totalCount})`;
+    } else {
+        button.textContent = `Hide ${type === 'exam' ? 'Exams' : 'Interviews'}`;
+    }
+}
+
+// Initialize buttons with total count
+document.addEventListener('DOMContentLoaded', function() {
+    const examButton = document.querySelector('[onclick*="exam"]');
+    if (examButton) {
+        examButton.dataset.totalCount = "{{ total_attempts_count }}";
+    }
+    
+    const interviewButton = document.querySelector('[onclick*="interview"]');
+    if (interviewButton) {
+        interviewButton.dataset.totalCount = "{{ total_interviews_count }}";
+    }
+});
+
+
+
+    // Push current state to history
+    history.pushState(null, '', location.href);
+
+    // Intercept back navigation
+    window.onpopstate = function () {
+        window.location.href = "{% url 'home' %}";
+    };
+
+
+</script>
+
+{% endblock %}

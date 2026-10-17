@@ -1,0 +1,1454 @@
+<!DOCTYPE html>
+<!-- saved from url=(0027)https://techphile.in/about/ -->
+<html lang="en"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <title>TechPhile.ai Mock Interviews</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" href="./TechPhile.ai Mock Interviews_files/logo-nav.png" type="image/x-icon">
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="./TechPhile.ai Mock Interviews_files/all.min.css">
+    
+    <!-- Slider Stylesheet -->
+    <link rel="stylesheet" type="text/css" href="./TechPhile.ai Mock Interviews_files/owl.carousel.min.css">
+    <link rel="stylesheet" type="text/css" href="./TechPhile.ai Mock Interviews_files/owl.theme.default.min.css">
+
+    <!-- Animate.css -->
+    <link rel="stylesheet" href="./TechPhile.ai Mock Interviews_files/animate.min.css">
+
+    <!-- Bootstrap Core CSS -->
+    <link rel="stylesheet" type="text/css" href="./TechPhile.ai Mock Interviews_files/bootstrap.css">
+
+    <!-- Fonts Style -->
+    <link href="./TechPhile.ai Mock Interviews_files/css2" rel="stylesheet">
+
+    <!-- Custom Styles for this Template -->
+    <link href="./TechPhile.ai Mock Interviews_files/style.css" rel="stylesheet">
+    <!-- Responsive Style -->
+    <!-- <link href="/static/css/responsive.css" rel="stylesheet"/> -->
+
+    <style>
+        :root {
+            --primary-color: #4361ee;
+            --secondary-color: #3f37c9;
+            --accent-color: #4cc9f0;
+            --dark-color: #1a1a2e;
+            --light-color: #f8f9fa;
+            --success-color: #4ade80;
+            --warning-color: #fbbf24;
+            --danger-color: #f87171;
+            --transition-all: all 0.4s cubic-bezier(0.645, 0.045, 0.355, 1);
+        }
+        
+        /* Body background and effect */
+        body {
+            background-image: linear-gradient(135deg, rgba(0, 180, 216, 0.1), rgba(1, 10, 67, 0.3)), url("/static/images/img3.jpg");
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+            position: relative;
+            z-index: 0;
+            min-height: 100vh;
+            font-family: 'Poppins', sans-serif;
+            color: #333;
+            overflow-x: hidden;
+        }
+        
+        body::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(to bottom, rgba(26, 26, 46, 0.7) 0%, rgba(26, 26, 46, 0.3) 100%);
+            z-index: -1;
+        }
+
+        /* Smooth scrolling */
+        html {
+            scroll-behavior: smooth;
+        }
+        
+        /* Selection color */
+        ::selection {
+            background-color: var(--accent-color);
+            color: white;
+        }
+
+        /* Hero Section - Gradient Background */
+        .hero_area {
+            background: linear-gradient(135deg, var(--primary-color), var(--dark-color));
+            background-size: 400% 400%;
+            animation: gradientBG 15s ease infinite;
+            transition: var(--transition-all);
+            padding: 150px 0 100px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+        
+        @keyframes gradientBG {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        
+        .hero_area::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 100px;
+            background: url("/static/images/wave.svg") center/cover no-repeat;
+            transform: rotate(180deg);
+            z-index: 1;
+        }
+
+        /* Header Animation */
+        h1 {
+            animation: fadeInUp 1s ease-in-out forwards;
+            color: white;
+            font-size: 2.8rem;
+            font-weight: 700;
+            font-family: 'Montserrat', sans-serif;
+            text-shadow: 2px 2px 10px rgba(0, 0, 0, 0.6);
+            margin-bottom: 1rem;
+            line-height: 1.3;
+            position: relative;
+            display: inline-block;
+        }
+        
+        h1::after {
+            content: '';
+            position: absolute;
+            bottom: -10px;
+            left: 0;
+            width: 70px;
+            height: 4px;
+            background: var(--accent-color);
+            border-radius: 2px;
+        }
+        
+        h2 {
+            font-family: 'Montserrat', sans-serif;
+            color: var(--dark-color);
+            position: relative;
+            padding-bottom: 15px;
+            margin-bottom: 30px;
+        }
+        
+        h2::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 50px;
+            height: 3px;
+            background: var(--primary-color);
+            border-radius: 3px;
+        }
+
+        @keyframes fadeInUp {
+            0% {
+                opacity: 0;
+                transform: translateY(50px);
+            }
+            100% {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        /* Navigation Bar */
+        .header_section {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            z-index: 1000;
+            transition: var(--transition-all);
+            backdrop-filter: blur(10px);
+            background-color: rgba(26, 26, 46, 0.8);
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+        }
+        
+        .header_section.scrolled {
+            background-color: rgba(26, 26, 46, 0.95);
+            padding: 10px 0;
+        }
+        
+        .navbar-brand {
+            display: flex;
+            align-items: center;
+            transition: var(--transition-all);
+        }
+        
+        .navbar-brand img {
+            animation: fadeInUp 1.5s ease-in-out forwards;
+            height: 60px;
+            margin-right: 15px;
+            transition: var(--transition-all);
+        }
+        
+        .navbar-brand:hover img {
+            transform: rotate(10deg) scale(1.1);
+        }
+        
+        .navbar-toggler {
+            border: none;
+            padding: 0.5rem;
+            outline: none;
+        }
+        
+        .navbar-toggler:focus {
+            box-shadow: none;
+        }
+        
+        .navbar-toggler-icon {
+            background-image: url("data:image/svg+xml,%3csvg viewBox='0 0 30 30' xmlns='http://www.w3.org/2000/svg'%3e%3cpath stroke='rgba(255, 255, 255, 0.8)' stroke-width='2' stroke-linecap='round' stroke-miterlimit='10' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e");
+        }
+
+        /* Navigation Links */
+        .nav-link {
+            position: relative;
+            color: white;
+            padding: 10px 20px;
+            margin: 0 5px;
+            font-weight: 500;
+            font-size: 16px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: var(--transition-all);
+            border-radius: 30px;
+            overflow: hidden;
+        }
+        
+        .nav-link::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: var(--transition-all);
+        }
+        
+        .nav-link:hover::before {
+            left: 100%;
+        }
+        
+        .nav-link:hover {
+            color: var(--accent-color);
+            transform: translateY(-3px);
+        }
+        
+        .nav-link.active {
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--accent-color);
+        }
+        
+        /* Custom Button Styles */
+        .btn-custom {
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 30px;
+            font-weight: 600;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            transition: var(--transition-all);
+            box-shadow: 0 5px 15px rgba(67, 97, 238, 0.3);
+            position: relative;
+            overflow: hidden;
+            z-index: 1;
+        }
+        
+        .btn-custom::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 0;
+            height: 100%;
+            background: var(--secondary-color);
+            transition: var(--transition-all);
+            z-index: -1;
+        }
+        
+        .btn-custom:hover::before {
+            width: 100%;
+        }
+        
+        .btn-custom:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(67, 97, 238, 0.4);
+            color: white;
+        }
+        
+        .btn-custom:active {
+            transform: translateY(1px);
+        }
+        
+        /* Card Styles */
+        .feature-card {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 30px;
+            transition: var(--transition-all);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            border: none;
+            height: 100%;
+        }
+        
+        .feature-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15);
+        }
+        
+        .feature-card .card-icon {
+            font-size: 3rem;
+            color: var(--primary-color);
+            margin-bottom: 20px;
+        }
+        
+        .feature-card .card-title {
+            font-weight: 600;
+            color: var(--dark-color);
+            margin-bottom: 15px;
+        }
+        
+        .feature-card .card-text {
+            color: #666;
+        }
+
+        /* Footer Section */
+
+/* Base Styles */
+footer {
+    position: relative;
+    z-index: 1;
+}
+
+.footer_section {
+    background: var(--dark-color);
+    color: white;
+    padding: 60px 0 20px;
+    position: relative;
+    width: 100%;
+}
+
+.footer_section .container {
+    width: 100%;
+}
+
+.footer_section::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100px;
+    background: url("/static/images/wave.svg") center/cover no-repeat;
+    transform: translateY(-99px);
+}
+
+.footer-content {
+    padding-bottom: 30px;
+}
+
+.footer-logo {
+    margin-bottom: 20px;
+    max-width: 180px;
+}
+
+.footer-links h5 {
+    color: white;
+    margin-bottom: 20px;
+    position: relative;
+    padding-bottom: 10px;
+}
+
+.footer-links h5::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 40px;
+    height: 2px;
+    background: var(--accent-color);
+}
+
+.footer-links ul {
+    list-style: none;
+    padding: 0;
+}
+
+.footer-links li {
+    margin-bottom: 10px;
+}
+
+.footer-links a {
+    color: #bbb;
+    transition: var(--transition-all);
+    text-decoration: none;
+    position: relative;
+    padding-left: 15px;
+}
+
+.footer-links a::before {
+    content: '→';
+    position: absolute;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--accent-color);
+    opacity: 0;
+    transition: var(--transition-all);
+}
+
+.footer-links a:hover {
+    color: white;
+    padding-left: 25px;
+}
+
+.footer-links a:hover::before {
+    opacity: 1;
+    left: 5px;
+}
+
+.social-links a {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 50%;
+    color: white;
+    margin-right: 10px;
+    transition: var(--transition-all);
+}
+
+.social-links a:hover {
+    background: var(--primary-color);
+    transform: translateY(-5px);
+}
+
+.footer-bottom {
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    padding-top: 20px;
+    text-align: center;
+}
+
+.footer-bottom p {
+    margin-bottom: 0;
+    color: #aaa;
+    font-size: 14px;
+}
+
+/* Tablet (max-width: 991px) */
+@media (max-width: 991px) {
+    .footer-logo {
+        max-width: 150px;
+        margin-bottom: 15px;
+    }
+
+    .footer-description {
+        text-align: left;
+        font-size: 14px;
+    }
+
+    .footer-links h5 {
+        font-size: 20px;
+    }
+
+    .footer-links a {
+        font-size:20px;
+    }
+
+    .social-links a {
+        width: 36px;
+        height: 36px;
+        margin-right: 8px;
+    }
+
+    .footer-content .col-lg-4,
+    .footer-content .col-lg-3,
+    .footer-content .col-lg-2 {
+        margin-bottom: 30px;
+    }
+}
+
+/* Mobile (max-width: 576px) */
+@media (max-width: 576px) {
+    .footer-section {
+        padding: 40px 0 15px;
+    }
+
+    .footer-logo {
+        max-width: 120px;
+        margin-bottom: 10px;
+    }
+
+    .footer-links h5 {
+        font-size: 20px;
+    }
+
+    .footer-links a {
+        font-size: 20px;
+    }
+
+    .social-links a {
+        width: 30px;
+        height: 30px;
+        margin-right: 6px;
+    }
+
+    .footer-content {
+        text-align: center; /* Center text on small screens */
+    }
+
+    .footer-links {
+        margin-bottom: 20px;
+    }
+}
+
+/* Large Desktop (min-width: 992px) */
+@media (min-width: 992px) {
+    .footer-content .col-lg-4,
+    .footer-content .col-lg-3,
+    .footer-content .col-lg-2 {
+        margin-bottom: 0; /* Remove bottom margin on large screens */
+    }
+
+    .footer-description {
+        font-size: 16px;
+    }
+}
+
+        /* Loading Spinner */
+        #loading-spinner {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(26, 26, 46, 0.9);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            transition: opacity 0.5s ease;
+        }
+        
+        .spinner {
+            width: 70px;
+            height: 70px;
+            border: 5px solid rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+            border-top-color: var(--accent-color);
+            animation: spin 1s ease-in-out infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Main Content Area */
+        .main-content {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 40px;
+            margin: -50px auto 50px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+            position: relative;
+            z-index: 1;
+            animation: fadeIn 0.8s ease-out forwards;
+        }
+        
+        
+        @keyframes fadeIn {
+            0% {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            100% {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        /* Form Styles */
+        .form-control {
+            height: 50px;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+            padding-left: 20px;
+            transition: var(--transition-all);
+        }
+        
+        .form-control:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 0.25rem rgba(67, 97, 238, 0.25);
+        }
+        
+        textarea.form-control {
+            min-height: 150px;
+            padding-top: 15px;
+        }
+        
+        .form-label {
+            font-weight: 500;
+            color: var(--dark-color);
+            margin-bottom: 8px;
+        }
+        
+        /* Alert Messages */
+        .alert {
+            border-radius: 8px;
+            padding: 15px 20px;
+            margin-bottom: 20px;
+            border: none;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+        }
+        
+        .alert-success {
+            background-color: var(--success-color);
+            color: white;
+        }
+        
+        .alert-danger {
+            background-color: var(--danger-color);
+            color: white;
+        }
+        
+        .alert-warning {
+            background-color: var(--warning-color);
+            color: white;
+        }
+        
+        /* Responsive Adjustments */
+        @media (max-width: 991.98px) {
+            .hero_area {
+                padding: 120px 0 80px;
+            }
+            
+            h1 {
+                font-size: 2.2rem;
+            }
+            
+            .navbar-collapse {
+                background: rgba(26, 26, 46, 0.95);
+                padding: 20px;
+                border-radius: 10px;
+                margin-top: 15px;
+                box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            }
+            
+            .nav-link {
+                margin: 5px 0;
+            }
+        }
+        
+        @media (max-width: 767.98px) {
+            .hero_area {
+                padding: 100px 0 60px;
+            }
+            
+            h1 {
+                font-size: 1.8rem;
+            }
+            
+            .main-content {
+                padding: 30px 20px;
+                margin: -30px auto 30px;
+            }
+        }
+        
+        /* Floating Elements Animation */
+        .floating {
+            animation: floating 3s ease-in-out infinite;
+        }
+        
+        @keyframes floating {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-15px); }
+            100% { transform: translateY(0px); }
+        }
+        
+        /* Pulse Animation */
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(67, 97, 238, 0.7); }
+            70% { box-shadow: 0 0 0 15px rgba(67, 97, 238, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(67, 97, 238, 0); }
+        }
+        
+        /* Back to Top Button */
+        .back-to-top {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 50px;
+            height: 50px;
+            background: var(--primary-color);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            z-index: 99;
+            opacity: 0;
+            visibility: hidden;
+            transition: var(--transition-all);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+        
+        .back-to-top.active {
+            opacity: 1;
+            visibility: visible;
+        }
+        
+        .back-to-top:hover {
+            background: var(--secondary-color);
+            transform: translateY(-5px);
+        }
+/* Dropdown Menu */
+
+   /* Dropdown Menu Styling */
+    .dropdown-menu-custom {
+        border: none;
+        border-radius: 8px;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        padding: 10px 0;
+        margin-top: 8px;
+        min-width: 220px;
+        background-color: white;
+    }
+    
+    .dropdown-header {
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: #6c757d;
+        padding: 0.25rem 1.5rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .dropdown-item {
+        padding: 8px 20px;
+        font-size: 0.9rem;
+        color: #495057;
+        transition: all 0.2s;
+        display: flex;
+        align-items: center;
+    }
+    
+    .dropdown-item:hover {
+        background-color: #f8f9fa;
+        color: #1a1a2e;
+        transform: translateX(5px);
+    }
+    
+    .dropdown-item i {
+        width: 20px;
+        text-align: center;
+        margin-right: 10px;
+        color: #4361ee;
+    }
+    
+    .dropdown-divider {
+        margin: 5px 0;
+        border-color: #e9ecef;
+    }
+    
+    /* Animation for dropdown */
+    .dropdown-menu {
+        animation: fadeIn 0.3s ease-out;
+    }
+    
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(10px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    .user-name-spacing {
+    margin-left: 7px; /* Adjust the value as needed */
+}
+
+
+    </style>
+</head>
+
+<body class="sub_page">
+
+    <!-- Loading Spinner -->
+    <div id="loading-spinner" style="display: none;">
+        <div class="spinner"></div>
+    </div>
+
+    <!-- Hero Area -->
+    <div class="hero_area">
+        <!-- Header Section -->
+        <header class="header_section scrolled">
+            <div class="container">
+                <nav class="navbar navbar-expand-lg navbar-dark">
+                    <a class="navbar-brand" href="https://techphile.in/">
+                        <img src="./TechPhile.ai Mock Interviews_files/logo-nav.png" alt="Logo" style="max-width: fit-content;">
+                        <span class="d-none d-lg-inline">Mock Interview</span>
+                    </a>
+                    <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+                        <span class="navbar-toggler-icon"></span>
+                    </button>
+                    
+                    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+                        <ul class="navbar-nav ml-auto">
+    <!-- Home -->
+    <li class="nav-item">
+        <a class="nav-link " href="https://techphile.in/">
+            <i class="fas fa-home mr-1"></i> Home
+        </a>
+    </li>
+
+    <!-- About -->
+    <li class="nav-item">
+        <a class="nav-link active" href="https://techphile.in/about/">
+            <i class="fas fa-user mr-1"></i> About
+        </a>
+    </li>
+
+                      <!-- Dropdown: Assessments -->
+                      <li class="nav-item dropdown">
+                          <a class="nav-link dropdown-toggle" href="https://techphile.in/about/#" id="assessmentsDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                              <i class="fas fa-tasks mr-1"></i> Assessments
+                          </a>
+                          <div class="dropdown-menu dropdown-menu-custom" aria-labelledby="assessmentsDropdown">
+                              <h6 class="dropdown-header">Exam Preparation</h6>
+                              <a class="dropdown-item" href="https://techphile.in/exams/mock-exams/">
+                                  <i class="fas fa-file-alt mr-2"></i> Mock Exams
+                              </a>
+                              <a class="dropdown-item" href="https://techphile.in/exams/mock-interview/">
+                                  <i class="fas fa-comments mr-2"></i> Mock Interviews
+                              </a>
+                              <div class="dropdown-divider"></div>
+                              <h6 class="dropdown-header">Company Info</h6>
+                              <a class="dropdown-item" href="https://techphile.in/about/">
+                                  <i class="fas fa-info-circle mr-2"></i> About Us
+                              </a>
+                              <a class="dropdown-item" href="https://techphile.in/services/">
+                                  <i class="fas fa-cogs mr-2"></i> Services
+                              </a>
+                              <a class="dropdown-item" href="https://techphile.in/contact/">
+                                  <i class="fas fa-envelope mr-2"></i> Contact
+                              </a>
+                          </div>
+                      </li>
+                      
+                      <!-- Dropdown: User -->
+<!-- Dropdown: User -->
+<!-- Dropdown: User -->
+<li class="nav-item dropdown">
+<a class="nav-link dropdown-toggle d-flex align-items-center" href="https://techphile.in/about/#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+    
+        <i class="fas fa-user-circle mr-1"></i> User
+    
+</a>
+
+
+    <div class="dropdown-menu dropdown-menu-right dropdown-menu-custom" aria-labelledby="userDropdown">
+        
+            <a class="dropdown-item" href="https://techphile.in/accounts/login/">
+                <i class="fas fa-sign-in-alt mr-2"></i> Login
+            </a>
+            <a class="dropdown-item" href="https://techphile.in/accounts/signup/">
+                <i class="fas fa-user-plus mr-2"></i> Register
+            </a>
+        
+    </div>
+</li>
+
+                      </ul>
+
+                    </div>
+                </nav>
+            </div>
+        </header>
+        
+
+
+    
+<style>
+    /* About Hero Section */
+    .about-hero {
+        background: linear-gradient(135deg, #3a86ff, #4361ee);
+        padding: 120px 0 80px;
+        text-align: center;
+        color: white;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .about-hero h2 {
+        font-size: 3rem;
+        font-weight: 700;
+        margin-bottom: 20px;
+        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+    }
+
+    .about-hero p {
+        font-size: 1.2rem;
+        max-width: 800px;
+        margin: 0 auto 30px;
+        line-height: 1.8;
+    }
+
+    /* Mission Section */
+    .mission-section {
+        padding: 80px 0;
+        background-color: #f8f9fa;
+    }
+
+    .mission-card {
+        background: white;
+        border-radius: 15px;
+        padding: 30px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+        height: 100%;
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    .mission-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+    }
+
+    .mission-card i {
+        font-size: 2.5rem;
+        color: #4361ee;
+        margin-bottom: 20px;
+    }
+
+    .mission-card h3 {
+        color: #1a1a2e;
+        font-weight: 600;
+        margin-bottom: 15px;
+    }
+
+    /* Team Section */
+    .team-section {
+        padding: 80px 0;
+        background: linear-gradient(to bottom, #f8f9fa 0%, white 100%);
+    }
+
+    .team-member {
+        text-align: center;
+        margin-bottom: 30px;
+    }
+
+    .team-img {
+        width: 180px;
+        height: 180px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 5px solid white;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        margin-bottom: 20px;
+        transition: transform 0.3s ease;
+    }
+
+    .team-member:hover .team-img {
+        transform: scale(1.05);
+    }
+
+    .team-member h4 {
+        color: #1a1a2e;
+        font-weight: 600;
+        margin-bottom: 5px;
+    }
+
+    .team-member p {
+        color: #4361ee;
+        font-weight: 500;
+    }
+
+    .social-links {
+        margin-top: 15px;
+    }
+
+    .social-links a {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 35px;
+        height: 35px;
+        background: rgba(67, 97, 238, 0.1);
+        border-radius: 50%;
+        color: #4361ee;
+        margin: 0 5px;
+        transition: all 0.3s ease;
+    }
+
+    .social-links a:hover {
+        background: #4361ee;
+        color: white;
+        transform: translateY(-3px);
+    }
+
+    /* Stats Section */
+    .stats-section {
+        padding: 60px 0;
+        background: #4361ee;
+        color: white;
+        text-align: center;
+    }
+
+    .stat-item {
+        padding: 20px;
+    }
+
+    .stat-number {
+        font-size: 3rem;
+        font-weight: 700;
+        margin-bottom: 10px;
+    }
+
+    .stat-label {
+        font-size: 1.1rem;
+        opacity: 0.9;
+    }
+
+    /* Values Section */
+    .values-section {
+        padding: 80px 0;
+        background-color: white;
+    }
+
+    .value-item {
+        display: flex;
+        align-items: flex-start;
+        margin-bottom: 30px;
+    }
+
+    .value-icon {
+        flex-shrink: 0;
+        width: 60px;
+        height: 60px;
+        background: rgba(67, 97, 238, 0.1);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-right: 20px;
+        color: #4361ee;
+        font-size: 1.5rem;
+    }
+
+    .value-content h4 {
+        color: #1a1a2e;
+        font-weight: 600;
+        margin-bottom: 10px;
+    }
+
+    .value-content p {
+        color: #666;
+        line-height: 1.7;
+    }
+</style>
+
+
+<div class="about-hero" style="margin-top: -50px;">
+    <div class="container">
+        <h2 class="animate__animated animate__fadeInDown">About TechPhile.ai</h2>
+        <p class="animate__animated animate__fadeInUp animate__delay-0-5s">At TechPhile.ai, we specialize in providing high-quality mock interviews and exams to help job seekers prepare effectively for their dream careers. Our mission is to empower candidates with the skills and confidence needed to excel in interviews and assessments.</p>
+    <a href="https://techphile.in/about/#our-story" class="btn btn-outline-light btn-lg mt-3 animate__animated animate__fadeInUp animate__delay-2s">
+            Our Story
+        </a>
+    </div>
+</div>
+
+<section class="mission-section" id="our-story">
+    <div class="container">
+        <div class="row">
+            <div class="col-lg-4 mb-4 animate__animated animate__fadeIn">
+                <div class="mission-card">
+                    <i class="fas fa-bullseye"></i>
+                    <h3>Our Mission</h3>
+                    <p>To provide job seekers with realistic mock interview experiences and comprehensive exam preparation that enhance their skills and boost their confidence.</p>
+                </div>
+            </div>
+            <div class="col-lg-4 mb-4 animate__animated animate__fadeIn animate__delay-0-2s">
+                <div class="mission-card">
+                    <i class="fas fa-eye"></i>
+                    <h3>Our Vision</h3>
+                    <p>To be the leading platform for mock interviews and exams, transforming how candidates prepare for their careers through innovative solutions and expert guidance.</p>
+                </div>
+            </div>
+            <div class="col-lg-4 mb-4 animate__animated animate__fadeIn animate__delay-0-4s">
+                <div class="mission-card">
+                    <i class="fas fa-handshake"></i>
+                    <h3>Our Approach</h3>
+                    <p>We combine industry expertise with advanced technology to deliver personalized mock interview sessions and tailored exam preparation resources.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="team-section">
+    <div class="container">
+        <div class="text-center mb-5">
+            <h2 class="animate__animated animate__fadeIn">Meet Our Team</h2>
+            <p class="animate__animated animate__fadeIn animate__delay-0-2s">The dedicated professionals behind TechPhile.ai</p>
+        </div>
+        
+        <div class="row">
+            <div class="col-md-4 animate__animated animate__fadeInUp">
+                <div class="team-member">
+                    <img src="./TechPhile.ai Mock Interviews_files/team1.jpg" alt="Team Member" class="team-img">
+                    <h4>Dr. Sarah Johnson</h4>
+                    <p>Chief Data Scientist</p>
+                    
+                </div>
+            </div>
+            <div class="col-md-4 animate__animated animate__fadeInUp animate__delay-0-2s">
+                <div class="team-member">
+                    <img src="./TechPhile.ai Mock Interviews_files/team2.jpg" alt="Team Member" class="team-img">
+                    <h4>Michael Chen</h4>
+                    <p>ML Engineering Lead</p>
+                    
+                </div>
+            </div>
+            <div class="col-md-4 animate__animated animate__fadeInUp animate__delay-0-4s">
+                <div class="team-member">
+                    <img src="./TechPhile.ai Mock Interviews_files/team3.jpg" alt="Team Member" class="team-img">
+                    <h4>David Rodriguez</h4>
+                    <p>Career Development Specialist</p>
+                    
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="stats-section">
+    <div class="container">
+        <div class="row">
+            <div class="col-md-3 col-6 stat-item animate__animated animate__fadeIn">
+                <div class="stat-number">95%</div>
+                <div class="stat-label">Success Rate</div>
+            </div>
+            <div class="col-md-3 col-6 stat-item animate__animated animate__fadeIn animate__delay-0-2s">
+                <div class="stat-number">1,000+</div>
+                <div class="stat-label">Candidates Trained</div>
+            </div>
+            <div class="col-md-3 col-6 stat-item animate__animated animate__fadeIn animate__delay-0-4s">
+                <div class="stat-number">50+</div>
+                <div class="stat-label">Mock Interviews Conducted</div>
+            </div>
+            <div class="col-md-3 col-6 stat-item animate__animated animate__fadeIn animate__delay-0-6s">
+                <div class="stat-number">24/7</div>
+                <div class="stat-label">Support Available</div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="values-section">
+    <div class="container">
+        <div class="text-center mb-5">
+            <h2 class="animate__animated animate__fadeIn">Our Core Values</h2>
+            <p class="animate__animated animate__fadeIn animate__delay-0-2s">Principles that guide everything we do</p>
+        </div>
+        
+        <div class="row">
+            <div class="col-lg-6 animate__animated animate__fadeInUp">
+                <div class="value-item">
+                    <div class="value-icon">
+                        <i class="fas fa-lightbulb"></i>
+                    </div>
+                    <div class="value-content">
+                        <h4>Innovation</h4>
+                        <p>We constantly push boundaries to develop cutting-edge solutions that address real-world challenges in job preparation.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-6 animate__animated animate__fadeInUp animate__delay-0-2s">
+                <div class="value-item">
+                    <div class="value-icon">
+                        <i class="fas fa-chart-line"></i>
+                    </div>
+                    <div class="value-content">
+                        <h4>Accuracy</h4>
+                        <p>We maintain rigorous standards in our training and feedback processes to ensure our candidates are well-prepared.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-6 animate__animated animate__fadeInUp animate__delay-0-4s">
+                <div class="value-item">
+                    <div class="value-icon">
+                        <i class="fas fa-users"></i>
+                    </div>
+                    <div class="value-content">
+                        <h4>Collaboration</h4>
+                        <p>We believe in working closely with our candidates to understand their unique needs and challenges, ensuring our solutions deliver maximum value.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-6 animate__animated animate__fadeInUp animate__delay-0-6s">
+                <div class="value-item">
+                    <div class="value-icon">
+                        <i class="fas fa-lock"></i>
+                    </div>
+                    <div class="value-content">
+                        <h4>Integrity</h4>
+                        <p>We are committed to ethical practices, transparent methodologies, and honest communication in all our interactions.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+
+
+    <!-- Footer Section -->
+<footer class="footer-modern text-white py-5" style="margin-bottom: -50;">
+    <div class="container">
+        <div class="row g-4">
+            <!-- Logo Column -->
+            <div class="col-lg-3 col-md-6">
+                <a href="https://techphile.in/" class="d-inline-block mb-3">
+                    <img src="./TechPhile.ai Mock Interviews_files/logo1.png" alt="TechPhile.ai Logo" class="img-fluid" style="max-width: 200px;">
+                </a>
+            </div>
+
+            <!-- Company Overview Column -->
+            <div class="col-lg-3 col-md-6">
+                <h3 class="mb-3">Company Overview</h3>
+                <p>With a commitment to excellence and customer satisfaction, we strive to deliver premium quality and innovative solutions tailored to meet your needs.</p>
+            </div>
+
+            <!-- Contact Column -->
+            <div class="col-lg-3 col-md-6">
+                <h3 class="mb-3">Contact</h3>
+                <ul class="list-unstyled">
+                    <li class="mb-2">
+                        <i class="fas fa-map-marker-alt me-2 text-info"></i>
+                        TechPhile.ai, Bengaluru, India
+                    </li>
+                    <li class="mb-2">
+                        <i class="fas fa-phone-alt me-2 text-success"></i>
+                        <a href="tel:+916304673717" class="text-white">+91 63046 73717</a>
+                    </li>
+                    <li class="mb-2">
+                        <i class="fas fa-phone-alt me-2 text-success"></i>
+                        <a href="tel:+918688297097" class="text-white">+91 86882 97097</a>
+                    </li>
+                    <li class="mb-2">
+                        <i class="fas fa-envelope me-2 text-warning"></i>
+                        <a href="mailto:techphile@techphile.in" class="text-white">techphile@techphile.in</a>
+                    </li>
+                </ul>
+            </div>
+
+            <!-- Services Column -->
+            <div class="col-lg-3 col-md-6">
+                <h3 class="mb-3">Services</h3>
+                <ul class="list-unstyled">
+                    <li class="mb-2">
+                        <i class="fas fa-check-circle me-2 text-primary"></i>
+                        <a href="https://techphile.in/services/" class="text-white">Technical Skills Assessment</a>
+                    </li>
+                    <li class="mb-2">
+                        <i class="fas fa-check-circle me-2 text-primary"></i>
+                        <a href="https://techphile.in/services/" class="text-white">Communication Skills Enhancement</a>
+                    </li>
+                    <li class="mb-2">
+                        <i class="fas fa-check-circle me-2 text-primary"></i>
+                        <a href="https://techphile.in/services/" class="text-white">Behavioral Interview Preparation</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        <hr class="my-4 bg-light">
+
+        <!-- Copyright -->
+        <div class="row align-items-center">
+            <div class="col-md-8 text-center text-md-start mb-3 mb-md-0">
+                <p class="mb-0">© 2025 All Rights Reserved. Made by <span class="text-warning fw-bold">TechPhile.ai</span></p>
+            </div>
+            <div class="col-md-4 text-center text-md-end" style="font-size: ;">
+                <ul class="list-inline mb-0">
+                    <li class="list-inline-item">
+                        <a href="https://wa.me/916304673717" target="_blank" class="social-icon bg-success text-white d-inline-flex align-items-center justify-content-center rounded-circle">
+                            <i class="fab fa-whatsapp"></i>
+                        </a>
+                    </li>
+                    <li class="list-inline-item ms-3">
+                        <a href="https://t.me/TechPhile150" target="_blank" class="social-icon bg-primary text-white d-inline-flex align-items-center justify-content-center rounded-circle">
+                            <i class="fab fa-telegram-plane"></i>
+                        </a>
+                    </li>
+                    <li class="list-inline-item ms-3">
+                        <a href="https://www.instagram.com/techphile.ai" target="_blank" class="social-icon bg-danger text-white d-inline-flex align-items-center justify-content-center rounded-circle">
+                            <i class="fab fa-instagram"></i>
+                        </a>
+                    </li>
+                </ul>
+            </div>
+            
+            
+        </div>
+    </div>
+</footer>
+
+
+    <!-- Back to Top Button -->
+    <a href="https://techphile.in/about/#" class="back-to-top active"><i class="fas fa-arrow-up"></i></a>
+
+    <!-- Scripts -->
+    <script src="./TechPhile.ai Mock Interviews_files/jquery-3.4.1.min.js.download"></script>
+    <script src="./TechPhile.ai Mock Interviews_files/bootstrap.bundle.min.js.download"></script>
+    <script src="./TechPhile.ai Mock Interviews_files/owl.carousel.min.js.download"></script>
+    <script src="./TechPhile.ai Mock Interviews_files/wow.min.js.download"></script>
+       
+    <!-- REQUIRED SCRIPTS FOR DROPDOWN -->
+<script src="./TechPhile.ai Mock Interviews_files/jquery-3.6.0.min.js.download"></script>
+
+<script src="./TechPhile.ai Mock Interviews_files/bootstrap.bundle.min(1).js.download"></script>
+
+<!-- Other scripts -->
+<script src="./TechPhile.ai Mock Interviews_files/owl.carousel.min.js.download"></script>
+<script src="./TechPhile.ai Mock Interviews_files/wow.min.js.download"></script>
+    <script>
+        // Loading Spinner
+        window.addEventListener('load', function() {
+            setTimeout(function() {
+                document.getElementById('loading-spinner').style.opacity = '0';
+                setTimeout(function() {
+                    document.getElementById('loading-spinner').style.display = 'none';
+                }, 500);
+            }, 1000);
+        });
+        
+        // Header Scroll Effect
+        window.addEventListener('scroll', function() {
+            const header = document.querySelector('.header_section');
+            if (window.scrollY > 50) {
+                header.classList.add('scrolled');
+            } else {
+                header.classList.remove('scrolled');
+            }
+        });
+        
+        // Back to Top Button
+        const backToTopButton = document.querySelector('.back-to-top');
+        window.addEventListener('scroll', function() {
+            if (window.scrollY > 300) {
+                backToTopButton.classList.add('active');
+            } else {
+                backToTopButton.classList.remove('active');
+            }
+        });
+        
+        backToTopButton.addEventListener('click', function(e) {
+            e.preventDefault();
+            window.scrollTo({
+                top: 0,
+                behavior: 'smooth'
+            });
+        });
+        
+        // Initialize animations
+        new WOW().init();
+        
+        // Smooth scrolling for all links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                
+                const targetId = this.getAttribute('href');
+                if (targetId === '#') return;
+                
+                const targetElement = document.querySelector(targetId);
+                if (targetElement) {
+                    window.scrollTo({
+                        top: targetElement.offsetTop - 80,
+                        behavior: 'smooth'
+                    });
+                }
+            });
+        });
+        
+        // Form input effects
+        document.querySelectorAll('.form-control').forEach(input => {
+            input.addEventListener('focus', function() {
+                this.parentElement.classList.add('focused');
+            });
+            
+            input.addEventListener('blur', function() {
+                if (this.value === '') {
+                    this.parentElement.classList.remove('focused');
+                }
+            });
+        });
+
+        
+        $(document).ready(function() {
+    // Initialize all dropdowns
+    $('.dropdown-toggle').dropdown();
+    
+    // Loading Spinner
+    setTimeout(function() {
+        $('#loading-spinner').fadeOut();
+    }, 1000);
+    
+    // Header Scroll Effect
+    $(window).scroll(function() {
+        if ($(this).scrollTop() > 50) {
+            $('.header_section').addClass('scrolled');
+        } else {
+            $('.header_section').removeClass('scrolled');
+        }
+    });
+    
+    // Back to Top Button
+    $(window).scroll(function() {
+        if ($(this).scrollTop() > 300) {
+            $('.back-to-top').addClass('active');
+        } else {
+            $('.back-to-top').removeClass('active');
+        }
+    });
+    
+    $('.back-to-top').click(function(e) {
+        e.preventDefault();
+        $('html, body').animate({scrollTop: 0}, 'smooth');
+    });
+    
+    // Initialize animations
+    new WOW().init();
+});
+    </script>
+
+
+
+</div></body></html>

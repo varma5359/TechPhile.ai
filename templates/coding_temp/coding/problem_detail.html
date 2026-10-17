@@ -1,0 +1,1083 @@
+{% extends 'coding_temp/base.html' %}
+
+{% block title %}{{ problem.title }} - TechPhile.ai Coding{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="grid lg:grid-cols-2 gap-8">
+<!-- Problem Description Section -->
+<div class="bg-white dark:bg-gray-900 rounded-xl shadow-lg p-8">
+    <!-- Title and Difficulty Badge -->
+    <div class="flex justify-between items-center mb-6">
+        <h1 class="text-3xl font-semibold text-gray-900 dark:text-white">
+            {{ problem.title }}
+        </h1>
+        <span class="px-4 py-1 text-sm font-semibold rounded-full
+            {% if problem.difficulty == 'Easy' %}
+                bg-green-200 text-green-900 dark:bg-green-800 dark:text-green-100
+            {% elif problem.difficulty == 'Medium' %}
+                bg-yellow-200 text-yellow-900 dark:bg-yellow-800 dark:text-yellow-100
+            {% else %}
+                bg-red-200 text-red-900 dark:bg-red-800 dark:text-red-100
+            {% endif %}
+        ">
+            {{ problem.difficulty }}
+        </span>
+    </div>
+
+    <!-- Problem Content -->
+    <div class="space-y-6 text-gray-800 dark:text-gray-300 text-base leading-relaxed">
+        <div>
+            <h2 class="text-xl font-semibold text-gray-800 dark:text-gray-200 mb-2">📝 Description</h2>
+            <p class="whitespace-pre-line">{{ problem.description }}</p>
+        </div>
+
+        <div>
+            <h2 class="text-xl font-semibold text-gray-800 dark:text-gray-200 mb-2">Input Format</h2>
+            <p class="whitespace-pre-line">{{ problem.input_format }}</p>
+        </div>
+
+        <div>
+            <h2 class="text-xl font-semibold text-gray-800 dark:text-gray-200 mb-2"> Output Format</h2>
+            <p class="whitespace-pre-line">{{ problem.output_format }}</p>
+        </div>
+
+        <div>
+            <h2 class="text-xl font-semibold text-gray-800 dark:text-gray-200 mb-2">Constraints</h2>
+            <p class="whitespace-pre-line">{{ problem.constraints }}</p>
+        </div>
+
+        <div>
+            <h2 class="text-xl font-semibold text-gray-800 dark:text-gray-200 mb-2">🔍 Sample Input</h2>
+            <pre class="bg-gray-100 dark:bg-gray-800 text-sm p-4 rounded-md overflow-x-auto">
+<code>{{ problem.sample_input }}</code>
+            </pre>
+        </div>
+
+        <div>
+            <h2 class="text-xl font-semibold text-gray-800 dark:text-gray-200 mb-2">✅ Sample Output</h2>
+            <pre class="bg-gray-100 dark:bg-gray-800 text-sm p-4 rounded-md overflow-x-auto">
+<code>{{ problem.sample_output }}</code>
+            </pre>
+        </div>
+    </div>
+</div>
+
+        
+        <!-- Code Editor -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-semibold text-gray-900 dark:text-white">
+                    Code Editor
+                </h2>
+                <select id="language-select" class="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white">
+                    <option value="python">Python</option>
+                    <option value="javascript">JavaScript</option>
+                    <option value="java">Java</option>
+                    <option value="cpp">C++</option>
+                    <option value="c">C</option>
+                </select>
+            </div>
+            
+            <div class="mb-4">
+                <div id="code-editor-container" class="border border-gray-300 dark:border-gray-600 rounded-lg overflow-hidden">
+                    <textarea 
+                        id="code-editor" 
+                        class="hidden"
+                        placeholder="Write your code here..."
+                    ></textarea>
+                </div>
+            </div>
+            
+            {% if user.is_authenticated %}
+            <div class="flex gap-4 mb-6">
+                <button 
+                    id="run-code" 
+                    class="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                    <i class="fas fa-play mr-2"></i>Run Code
+                </button>
+                <button 
+                    id="submit-code" 
+                    class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                    <i class="fas fa-paper-plane mr-2"></i>Submit
+                </button>
+            </div>
+            {% else %}
+            <div class="bg-yellow-100 dark:bg-yellow-900 border border-yellow-400 dark:border-yellow-600 text-yellow-700 dark:text-yellow-300 px-4 py-3 rounded mb-6">
+                <p>Please <a href="{% url 'login' %}" class="font-medium underline">login</a> to run and submit code.</p>
+            </div>
+            {% endif %}
+            
+            <!-- Results Section -->
+            <div id="results-section" class="hidden">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+                    Results
+                </h3>
+                <div id="results-content" class="bg-gray-100 dark:bg-gray-900 p-4 rounded-lg">
+                    <!-- Results will be populated here -->
+                </div>
+            </div>
+
+            <!-- DEBUG: Remove this after testing -->
+<!-- Solution Button Container (initially hidden) -->
+<div id="solution-button-container" class="mt-4 flex justify-center hidden">
+    <button id="show-solution-btn" class="bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-700 transition-colors">
+        <i class="fas fa-lightbulb mr-2"></i>View Suggested Solution
+    </button>
+</div>
+
+<!-- Solution Modal -->
+<div id="solution-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+        <div class="flex justify-between items-center p-4 border-b dark:border-gray-700">
+            <h3 class="text-xl font-semibold text-gray-900 dark:text-white">Suggested Solution</h3>
+            <button id="close-solution-modal" class="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="flex-1 overflow-auto p-4">
+            <div id="solution-content" class="prose dark:prose-invert max-w-none">
+                <!-- Solution will be loaded here -->
+            </div>
+        </div>
+        <div class="p-4 border-t dark:border-gray-700 flex justify-end">
+            <button id="copy-solution" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+                <i class="fas fa-copy mr-2"></i>Copy Solution
+            </button>
+        </div>
+    </div>
+</div>
+            
+            <!-- Keyboard shortcuts hint -->
+            <div class="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                Shortcuts: <kbd class="px-1 py-0.5 bg-gray-200 dark:bg-gray-700 rounded">Ctrl+Enter</kbd> to submit, <kbd class="px-1 py-0.5 bg-gray-200 dark:bg-gray-700 rounded">Ctrl+Shift+R</kbd> to run
+            </div>
+        </div>
+    </div>
+    
+    <!-- Submission History -->
+    {% if user.is_authenticated and user_submissions %}
+    <div class="mt-8 bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
+        <h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+            Your Recent Submissions
+        </h2>
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm text-gray-700 dark:text-gray-300">
+                <thead class="bg-gray-50 dark:bg-gray-700">
+                    <tr>
+                        <th class="px-4 py-3 text-left">Language</th>
+                        <th class="px-4 py-3 text-left">Status</th>
+                        <th class="px-4 py-3 text-left">Runtime</th>
+                        <th class="px-4 py-3 text-left">Submitted</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for submission in user_submissions %}
+                    <tr class="border-b border-gray-200 dark:border-gray-700">
+                        <td class="px-4 py-3">{{ submission.get_language_display }}</td>
+                        <td class="px-4 py-3">
+                            <span class="px-2 py-1 text-xs font-medium rounded-full
+                                {% if submission.status == 'Accepted' %}
+                                    bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200
+                                {% elif submission.status == 'Wrong Answer' %}
+                                    bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200
+                                {% else %}
+                                    bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200
+                                {% endif %}
+                            ">
+                                {{ submission.status }}
+                            </span>
+                        </td>
+                        <td class="px-4 py-3">{{ submission.execution_time|default:'-' }}ms</td>
+                        <td class="px-4 py-3">{{ submission.submitted_at|date:"M d, Y H:i" }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+{% csrf_token %}
+
+<!-- Include CodeMirror -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/theme/monokai.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/python/python.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/javascript/javascript.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/clike/clike.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/edit/closebrackets.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/edit/matchbrackets.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/selection/active-line.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/fold/foldcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/fold/foldgutter.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/fold/brace-fold.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/fold/indent-fold.min.js"></script>
+
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const languageSelect = document.getElementById('language-select');
+    const runButton = document.getElementById('run-code');
+    const submitButton = document.getElementById('submit-code');
+    const resultsSection = document.getElementById('results-section');
+    const resultsContent = document.getElementById('results-content');
+    
+    // Modal-related variables
+    const solutionModal = document.getElementById('solution-modal');
+    const showSolutionBtn = document.getElementById('show-solution-btn');
+    const closeSolutionModal = document.getElementById('close-solution-modal');
+    const solutionContent = document.getElementById('solution-content');
+    const copySolutionBtn = document.getElementById('copy-solution');
+    
+    // Get problem details
+    const problemTitle = "{{ problem.title }}";
+    const sampleInput = `{{ problem.sample_input }}`;
+    const sampleOutput = `{{ problem.sample_output }}`;
+    const problemId = {{ problem.id }};
+    
+    // Language templates
+    const getLanguageTemplate = (language) => {
+        // For Two Sum problem specifically
+        if (problemTitle.toLowerCase().includes('two sum') || problemTitle.toLowerCase().includes('sum of two')) {
+            switch(language) {
+                case 'python':
+                    return `# Read input
+a, b = map(int, input().split())
+
+# Calculate sum
+result = a + b
+
+# Print result
+print(result)`;
+                
+                case 'javascript':
+                    return `// Read input
+const readline = require('readline');
+const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout
+});
+
+rl.on('line', (line) => {
+    const [a, b] = line.split(' ').map(Number);
+    const result = a + b;
+    console.log(result);
+    rl.close();
+});`;
+                
+                case 'java':
+                    return `import java.util.Scanner;
+
+public class Solution {
+    public static void main(String[] args) {
+        Scanner scanner = new Scanner(System.in);
+        
+        int a = scanner.nextInt();
+        int b = scanner.nextInt();
+        
+        int result = a + b;
+        System.out.println(result);
+        
+        scanner.close();
+    }
+}`;
+                
+                case 'cpp':
+                    return `#include <iostream>
+using namespace std;
+
+int main() {
+    int a, b;
+    cin >> a >> b;
+    
+    int result = a + b;
+    cout << result << endl;
+    
+    return 0;
+}`;
+                
+                case 'c':
+                    return `#include <stdio.h>
+
+int main() {
+    int a, b;
+    scanf("%d %d", &a, &b);
+    
+    int result = a + b;
+    printf("%d\\n", result);
+    
+    return 0;
+}`;
+            }
+        }
+        
+        // For array-based Two Sum problem (LeetCode style)
+        if (problemTitle.toLowerCase().includes('two sum') && sampleInput.includes('\\n')) {
+            switch(language) {
+                case 'python':
+                    return `# Read input
+n = int(input())
+arr = list(map(int, input().split()))
+target = int(input())
+
+# Your solution here
+# Find two indices that sum to target
+for i in range(n):
+    for j in range(i + 1, n):
+        if arr[i] + arr[j] == target:
+            print(i, j)
+            break
+    else:
+        continue
+    break`;
+                
+                case 'javascript':
+                    return `// Read input
+const readline = require('readline');
+const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout
+});
+
+let input = [];
+rl.on('line', (line) => {
+    input.push(line);
+});
+
+rl.on('close', () => {
+    const n = parseInt(input[0]);
+    const arr = input[1].split(' ').map(Number);
+    const target = parseInt(input[2]);
+    
+    // Your solution here
+    for (let i = 0; i < n; i++) {
+        for (let j = i + 1; j < n; j++) {
+            if (arr[i] + arr[j] === target) {
+                console.log(i, j);
+                return;
+            }
+        }
+    }
+});`;
+                
+                case 'java':
+                    return `import java.util.*;
+
+public class Solution {
+    public static void main(String[] args) {
+        Scanner scanner = new Scanner(System.in);
+        
+        int n = scanner.nextInt();
+        int[] arr = new int[n];
+        for (int i = 0; i < n; i++) {
+            arr[i] = scanner.nextInt();
+        }
+        int target = scanner.nextInt();
+        
+        // Your solution here
+        for (int i = 0; i < n; i++) {
+            for (int j = i + 1; j < n; j++) {
+                if (arr[i] + arr[j] == target) {
+                    System.out.println(i + " " + j);
+                    return;
+                }
+            }
+        }
+        
+        scanner.close();
+    }
+}`;
+                
+                case 'cpp':
+                    return `#include <iostream>
+#include <vector>
+using namespace std;
+
+int main() {
+    int n;
+    cin >> n;
+    vector<int> arr(n);
+    for (int i = 0; i < n; i++) {
+        cin >> arr[i];
+    }
+    int target;
+    cin >> target;
+    
+    // Your solution here
+    for (int i = 0; i < n; i++) {
+        for (int j = i + 1; j < n; j++) {
+            if (arr[i] + arr[j] == target) {
+                cout << i << " " << j << endl;
+                return 0;
+            }
+        }
+    }
+    
+    return 0;
+}`;
+                
+                case 'c':
+                    return `#include <stdio.h>
+#include <stdlib.h>
+
+int main() {
+    int n;
+    scanf("%d", &n);
+    int* arr = (int*)malloc(n * sizeof(int));
+    for (int i = 0; i < n; i++) {
+        scanf("%d", &arr[i]);
+    }
+    int target;
+    scanf("%d", &target);
+    
+    // Your solution here
+    for (int i = 0; i < n; i++) {
+        for (int j = i + 1; j < n; j++) {
+            if (arr[i] + arr[j] == target) {
+                printf("%d %d\\n", i, j);
+                free(arr);
+                return 0;
+            }
+        }
+    }
+    
+    free(arr);
+    return 0;
+}`;
+            }
+        }
+        
+        // Default templates for other problems
+        switch(language) {
+            case 'python':
+                return `# Read input
+# Write your solution here
+
+# Print output`;
+            
+            case 'javascript':
+                return `// Read input
+const readline = require('readline');
+const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout
+});
+
+rl.on('line', (line) => {
+    // Process input
+    // Write your solution here
+    
+    rl.close();
+});`;
+            
+            case 'java':
+                return `import java.util.*;
+
+public class Solution {
+    public static void main(String[] args) {
+        Scanner scanner = new Scanner(System.in);
+        
+        // Read input
+        // Write your solution here
+        
+        scanner.close();
+    }
+}`;
+            
+            case 'cpp':
+                return `#include <iostream>
+using namespace std;
+
+int main() {
+    // Read input
+    // Write your solution here
+    
+    return 0;
+}`;
+            
+            case 'c':
+                return `#include <stdio.h>
+
+int main() {
+    // Read input
+    // Write your solution here
+    
+    return 0;
+}`;
+            
+            default:
+                return '// Write your code here';
+        }
+    };
+    
+    // Language mode mapping for CodeMirror
+    const languageModes = {
+        python: 'python',
+        javascript: 'javascript',
+        java: 'text/x-java',
+        cpp: 'text/x-c++src',
+        c: 'text/x-csrc'
+    };
+    
+    // Initialize CodeMirror
+    let editor = CodeMirror(document.getElementById('code-editor-container'), {
+        value: getLanguageTemplate('python'),
+        mode: 'python',
+        theme: 'monokai',
+        lineNumbers: true,
+        autoCloseBrackets: true,
+        matchBrackets: true,
+        styleActiveLine: true,
+        indentUnit: 4,
+        indentWithTabs: false,
+        lineWrapping: true,
+        foldGutter: true,
+        gutters: ["CodeMirror-linenumbers", "CodeMirror-foldgutter"],
+        extraKeys: {
+            "Tab": function(cm) {
+                if (cm.somethingSelected()) {
+                    cm.indentSelection("add");
+                } else {
+                    cm.replaceSelection("    ");
+                }
+            },
+            "Shift-Tab": function(cm) {
+                cm.indentSelection("subtract");
+            },
+            "Ctrl-Enter": function(cm) {
+                if (submitButton && !submitButton.disabled) {
+                    submitButton.click();
+                }
+            },
+            "Ctrl-Shift-R": function(cm) {
+                if (runButton && !runButton.disabled) {
+                    runButton.click();
+                }
+            }
+        }
+    });
+    
+    // Set editor height
+    editor.setSize(null, 400);
+    
+
+    function clearResults() {
+    if (resultsSection && resultsContent) {
+        resultsSection.classList.add('hidden');
+        resultsContent.innerHTML = '';
+    }
+}
+
+    // Load saved code from localStorage
+    const savedCode = localStorage.getItem(`code-${window.location.pathname}`);
+    const savedLanguage = localStorage.getItem(`language-${window.location.pathname}`);
+    
+    if (savedLanguage && languageSelect) {
+        languageSelect.value = savedLanguage;
+        editor.setOption('mode', languageModes[savedLanguage]);
+        if (savedCode) {
+            editor.setValue(savedCode);
+        } else {
+            editor.setValue(getLanguageTemplate(savedLanguage));
+        }
+    }
+    
+    // Auto-save code
+    let saveTimeout;
+    editor.on('change', function() {
+        clearTimeout(saveTimeout);
+        saveTimeout = setTimeout(() => {
+            localStorage.setItem(`code-${window.location.pathname}`, editor.getValue());
+        }, 1000);
+    });
+    
+    // Update code template when language changes
+  // Update code template when language changes
+if (languageSelect) {
+    languageSelect.addEventListener('change', function() {
+        const selectedLang = this.value;
+        const currentCode = editor.getValue().trim();
+        const defaultCode = getLanguageTemplate(savedLanguage || 'python').trim();
+        
+        const confirmChange = currentCode === '' || currentCode === defaultCode ||
+                            confirm('Changing language will replace your current code. Continue?');
+        
+        if (confirmChange) {
+            // Clear previous results
+            clearResults();
+            
+            // Update editor with new language template
+            editor.setValue(getLanguageTemplate(selectedLang));
+            editor.setOption('mode', languageModes[selectedLang]);
+            
+            // Update storage
+            localStorage.setItem(`language-${window.location.pathname}`, selectedLang);
+            localStorage.setItem(`code-${window.location.pathname}`, getLanguageTemplate(selectedLang));
+            
+            // Update current language variable
+            currentLanguage = selectedLang;
+            
+            // Check attempt status for new language
+            checkAttemptStatus(selectedLang);
+        } else {
+            // Revert selection
+            this.value = savedLanguage || 'python';
+        }
+    });
+}
+
+// Global variables
+let currentProblemId = {{ problem.id }};
+let currentLanguage = languageSelect.value;
+
+// Function to update solution button visibility
+function updateSolutionButton(show) {
+    const solutionBtnContainer = document.getElementById('solution-button-container');
+    if (solutionBtnContainer) {
+        solutionBtnContainer.classList.toggle('hidden', !show);
+    }
+}
+
+// Function to check attempt status for current language
+function checkAttemptStatus() {
+    fetch(`/coding/api/problem/${currentProblemId}/attempts/?language=${currentLanguage}`, {
+        headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        }
+    })
+    .then(response => {
+        if (!response.ok) throw new Error('Network response was not ok');
+        return response.json();
+    })
+    .then(data => {
+        // Verify the response is for the current language
+        if (data.language === currentLanguage) {
+            updateSolutionButton(data.show_solution);
+        }
+    })
+    .catch(error => {
+        console.error('Error checking attempt status:', error);
+        updateSolutionButton(false); // Hide button on error
+    });
+}
+
+// Initialize solution button functionality
+function initSolutionButton() {
+    // Initial check
+    checkAttemptStatus();
+    
+    // Check when language changes
+    languageSelect.addEventListener('change', function() {
+        currentLanguage = this.value;
+        checkAttemptStatus();
+    });
+    
+    // Setup modal functionality
+    const showSolutionBtn = document.getElementById('show-solution-btn');
+    const solutionModal = document.getElementById('solution-modal');
+    const closeSolutionModal = document.getElementById('close-solution-modal');
+    
+    if (showSolutionBtn && solutionModal) {
+        showSolutionBtn.addEventListener('click', function() {
+            fetch(`/coding/api/problem/${currentProblemId}/solution/?language=${currentLanguage}`)
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('solution-content').innerHTML = 
+                    `<pre><code>${data.solution}</code></pre>`;
+                solutionModal.classList.remove('hidden');
+            });
+        });
+    }
+    
+    if (closeSolutionModal) {
+        closeSolutionModal.addEventListener('click', function() {
+            solutionModal.classList.add('hidden');
+        });
+    }
+}
+
+// Call initialization when DOM is loaded
+document.addEventListener('DOMContentLoaded', initSolutionButton);
+
+// Update after submission
+function handleSubmissionResponse(data) {
+    if (data.language === currentLanguage) {
+        updateSolutionButton(data.show_solution);
+    }
+}
+
+// Call this when page loads
+document.addEventListener('DOMContentLoaded', function() {
+    // Initial check
+    checkAttemptStatus();
+    
+    // Check when language changes
+    languageSelect.addEventListener('change', checkAttemptStatus);
+    
+    // Check after submissions
+    submitButton.addEventListener('click', function() {
+        // After submission completes:
+        checkAttemptStatus();
+    });
+});
+    
+    // Call this after code submission
+    function handleSubmissionResponse(data) {
+        if (data.show_solution !== undefined) {
+            updateSolutionButton(data.show_solution, data.language);
+        }
+    }
+
+    // Function to setup solution button event listener
+    function setupSolutionButton() {
+        const solutionBtn = document.getElementById('show-solution-btn');
+        if (solutionBtn) {
+            solutionBtn.addEventListener('click', function(event) {
+                event.preventDefault();
+                const language = languageSelect ? languageSelect.value : 'python';
+                
+                solutionContent.innerHTML = `
+                    <div class="flex justify-center items-center h-32">
+                        <i class="fas fa-spinner fa-spin text-2xl text-blue-500"></i>
+                        <span class="ml-2">Loading solution...</span>
+                    </div>
+                `;
+                solutionModal.classList.remove('hidden');
+                
+                fetch(`/coding/api/problem/${problemId}/solution/?language=${language}`, {
+                    headers: {
+                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                    }
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.solution) {
+                        solutionContent.innerHTML = `
+                            <div class="relative">
+                                <pre class="language-${language}"><code>${data.solution}</code></pre>
+                                <button id="copy-solution" class="absolute top-2 right-2 bg-gray-200 hover:bg-gray-300 text-gray-800 p-1 rounded">
+                                    <i class="fas fa-copy"></i>
+                                </button>
+                            </div>
+                        `;
+                        
+                        // Setup copy button
+                        const copyBtn = document.getElementById('copy-solution');
+                        if (copyBtn) {
+                            copyBtn.addEventListener('click', function() {
+                                const codeElement = solutionContent.querySelector('code');
+                                if (codeElement) {
+                                    navigator.clipboard.writeText(codeElement.textContent)
+                                        .then(() => {
+                                            showNotification('Solution copied to clipboard!', 'success');
+                                        })
+                                        .catch(() => {
+                                            showNotification('Failed to copy solution', 'error');
+                                        });
+                                }
+                            });
+                        }
+                        
+                        if (typeof Prism !== 'undefined') {
+                            Prism.highlightAll();
+                        }
+                    } else {
+                        solutionContent.innerHTML = `
+                            <div class="text-yellow-600 p-4">
+                                <i class="fas fa-exclamation-triangle mr-2"></i>
+                                No solution available for ${language}.
+                            </div>
+                        `;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching solution:', error);
+                    solutionContent.innerHTML = `
+                        <div class="text-red-600 p-4">
+                            <i class="fas fa-exclamation-circle mr-2"></i>
+                            Error loading solution: ${error.message}
+                        </div>
+                    `;
+                });
+            });
+        }
+    }
+    
+    // Initial setup of solution button if it exists
+    setupSolutionButton();
+    
+    // Run code function (for testing)
+    if (runButton) {
+        runButton.addEventListener('click', function() {
+            const code = editor.getValue();
+            const language = languageSelect ? languageSelect.value : 'python';
+            
+            if (!code.trim()) {
+                showNotification('Please write some code before running.', 'warning');
+                return;
+            }
+            
+            // Show sample test
+            resultsSection.classList.remove('hidden');
+            resultsContent.innerHTML = `
+                <div class="mb-4">
+                    <h4 class="font-semibold text-blue-600 flex items-center">
+                        <i class="fas fa-info-circle mr-2"></i>Running with sample input...
+                    </h4>
+                    <p class="text-sm text-gray-600 dark:text-gray-400">This is a preview. Click Submit to get actual results.</p>
+                </div>
+                <div class="mb-4">
+                    <h5 class="font-medium mb-2">Sample Input:</h5>
+                    <pre class="bg-gray-200 dark:bg-gray-800 p-3 rounded text-sm overflow-x-auto">${sampleInput}</pre>
+                </div>
+                <div>
+                    <h5 class="font-medium mb-2">Expected Output:</h5>
+                    <pre class="bg-gray-200 dark:bg-gray-800 p-3 rounded text-sm overflow-x-auto">${sampleOutput}</pre>
+                </div>
+            `;
+            
+            // Scroll to results
+            resultsSection.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        });
+    }
+    
+// Submit code function
+if (submitButton) {
+    submitButton.addEventListener('click', async function() {
+        // Clear previous results and disable buttons
+        clearResults();
+        toggleSubmissionButtons(true);
+        
+        const code = editor.getValue();
+        const language = languageSelect.value;
+          
+        // Validate code exists
+        if (!code.trim()) {
+            showNotification('Please write some code before submitting.', 'warning');
+            toggleSubmissionButtons(false);
+            return;
+        }
+        
+        try {
+            // Submit code
+            console.log("start")
+            const response = await fetch('{% url "submit_code" %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                },
+                body: JSON.stringify({
+                    problem_id: problemId,
+                    code: code,
+                    language: language
+                })
+            });
+console.log(response)
+            // Handle response
+            const data = await handleApiResponse(response);
+            displaySubmissionResults(data);
+            
+        } catch (error) {
+            handleSubmissionError(error);
+        } finally {
+            toggleSubmissionButtons(false);
+            resultsSection.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+    });
+}
+
+// Helper functions
+function toggleSubmissionButtons(disabled) {
+    if (runButton) runButton.disabled = disabled;
+    submitButton.disabled = disabled;
+    submitButton.innerHTML = disabled 
+        ? '<i class="fas fa-spinner fa-spin mr-2"></i>Submitting...'
+        : '<i class="fas fa-paper-plane mr-2"></i>Submit';
+}
+
+async function handleApiResponse(response) {
+    if (response.status === 429) {
+        throw { type: 'RATE_LIMIT', message: 'Too many requests. Please wait 60 seconds.' };
+    }
+    if (!response.ok) {
+        throw { type: 'NETWORK_ERROR', message: 'Network response was not ok' };
+    }
+    return await response.json();
+}
+
+function displaySubmissionResults(data) {
+    resultsSection.classList.remove('hidden');
+    
+    if (data.status === 'success') {
+        const result = data.result;
+        const isAccepted = result.status === 'Accepted';
+        const statusClass = isAccepted ? 'text-green-600' : 'text-red-600';
+        const statusIcon = isAccepted ? 'fa-check-circle' : 'fa-times-circle';
+        
+        // Build results HTML
+        let resultsHTML = `
+            <div class="mb-4">
+                <h4 class="font-semibold ${statusClass} flex items-center">
+                    <i class="fas ${statusIcon} mr-2"></i>${result.status}
+                </h4>
+                ${result.execution_time ? `<p class="text-sm text-gray-600 dark:text-gray-400">Runtime: ${result.execution_time}ms</p>` : ''}
+            </div>
+            <div class="mb-4">
+                <h5 class="font-medium mb-2">Your Output:</h5>
+                <pre class="bg-gray-200 dark:bg-gray-800 p-3 rounded text-sm overflow-x-auto">${result.output || 'No output'}</pre>
+            </div>`;
+        
+        if (result.expected) {
+            resultsHTML += `
+                <div>
+                    <h5 class="font-medium mb-2">Expected Output:</h5>
+                    <pre class="bg-gray-200 dark:bg-gray-800 p-3 rounded text-sm overflow-x-auto">${result.expected}</pre>
+                </div>`;
+        }
+        
+        resultsContent.innerHTML = resultsHTML;
+        
+        // Update solution button
+        if (data.show_solution !== undefined) {
+            updateSolutionButton(data.show_solution, data.language);
+        }
+        
+        // Show notification
+        showNotification(
+            isAccepted ? '🎉 Congratulations! Your solution was accepted!' : `Submission failed: ${result.status}`,
+            isAccepted ? 'success' : 'error'
+        );
+        
+        // Clear saved code on success
+        if (isAccepted) {
+            localStorage.removeItem(`code-${window.location.pathname}`);
+        }
+    } else {
+        resultsContent.innerHTML = `
+            <div class="text-red-600">
+                <h4 class="font-semibold flex items-center">
+                    <i class="fas fa-exclamation-triangle mr-2"></i>Error
+                </h4>
+                <p>${data.message || 'Unknown error occurred during submission'}</p>
+            </div>`;
+        showNotification(data.message || 'Submission error occurred', 'error');
+    }
+}
+
+function handleSubmissionError(error) {
+    console.error('Submission error:', error);
+    resultsSection.classList.remove('hidden');
+    
+    if (error.type === 'RATE_LIMIT') {
+        resultsContent.innerHTML = `
+            <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-4">
+                <div class="flex items-start">
+                    <div class="flex-shrink-0 pt-0.5">
+                        <i class="fas fa-exclamation-triangle text-yellow-400"></i>
+                    </div>
+                    <div class="ml-3">
+                        <h4 class="font-semibold text-yellow-800">
+                            Service Temporarily Unavailable
+                        </h4>
+                        <div class="mt-2 text-sm text-yellow-700">
+                            <p>Our code execution service is currently overloaded. Please:</p>
+                            <ul class="list-disc pl-5 mt-1 space-y-1">
+                                <li>Wait 1-2 minutes before trying again</li>
+                                <li>Review your code for potential issues</li>
+                                <li>Use "Run Code" to test locally first</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="mt-4">
+                <h5 class="font-medium mb-2">Technical Details:</h5>
+                <pre class="bg-gray-200 dark:bg-gray-800 p-3 rounded text-sm overflow-x-auto">${error.message}</pre>
+            </div>`;
+        showNotification('Please wait before submitting again', 'warning');
+    } else {
+        resultsContent.innerHTML = `
+            <div class="text-red-600">
+                <h4 class="font-semibold flex items-center">
+                    <i class="fas fa-exclamation-triangle mr-2"></i>${error.type === 'NETWORK_ERROR' ? 'Network Error' : 'Submission Error'}
+                </h4>
+                <p>${error.type === 'NETWORK_ERROR' 
+                    ? 'Could not connect to the server. Please check your internet connection.' 
+                    : 'Something went wrong during submission.'}</p>
+                ${error.message ? `
+                <div class="mt-2">
+                    <pre class="bg-gray-200 dark:bg-gray-800 p-3 rounded text-sm overflow-x-auto">${error.message}</pre>
+                </div>` : ''}
+            </div>`;
+        showNotification('Submission failed. Please try again.', 'error');
+    }
+}
+
+// Close modal handlers
+    if (closeSolutionModal) {
+        closeSolutionModal.addEventListener('click', function() {
+            solutionModal.classList.add('hidden');
+        });
+    }
+
+    if (solutionModal) {
+        solutionModal.addEventListener('click', function(e) {
+            if (e.target === solutionModal) {
+                solutionModal.classList.add('hidden');
+            }
+        });
+    }
+    
+    // Initial check for attempt status
+    if (languageSelect) {
+        checkAttemptStatus(languageSelect.value);
+    }
+    
+    // Function to show notifications
+    function showNotification(message, type = 'info') {
+        const notification = document.createElement('div');
+        notification.className = `fixed top-4 right-4 z-50 p-4 rounded-lg shadow-lg max-w-sm transition-all duration-300 ${
+            type === 'success' ? 'bg-green-100 text-green-800 border border-green-200' :
+            type === 'error' ? 'bg-red-100 text-red-800 border border-red-200' :
+            type === 'warning' ? 'bg-yellow-100 text-yellow-800 border border-yellow-200' :
+            'bg-blue-100 text-blue-800 border border-blue-200'
+        }`;
+        notification.innerHTML = `
+            <div class="flex items-start">
+                <span class="mr-2 mt-0.5">
+                    ${type === 'success' ? '<i class="fas fa-check-circle"></i>' :
+                      type === 'error' ? '<i class="fas fa-exclamation-circle"></i>' :
+                      type === 'warning' ? '<i class="fas fa-exclamation-triangle"></i>' :
+                      '<i class="fas fa-info-circle"></i>'}
+                </span>
+                <span class="flex-1">${message}</span>
+                <button class="ml-4 text-xl leading-none hover:opacity-70" onclick="this.parentElement.parentElement.remove()">&times;</button>
+            </div>
+        `;
+        
+        document.body.appendChild(notification);
+        
+        // Auto-remove after 5 seconds
+        setTimeout(() => {
+            if (notification.parentElement) {
+                notification.style.opacity = '0';
+                notification.style.transform = 'translateX(100%)';
+                setTimeout(() => notification.remove(), 300);
+            }
+        }, 5000);
+    }
+});
+</script>
+
+{% endblock %}

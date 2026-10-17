@@ -1,0 +1,136 @@
+
+
+    /* Hero Section Background */
+    #section-14087826 {
+        background-image: url("/static/images/download.jpg");
+        background-repeat: no-repeat;
+        background-size: cover;
+        background-position: center center;
+    }
+    
+    /* Register Button */
+    .register-btn {
+        background-color: orange;
+        color: white;
+        border: none;
+        padding: 12px 20px;
+        font-size: 18px;
+        border-radius: 25px;
+        cursor: pointer;
+        transition: 0.3s ease;
+        width: 100%;
+        max-width: 280px;
+    }
+
+    .register-btn:hover {
+        background-color: #e69500;
+    }
+
+    /* Community Section */
+    .community-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        margin: 50px auto;
+        width: 100%;
+        max-width: 400px;
+    }
+
+    .community-heading {
+        font-size: 1.5rem;
+        font-weight: bold;
+        margin-bottom: 10px;
+    }
+
+    .community-text {
+        font-size: 1rem;
+        margin-bottom: 20px;
+        color: #0b0909;
+    }
+
+    .community-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        max-width: 300px;
+        padding: 12px;
+        margin: 10px 0;
+        font-weight: bold;
+        border-radius: 8px;
+        text-decoration: none;
+        color: white;
+        font-size: 1rem;
+    }
+
+    .btn-success {
+        background-color: #25D366; /* WhatsApp Green */
+        border: none;
+    }
+
+    .btn-primary {
+        background-color: #0088cc; /* Telegram Blue */
+        border: none;
+    }
+
+    .community-btn:hover {
+        opacity: 0.8;
+    }
+
+    /* Responsive Styles */
+    @media screen and (max-width: 768px) {
+        .container {
+            padding: 20px;
+            max-width: 90%;
+        }
+        
+        .benefits-section div {
+            width: 100% !important;
+            margin-bottom: 20px;
+        }
+        
+        img {
+            width: 100%;
+            max-width: 100%;
+        }
+        
+        #home {
+            margin-top: -20px;
+        }
+        
+        .wb-heroHeader-wrapper h6 {
+            font-size: 10px;
+        }
+        
+        .importance-section {
+            margin-top: -35px;
+        }
+        
+        .cta-section h2 {
+            font-size: 24px;
+        }
+        
+        .cta-section h3 {
+            font-size: 20px;
+        }
+        
+        .register-btn {
+            font-size: 16px;
+            padding: 10px 15px;
+            max-width: 250px;
+        }
+        
+        .community-container {
+            width: 90%;
+        }
+        
+        .community-btn {
+            max-width: 100%;
+        }
+        
+        .benefits-section {
+            margin-top: -80px;
+        }
+    }

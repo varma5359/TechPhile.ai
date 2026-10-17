@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Interview Assignment Notification</title>
+    <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background-color: #4a6bff; color: white; padding: 20px; text-align: center; }
+        .content { padding: 20px; border: 1px solid #ddd; }
+        .footer { margin-top: 20px; text-align: center; font-size: 0.8em; color: #777; }
+        .btn { display: inline-block; padding: 10px 20px; background-color: #4a6bff; color: white; text-decoration: none; border-radius: 5px; }
+        .details { margin: 15px 0; }
+        .detail-item { margin-bottom: 10px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h2>New Interview Assignment</h2>
+        </div>
+        
+        <div class="content">
+            <p>Hello {{ interviewer.first_name }},</p>
+            
+            <p>You have been assigned to conduct a mock interview with the following candidate:</p>
+            
+            <div class="details">
+                <div class="detail-item">
+                    <strong>Candidate:</strong> {{ interview.first_name }} {{ interview.last_name }}
+                </div>
+                <div class="detail-item">
+                    <strong>Interview Date:</strong> {{ interview_date }} at {{ interview_time }}
+                </div>
+                <div class="detail-item">
+                    <strong>Interview Type:</strong> {{ interview.get_interview_type_display }}
+                </div>
+                <div class="detail-item">
+                    <strong>Skills to Assess:</strong> {{ interview.skills }}
+                </div>
+            </div>
+            
+            <p><strong>Interview Link:</strong> <a href="{{ interview_link }}">{{ interview_link }}</a></p>
+            
+            <div style="text-align: center; margin: 25px 0;">
+                <a href="{{ interview_link }}" class="btn">Join Interview</a>
+            </div>
+            
+            <p>Please review the candidate's resume and prepare relevant questions based on their skills.</p>
+            
+            <p>You can view all your assigned interviews in the <a href="{{ admin_url }}">admin panel</a>.</p>
+        </div>
+        
+        <div class="footer">
+            <p>This is an automated notification. Please do not reply to this email.</p>
+        </div>
+    </div>
+</body>
+</html>

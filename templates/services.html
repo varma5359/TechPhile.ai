@@ -1,0 +1,629 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block contents %}
+<style>
+    /* Services Hero Section */
+    .services-hero {
+        background: linear-gradient(135deg, #4361ee, #3a0ca3);
+        padding: 120px 0 80px;
+        text-align: center;
+        color: white;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .services-hero h2 {
+        font-size: 3rem;
+        font-weight: 700;
+        margin-bottom: 20px;
+        text-shadow: 2px 2px 8px rgba(0, 0, 0, 0.3);
+    }
+    
+    .services-hero p {
+        font-size: 1.2rem;
+        max-width: 800px;
+        margin: 0 auto 30px;
+        opacity: 0.9;
+    }
+    
+    /* Services Section */
+    .services-section {
+        padding: 80px 0;
+        background-color: #f8f9fa;
+    }
+    
+    .service-card {
+        background: white;
+        border-radius: 12px;
+        padding: 30px;
+        margin-bottom: 30px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+        transition: all 0.4s cubic-bezier(0.645, 0.045, 0.355, 1);
+        height: 100%;
+        border-left: 4px solid var(--primary-color);
+    }
+    
+    .service-card:hover {
+        transform: translateY(-10px);
+        box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+    }
+    
+    .service-icon {
+        font-size: 2.5rem;
+        color: var(--primary-color);
+        margin-bottom: 20px;
+    }
+    
+    .service-card h3 {
+        color: var(--dark-color);
+        margin-bottom: 15px;
+        font-weight: 600;
+    }
+    
+    .service-card p {
+        color: #666;
+        margin-bottom: 20px;
+    }
+    
+    .service-features {
+        list-style: none;
+        padding: 0;
+        margin-bottom: 20px;
+    }
+    
+    .service-features li {
+        padding: 8px 0;
+        position: relative;
+        padding-left: 25px;
+    }
+    
+    .service-features li::before {
+        content: '\f00c';
+        font-family: 'Font Awesome 5 Free';
+        font-weight: 900;
+        position: absolute;
+        left: 0;
+        color: var(--success-color);
+    }
+    
+    /* Pricing Section */
+    .pricing-section {
+        padding: 80px 0;
+        background: linear-gradient(135deg, rgba(67, 97, 238, 0.05), rgba(63, 55, 201, 0.05));
+    }
+    
+    .pricing-card {
+        background: white;
+        border-radius: 12px;
+        padding: 40px 30px;
+        margin-bottom: 30px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+        transition: all 0.4s cubic-bezier(0.645, 0.045, 0.355, 1);
+        text-align: center;
+        border-top: 4px solid var(--primary-color);
+    }
+    
+    .pricing-card.popular {
+        border-top: 4px solid var(--accent-color);
+        position: relative;
+        transform: scale(1.05);
+        z-index: 1;
+    }
+    
+    .pricing-card.popular::after {
+        content: 'Most Popular';
+        position: absolute;
+        top: -12px;
+        right: 20px;
+        background: var(--accent-color);
+        color: white;
+        padding: 5px 15px;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        font-weight: 600;
+    }
+    
+    .pricing-card h3 {
+        color: var(--dark-color);
+        margin-bottom: 15px;
+        font-weight: 600;
+    }
+    
+    .price {
+        font-size: 2.5rem;
+        font-weight: 700;
+        color: var(--primary-color);
+        margin-bottom: 20px;
+    }
+    
+    .price span {
+        font-size: 1rem;
+        color: #666;
+    }
+    
+    .pricing-features {
+        list-style: none;
+        padding: 0;
+        margin-bottom: 30px;
+    }
+    
+    .pricing-features li {
+        padding: 10px 0;
+        border-bottom: 1px solid #eee;
+    }
+    
+    /* Testimonials Section */
+    .testimonials-section {
+        padding: 80px 0;
+        background-color: var(--dark-color);
+        color: white;
+    }
+    
+    .testimonial-card {
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 12px;
+        padding: 30px;
+        margin-bottom: 30px;
+        transition: all 0.4s cubic-bezier(0.645, 0.045, 0.355, 1);
+    }
+    
+    .testimonial-card:hover {
+        background: rgba(255, 255, 255, 0.15);
+    }
+    
+    .testimonial-text {
+        font-style: italic;
+        margin-bottom: 20px;
+        position: relative;
+    }
+    
+    .testimonial-text::before,
+    .testimonial-text::after {
+        content: '"';
+        font-size: 3rem;
+        color: rgba(255, 255, 255, 0.2);
+        position: absolute;
+    }
+    
+    .testimonial-text::before {
+        top: -20px;
+        left: -10px;
+    }
+    
+    .testimonial-text::after {
+        bottom: -40px;
+        right: -10px;
+    }
+    
+    .testimonial-author {
+        display: flex;
+        align-items: center;
+    }
+    
+    .testimonial-author img {
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        margin-right: 15px;
+        object-fit: cover;
+    }
+    
+    .author-info h5 {
+        margin-bottom: 5px;
+        color: white;
+    }
+    
+    .author-info p {
+        color: #bbb;
+        margin-bottom: 0;
+        font-size: 0.9rem;
+    }
+    
+    /* CTA Section */
+    .services-cta {
+        padding: 100px 0;
+        background: linear-gradient(135deg, var(--accent-color), var(--primary-color));
+        text-align: center;
+        color: white;
+    }
+    
+    .services-cta h2 {
+        font-size: 2.8rem;
+        font-weight: 700;
+        margin-bottom: 20px;
+    }
+    
+    .services-cta p {
+        font-size: 1.2rem;
+        max-width: 700px;
+        margin: 0 auto 40px;
+        opacity: 0.9;
+    }
+
+  /*  Our Student Support Services*/
+
+  
+    /* Support Section Styles */
+    .support-section {
+        padding: 80px 0;
+        background: linear-gradient(135deg, rgba(76, 201, 240, 0.05), rgba(67, 97, 238, 0.05));
+    }
+    
+    .support-card {
+        background: white;
+        border-radius: 12px;
+        padding: 30px;
+        margin-bottom: 30px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+        transition: all 0.4s cubic-bezier(0.645, 0.045, 0.355, 1);
+        height: 100%;
+        border-top: 4px solid var(--primary-color);
+        text-align: center;
+    }
+    
+    .support-card:hover {
+        transform: translateY(-10px);
+        box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+    }
+    
+    .support-icon {
+        font-size: 2.5rem;
+        color: var(--primary-color);
+        margin-bottom: 20px;
+        display: inline-block;
+        width: 70px;
+        height: 70px;
+        line-height: 70px;
+        background: rgba(67, 97, 238, 0.1);
+        border-radius: 50%;
+    }
+    
+    .support-card h3 {
+        color: var(--dark-color);
+        margin-bottom: 15px;
+        font-weight: 600;
+    }
+    
+    .support-card p {
+        color: #666;
+        margin-bottom: 20px;
+    }
+    
+    .support-features {
+        list-style: none;
+        padding: 0;
+        margin-bottom: 20px;
+        text-align: left;
+    }
+    
+    .support-features li {
+        padding: 8px 0;
+        position: relative;
+        padding-left: 25px;
+    }
+    
+    .support-features li::before {
+        content: '\f00c';
+        font-family: 'Font Awesome 5 Free';
+        font-weight: 900;
+        position: absolute;
+        left: 0;
+        color: var(--success-color);
+    }
+    
+    .btn-custom {
+        background: var(--primary-color);
+        color: white;
+        border: none;
+        padding: 10px 25px;
+        border-radius: 30px;
+        font-weight: 500;
+        transition: all 0.3s;
+    }
+    
+    .btn-custom:hover {
+        background: var(--secondary-color);
+        color: white;
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(67, 97, 238, 0.3);
+    }
+
+</style>
+
+
+<section class="services-hero" style="margin-top: -50px;">
+    <div class="container">
+        <h2 class="animate__animated animate__fadeInDown">Our Comprehensive Services</h2>
+        <p class="animate__animated animate__fadeInUp animate__delay-0-5s">Empowering your career growth with industry-standard mock interviews and technical assessments</p>
+    </div>
+</section>
+
+<section class="services-section">
+    <div class="container">
+        <div class="row">
+            <div class="col-md-6 col-lg-4 animate__animated animate__fadeInUp">
+                <div class="service-card">
+                    <div class="service-icon">
+                        <i class="fas fa-laptop-code"></i>
+                    </div>
+                    <h3>Technical Mock Interviews</h3>
+                    <p>Real-world technical interviews conducted by industry experts to prepare you for your dream job.</p>
+                    <ul class="service-features">
+                        <li>Simulates actual interview environment</li>
+                        <li>Covering DS/Algo, System Design</li>
+                        <li>Personalized feedback session</li>
+                        <li>Multiple difficulty levels</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="col-md-6 col-lg-4 animate__animated animate__fadeInUp animate__delay-0-2s">
+                <div class="service-card">
+                    <div class="service-icon">
+                        <i class="fas fa-file-alt"></i>
+                    </div>
+                    <h3>Behavioral Mock Interviews</h3>
+                    <p>Master the art of answering behavioral questions with our structured approach.</p>
+                    <ul class="service-features">
+                        <li>STAR method training</li>
+                        <li>Leadership & teamwork scenarios</li>
+                        <li>Communication skills evaluation</li>
+                        <li>Body language analysis</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="col-md-6 col-lg-4 animate__animated animate__fadeInUp animate__delay-0-4s">
+                <div class="service-card">
+                    <div class="service-icon">
+                        <i class="fas fa-chart-bar"></i>
+                    </div>
+                    <h3>Technical Assessments</h3>
+                    <p>Comprehensive coding tests to evaluate your technical skills objectively.</p>
+                    <ul class="service-features">
+                        <li>Multiple programming languages</li>
+                        <li>Time-bound challenges</li>
+                        <li>Detailed performance report</li>
+                        <li>Skill gap analysis</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="col-md-6 col-lg-4 animate__animated animate__fadeInUp animate__delay-0-6s">
+                <div class="service-card">
+                    <div class="service-icon">
+                        <i class="fas fa-project-diagram"></i>
+                    </div>
+                    <h3>System Design Interviews</h3>
+                    <p>Prepare for senior engineering roles with realistic system design challenges.</p>
+                    <ul class="service-features">
+                        <li>Scalability & performance focus</li>
+                        <li>Real-world system scenarios</li>
+                        <li>Trade-off analysis</li>
+                        <li>Database schema design</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="col-md-6 col-lg-4 animate__animated animate__fadeInUp animate__delay-0-8s">
+                <div class="service-card">
+                    <div class="service-icon">
+                        <i class="fas fa-users"></i>
+                    </div>
+                    <h3>HR Round Preparation</h3>
+                    <p>Ace the final HR round with confidence and professionalism.</p>
+                    <ul class="service-features">
+                        <li>Salary negotiation strategies</li>
+                        <li>Company culture alignment</li>
+                        <li>Common HR questions</li>
+                        <li>Professional etiquette</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="col-md-6 col-lg-4 animate__animated animate__fadeInUp animate__delay-1s">
+                <div class="service-card">
+                    <div class="service-icon">
+                        <i class="fas fa-graduation-cap"></i>
+                    </div>
+                    <h3>Resume & Portfolio Review</h3>
+                    <p>Get your resume and portfolio optimized for maximum impact.</p>
+                    <ul class="service-features">
+                        <li>ATS optimization</li>
+                        <li>Project highlight strategies</li>
+                        <li>Technical skills presentation</li>
+                        <li>Personal branding</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="support-section">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-lg-8 text-center mb-5">
+                <h2 class="mb-3">Our Student Support Services</h2>
+                <p>We're committed to your success with these completely free resources and support programs</p>
+            </div>
+        </div>
+        
+        <div class="row">
+            <div class="col-md-4 animate__animated animate__fadeInUp">
+                <div class="support-card">
+                    <div class="support-icon">
+                        <i class="fas fa-calendar-week"></i>
+                    </div>
+                    <h3>Weekly Mock Interviews</h3>
+                    <p>Regular practice sessions with our team to help you improve continuously.</p>
+                    <ul class="support-features">
+                        <li>Rotating technical focus areas</li>
+                        <li>Peer-to-peer interview practice</li>
+                        <li>Community feedback sessions</li>
+                        <li>Progress tracking over time</li>
+                    </ul>
+                    <a href="#" class="btn btn-custom">Join Weekly Sessions</a>
+                </div>
+            </div>
+            
+            <div class="col-md-4 animate__animated animate__fadeInUp animate__delay-0-2s">
+                <div class="support-card">
+                    <div class="support-icon">
+                        <i class="fas fa-code"></i>
+                    </div>
+                    <h3>Daily Coding Challenges</h3>
+                    <p>Sharpen your skills with our curated daily programming exercises.</p>
+                    <ul class="support-features">
+                        <li>New problem every day</li>
+                        <li>Multiple difficulty levels</li>
+                        <li>Solution discussions</li>
+                        <li>Algorithmic thinking focus</li>
+                    </ul>
+                    <a href="#" class="btn btn-custom">Start Challenges</a>
+                </div>
+            </div>
+            
+            <div class="col-md-4 animate__animated animate__fadeInUp animate__delay-0-4s">
+                <div class="support-card">
+                    <div class="support-icon">
+                        <i class="fas fa-laptop"></i>
+                    </div>
+                    <h3>Live Coding Sessions</h3>
+                    <p>Interactive real-time coding with our expert mentors.</p>
+                    <ul class="support-features">
+                        <li>Weekly live coding workshops</li>
+                        <li>Q&A with industry professionals</li>
+                        <li>Real-world problem solving</li>
+                        <li>Collaborative environment</li>
+                    </ul>
+                    <a href="#" class="btn btn-custom">Attend Live Sessions</a>
+                </div>
+            </div>
+        </div>
+        
+        <div class="row mt-4">
+            <div class="col-md-4 animate__animated animate__fadeInUp animate__delay-0-6s">
+                <div class="support-card">
+                    <div class="support-icon">
+                        <i class="fas fa-users"></i>
+                    </div>
+                    <h3>Mentorship Program</h3>
+                    <p>Get paired with an experienced mentor in your field of interest.</p>
+                    <ul class="support-features">
+                        <li>Personalized guidance</li>
+                        <li>Career path advice</li>
+                        <li>Regular check-ins</li>
+                        <li>Portfolio reviews</li>
+                    </ul>
+                    <a href="#" class="btn btn-custom">Find a Mentor</a>
+                </div>
+            </div>
+            
+            <div class="col-md-4 animate__animated animate__fadeInUp animate__delay-0-8s">
+                <div class="support-card">
+                    <div class="support-icon">
+                        <i class="fas fa-project-diagram"></i>
+                    </div>
+                    <h3>Project Collaboration</h3>
+                    <p>Work on real projects with other students and our team.</p>
+                    <ul class="support-features">
+                        <li>Team-based learning</li>
+                        <li>Git workflow practice</li>
+                        <li>Code review sessions</li>
+                        <li>Portfolio building</li>
+                    </ul>
+                    <a href="#" class="btn btn-custom">Join a Project</a>
+                </div>
+            </div>
+            
+            <div class="col-md-4 animate__animated animate__fadeInUp animate__delay-1s">
+                <div class="support-card">
+                    <div class="support-icon">
+                        <i class="fas fa-question-circle"></i>
+                    </div>
+                    <h3>24/7 Doubt Support</h3>
+                    <p>Get your technical questions answered anytime by our community.</p>
+                    <ul class="support-features">
+                        <li>Slack community access</li>
+                        <li>Expert-led forums</li>
+                        <li>Code debugging help</li>
+                        <li>Interview prep Q&A</li>
+                    </ul>
+                    <a href="#" class="btn btn-custom">Get Support</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+
+
+<section class="testimonials-section">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-lg-8 text-center mb-5">
+                <h2 class="mb-3">What Our Candidates Say</h2>
+                <p>Success stories from candidates who aced their interviews with our help</p>
+            </div>
+        </div>
+        
+        <div class="row">
+            <div class="col-md-4 animate__animated animate__fadeInUp">
+                <div class="testimonial-card">
+                    <div class="testimonial-text">
+                        The mock interview was incredibly realistic. The feedback helped me identify my weak areas and I was able to land an offer from Google!
+                    </div>
+                    <div class="testimonial-author">
+                        <img src="{% static 'images/testimonial1.jpg' %}" alt="Sarah J.">
+                        <div class="author-info">
+                            <h5>Sarah J.</h5>
+                            <p>Software Engineer, Google</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-4 animate__animated animate__fadeInUp animate__delay-0-2s">
+                <div class="testimonial-card">
+                    <div class="testimonial-text">
+                        The system design practice sessions were exactly what I needed to prepare for my Amazon interview. The interviewer covered all the right topics.
+                    </div>
+                    <div class="testimonial-author">
+                        <img src="{% static 'images/testimonial2.jpg' %}" alt="Michael T.">
+                        <div class="author-info">
+                            <h5>Michael T.</h5>
+                            <p>Senior Engineer, Amazon</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-4 animate__animated animate__fadeInUp animate__delay-0-4s">
+                <div class="testimonial-card">
+                    <div class="testimonial-text">
+                        I was struggling with behavioral questions. The HR round preparation gave me the confidence to articulate my experiences effectively.
+                    </div>
+                    <div class="testimonial-author">
+                        <img src="{% static 'images/testimonial3.jpg' %}" alt="Priya K.">
+                        <div class="author-info">
+                            <h5>Priya K.</h5>
+                            <p>Product Manager, Microsoft</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="services-cta">
+    <div class="container">
+        <h2 class="animate__animated animate__fadeInDown">Ready to Ace Your Next Interview?</h2>
+        <p class="animate__animated animate__fadeInUp animate__delay-0-5s">Join thousands of successful candidates who landed their dream jobs with our help</p>
+        <a href="{% url 'signup' %}" class="btn btn-custom animate__animated animate__fadeInUp animate__delay-1s">Get Started Today</a>
+    </div>
+</section>
+
+{% endblock %}

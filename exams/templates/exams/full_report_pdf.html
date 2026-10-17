@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Exam Report - {{ attempt.exam.title }}</title>
+    <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; }
+        .header { text-align: center; margin-bottom: 20px; }
+        .score { font-size: 24px; font-weight: bold; }
+        .passed { color: #27ae60; }
+        .failed { color: #e74c3c; }
+        .question { margin-bottom: 20px; page-break-inside: avoid; }
+        .answer { margin-left: 15px; }
+        .explanation { 
+            background: #f8f9fa; 
+            padding: 10px; 
+            border-left: 3px solid #3498db;
+            margin-top: 10px;
+        }
+        @page {
+            size: A4;
+            margin: 1.5cm;
+            @bottom-center {
+                content: "Page " counter(page) " of " counter(pages);
+                font-size: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Exam Report: {{ attempt.exam.title }}</h1>
+        <p>Completed on: {{ attempt.completed_at|date:"F j, Y H:i" }}</p>
+        <div class="score {% if attempt.score >= 70 %}passed{% else %}failed{% endif %}">
+            Score: {{ attempt.score|floatformat:1 }}% - 
+            {% if attempt.score >= 70 %}PASSED{% else %}FAILED{% endif %}
+        </div>
+    </div>
+
+    <div class="summary">
+        <p>Correct Answers: {{ correct_count }} / {{ total_questions }}</p>
+    </div>
+
+    <h2>Question Review</h2>
+    
+    {% for answer in user_answers %}
+    <div class="question">
+        <p><strong>Q{{ forloop.counter }}:</strong> {{ answer.question.question_text }}</p>
+        
+        <div class="answer {% if answer.is_correct %}correct{% else %}incorrect{% endif %}">
+            <strong>Your Answer:</strong> {{ answer.selected_answer.answer_text }}
+        </div>
+        
+        {% if not answer.is_correct %}
+        <div class="answer correct">
+            <strong>Correct Answer:</strong> {{ answer.question.answers.filter(is_correct=True).first.answer_text }}
+        </div>
+        {% endif %}
+        
+        {% if answer.question.explanation %}
+        <div class="explanation">
+            <strong>Explanation:</strong> {{ answer.question.explanation }}
+        </div>
+        {% endif %}
+    </div>
+    {% endfor %}
+</body>
+</html>

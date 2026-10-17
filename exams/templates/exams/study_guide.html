@@ -1,0 +1,900 @@
+{% extends 'exams/exam_base.html' %}
+{% load static %}
+
+{% block title %}Ultimate Study Guide | TechPhile.ai{% endblock %}
+
+{% block extra_css %}
+<style>
+.glass-header {
+    background: rgba(255,255,255,0.9);
+    backdrop-filter: blur(10px);
+    border-radius: 2rem;
+    box-shadow: 0 8px 32px 0 rgba(67,97,238,0.15);
+    border: 1px solid rgba(255,255,255,0.2);
+}
+.glass-card {
+    background: rgba(255,255,255,0.85);
+    backdrop-filter: blur(8px);
+    border-radius: 1.5rem;
+    border: 1px solid rgba(255,255,255,0.2);
+}
+.icon-circle-gradient {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+    color: #fff;
+    font-size: 1.3rem;
+    box-shadow: 0 2px 8px rgba(67,233,123,0.15);
+}
+.icon-circle-sm {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2rem;
+    height: 2rem;
+    border-radius: 50%;
+    font-size: 1rem;
+}
+.text-gradient {
+    background: linear-gradient(90deg, #43e97b 0%, #38f9d7 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+.gradient-text {
+    background: linear-gradient(90deg, #4361ee 0%, #4cc9f0 50%, #f72585 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+.bg-gradient-primary {
+    background: linear-gradient(135deg, #4361ee 0%, #3a0ca3 100%);
+}
+.bg-gradient-warning-light {
+    background: linear-gradient(135deg, rgba(255,193,7,0.1) 0%, rgba(255,193,7,0.2) 100%);
+}
+.resource-card .card-header {
+    border-radius: 0.5rem 0.5rem 0 0;
+}
+.resource-card {
+    border-radius: 0.5rem;
+    transition: all 0.3s ease;
+}
+.resource-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+}
+.fixed-bottom {
+    position: fixed;
+    right: 1rem;
+    bottom: 1rem;
+    z-index: 1030;
+}
+.accordion-button:not(.collapsed) {
+    background-color: rgba(67,97,238,0.05);
+    color: #4361ee;
+}
+.accordion-button:focus {
+    box-shadow: none;
+    border-color: rgba(67,97,238,0.25);
+}
+.progress-bar {
+    border-radius: 4px;
+}
+.bg-gradient-primary-light {
+    background: linear-gradient(135deg, rgba(67,97,238,0.1) 0%, rgba(67,97,238,0.2) 100%);
+}
+.icon-wrapper {
+    width: 3rem;
+    height: 3rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+}
+
+@media (max-width: 767.98px) {
+    /* Remove glass effects on mobile */
+    .glass-header, .glass-card {
+        background: transparent !important;
+        backdrop-filter: none !important;
+        box-shadow: none !important;
+        border: none !important;
+        padding: 0.5rem 0 !important;
+    }
+    
+    /* Adjust header styles */
+    .glass-header {
+        padding: 1rem 0 !important;
+    }
+    
+    /* Remove card-like styling */
+    .card, .resource-card, .accordion-item {
+        background: transparent !important;
+        border: none !important;
+        box-shadow: none !important;
+    }
+    
+    /* Adjust content alignment */
+    .card-body, .accordion-body {
+        padding: 0.5rem 0.75rem !important;
+    }
+    
+    /* Make content full width */
+    .row > [class^="col-"] {
+        padding-left: 2px !important;
+        padding-right: 2px !important;
+    }
+    
+    /* Remove special effects on mobile */
+    .icon-circle-gradient, .icon-circle-sm {
+        background: #f0f0f0 !important;
+        color: #4361ee !important;
+    }
+    
+    /* Adjust typography */
+    h1, h2, h3, h4, h5, h6 {
+        text-align: left !important;
+    }
+    
+    /* Remove gradient text on mobile for better readability */
+    .text-gradient, .gradient-text {
+        background: none !important;
+        -webkit-text-fill-color: inherit !important;
+        color: #4361ee !important;
+    }
+    
+    /* Simplify accordion */
+    .accordion-button {
+        padding: 0.75rem 0.5rem !important;
+        background-color: transparent !important;
+    }
+    
+    /* Adjust progress bars */
+    .progress {
+        height: 5px !important;
+    }
+    
+    /* Remove fixed download button on mobile */
+    .fixed-bottom {
+        position: static !important;
+        margin-top: 1rem;
+        text-align: center;
+    }
+    
+    /* Adjust resource cards */
+    .resource-card .card-header {
+        background: #f0f0f0 !important;
+        color: #000 !important;
+        padding: 0.5rem !important;
+        margin-bottom: 0.5rem;
+    }
+    
+    /* Remove hover effects on mobile */
+    .resource-card:hover {
+        transform: none !important;
+        box-shadow: none !important;
+    }
+    
+    /* Adjust buttons */
+    .btn {
+        padding: 0.375rem 0.75rem !important;
+        font-size: 0.875rem !important;
+    }
+    
+    /* Simplify alerts */
+    .alert {
+        padding: 0.75rem !important;
+        margin: 0.5rem 0 !important;
+    }
+    
+    /* Adjust lists */
+    ul, ol {
+        padding-left: 1rem !important;
+    }
+    
+    /* Remove special background effects */
+    .bg-gradient-primary-light, .bg-gradient-warning-light {
+        background: #f8f9fa !important;
+    }
+}
+
+@media (max-width: 575.98px) {
+    /* Further adjustments for very small screens */
+    body {
+        font-size: 0.9rem;
+    }
+    
+    .container {
+        padding-left: 0.5rem;
+        padding-right: 0.5rem;
+    }
+    
+    /* Stack all columns */
+    .row > [class^="col-"] {
+        flex: 0 0 100% !important;
+        max-width: 100% !important;
+        margin-bottom: 1rem;
+    }
+    
+    /* Adjust hero section */
+    .glass-header h1 {
+        font-size: 1.75rem !important;
+    }
+    
+    .glass-header p.lead {
+        font-size: 1rem !important;
+    }
+    
+    /* Make buttons full width */
+    .btn {
+        display: block;
+        width: 100%;
+        margin-bottom: 0.5rem;
+    }
+    
+    /* Adjust accordions */
+    .accordion-button {
+        font-size: 0.9rem !important;
+    }
+    
+    /* Remove badges from accordion headers */
+    .accordion-header .badge {
+        display: none;
+    }
+    
+    /* Simplify modal */
+    .modal-content {
+        margin: 1rem;
+    }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <!-- Hero Section -->
+    <div class="text-center mb-5 glass-header p-4 p-lg-5">
+        <h1 class="display-5 fw-bold mb-3 gradient-text">Ultimate Study Guide</h1>
+        <p class="lead col-lg-8 mx-auto">Your complete roadmap to mastering the exam concepts and excelling in technical interviews</p>
+        <div class="d-flex justify-content-center gap-3 mt-4">
+            <a href="#syllabus" class="btn btn-primary px-4">
+                <i class="fas fa-book-open me-2"></i> Syllabus Breakdown
+            </a>
+            <a href="#interview-prep" class="btn btn-outline-primary px-4">
+                <i class="fas fa-user-tie me-2"></i> Interview Prep
+            </a>
+            <a href="#resources" class="btn btn-outline-primary px-4">
+                <i class="fas fa-bookmark me-2"></i> Resources
+            </a>
+        </div>
+    </div>
+
+    <!-- Exam Overview -->
+    <div class="card glass-card border-0 shadow-sm mb-5">
+        <div class="card-body p-4 p-lg-5">
+            <div class="row g-4">
+                <div class="col-lg-6">
+                    <h2 class="h3 mb-4 d-flex align-items-center">
+                        <span class="icon-circle-gradient me-3">
+                            <i class="fas fa-info-circle"></i>
+                        </span>
+                        <span class="text-gradient">Exam Overview</span>
+                    </h2>
+                    <div class="p-4 rounded-3 bg-light bg-opacity-10 h-100">
+                        <p>The {{ exam.title }} exam validates your technical knowledge and problem-solving abilities in real-world scenarios. This certification is recognized by top tech companies and serves as excellent preparation for technical interviews.</p>
+                        
+                        <div class="alert alert-primary mt-4">
+                            <h4 class="h6 mb-2"><i class="fas fa-lightbulb me-2"></i> Key Features:</h4>
+                            <ul class="mb-0">
+                                <li><strong>Duration:</strong> 30 minutes for {{ exam.questions.count }} questions</li>
+                                <li><strong>Format:</strong> Multiple-choice and scenario-based questions</li>
+                                <li><strong>Passing Score:</strong> 70% or higher</li>
+                                <li><strong>Retake Policy:</strong> 7-day waiting period</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-lg-6">
+                    <h2 class="h3 mb-4 d-flex align-items-center">
+                        <span class="icon-circle-gradient me-3">
+                            <i class="fas fa-chart-pie"></i>
+                        </span>
+                        <span class="text-gradient">Topic Weightage</span>
+                    </h2>
+                    <div class="p-4 rounded-3 bg-light bg-opacity-10 h-100">
+                        <div class="mb-3">
+                            {% for topic in exam.topics.all %}
+                            <div class="d-flex justify-content-between mb-2">
+                                <span>{{ topic.name }}</span>
+                                <span class="fw-bold">{{ topic.weight }}%</span>
+                            </div>
+                            <div class="progress mb-3" style="height: 8px;">
+                                <div class="progress-bar bg-gradient-primary" role="progressbar" style="width: {{ topic.weight }}%" aria-valuenow="{{ topic.weight }}" aria-valuemin="0" aria-valuemax="100"></div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        <div class="alert alert-light mt-4">
+                            <i class="fas fa-exclamation-circle me-2 text-warning"></i>
+                            Focus more on topics with higher weightage but don't neglect any area.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Syllabus Breakdown -->
+    <div id="syllabus" class="card glass-card border-0 shadow-sm mb-5">
+        <div class="card-body p-4 p-lg-5">
+            <h2 class="h3 mb-4 d-flex align-items-center">
+                
+               <span class="text-gradient">Complete Syllabus Breakdown</span>
+            </h2>
+             <!-- Exam Syllabus -->
+                  <div id="exam-syllabus" class="card glass-card border-0 shadow-sm mb-5">
+                      <div class="card-body p-4 p-lg-5">
+                          <h2 class="h3 mb-4 d-flex align-items-center">
+                              <span class="icon-circle-gradient me-3">
+                                  <i class="fas fa-book"></i>
+                              </span>
+                              <span class="text-gradient">Exam Syllabus</span>
+                          </h2>
+                          <p>The TechPhile.ai exam syllabus is designed to test your knowledge in the following areas:</p>
+                          <ul>
+                              <li><strong>Programming Fundamentals:</strong> Variables, data types, loops, and functions.</li>
+                              <li><strong>Data Structures:</strong> Arrays, linked lists, stacks, queues, and trees.</li>
+                              <li><strong>Algorithms:</strong> Sorting, searching, and recursion.</li>
+                              <li><strong>Web Development:</strong> HTML, CSS, JavaScript basics, and frameworks.</li>
+                              <li><strong>Database Management:</strong> SQL queries, normalization, and relationships.</li>
+                              <li><strong>Machine Learning:</strong> Supervised & unsupervised learning, model training, evaluation metrics.</li>
+                              <li><strong>Artificial Intelligence:</strong> Concepts of agents, search algorithms, and AI in real-world applications.</li>
+                              <li><strong>Generative AI:</strong> Prompt engineering, LLM usage, ChatGPT, image generation, and use cases in marketing and automation.</li>
+                              <li><strong>Cloud & DevOps Basics:</strong> AWS, Docker, CI/CD pipelines, version control with Git.</li>
+                              <li><strong>Digital Marketing Strategy (Tech Focus):</strong> SEO fundamentals, AI-driven content, email automation, analytics, and engagement funnels.</li>
+                          </ul>
+                          <p>Make sure to review each topic thoroughly and practice solving real-world problems related to these areas. Staying updated with trending technologies like GenAI will give you a competitive edge in today's digital economy.</p>
+                      </div>
+                  </div>
+
+            <div class="accordion" id="syllabusAccordion">
+                {% for module in exam.modules.all %}
+                <div class="accordion-item border-0 mb-3">
+                    <h3 class="accordion-header">
+                        <button class="accordion-button collapsed shadow-none" type="button" data-bs-toggle="collapse" data-bs-target="#module-{{ module.id }}">
+                            <span class="badge bg-primary bg-opacity-10 text-primary me-3">{{ forloop.counter }}</span>
+                            {{ module.name }}
+                            <span class="badge bg-light text-dark ms-auto">{{ module.questions.count }} questions</span>
+                        </button>
+                    </h3>
+                    <div id="module-{{ module.id }}" class="accordion-collapse collapse" data-bs-parent="#syllabusAccordion">
+                        <div class="accordion-body pt-3">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <h4 class="h6 mb-3"><i class="fas fa-bullseye me-2 text-primary"></i>Key Concepts</h4>
+                                    <ul class="mb-4">
+                                        {% for concept in module.concepts.all %}
+                                        <li class="mb-2 d-flex align-items-start">
+                                            <i class="fas fa-circle text-primary mt-1 me-2" style="font-size: 0.5rem;"></i>
+                                            <span>{{ concept.name }}</span>
+                                        </li>
+                                        {% endfor %}
+                                    </ul>
+                                    
+                                    <h4 class="h6 mb-3"><i class="fas fa-tasks me-2 text-primary"></i>Study Approach</h4>
+                                    <ol class="small">
+                                        <li class="mb-2">Watch overview videos (2-3 recommended)</li>
+                                        <li class="mb-2">Read documentation and articles</li>
+                                        <li class="mb-2">Practice with small code examples</li>
+                                        <li class="mb-2">Solve at least 5 related problems</li>
+                                        <li class="mb-2">Review common mistakes</li>
+                                    </ol>
+                                </div>
+                                <div class="col-md-6">
+                                    <h4 class="h6 mb-3"><i class="fas fa-link me-2 text-primary"></i>Recommended Resources</h4>
+                                    <div class="list-group list-group-flush">
+                                        {% for resource in module.resources.all %}
+                                        <a href="{{ resource.url }}" target="_blank" class="list-group-item list-group-item-action border-0 ps-0">
+                                            <i class="fas fa-{{ resource.get_icon }} me-2 text-{{ resource.get_color }}"></i>
+                                            {{ resource.title }}
+                                            <span class="badge bg-light text-dark ms-2">{{ resource.get_type_display }}</span>
+                                        </a>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            {% if module.sample_question %}
+                            <div class="mt-4 pt-3 border-top">
+                                <h4 class="h6 mb-3"><i class="fas fa-question-circle me-2 text-primary"></i>Sample Question</h4>
+                                <div class="card bg-light border-0">
+                                    <div class="card-body">
+                                        <p class="fw-bold">{{ module.sample_question.text }}</p>
+                                        <div class="row">
+                                            {% for option in module.sample_question.options.all %}
+                                            <div class="col-md-6 mb-2">
+                                                <div class="p-2 rounded {% if option.is_correct %}bg-success bg-opacity-10 border border-success border-opacity-25{% else %}bg-light{% endif %}">
+                                                    {{ option.text }}
+                                                    {% if option.is_correct %}
+                                                    <span class="badge bg-success ms-2">Correct</span>
+                                                    {% endif %}
+                                                </div>
+                                            </div>
+                                            {% endfor %}
+                                        </div>
+                                        <div class="mt-3 p-3 bg-light rounded">
+                                            <h5 class="h6 mb-2"><i class="fas fa-lightbulb me-2 text-warning"></i>Explanation:</h5>
+                                            <p class="small mb-0">{{ module.sample_question.explanation }}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+          
+        </div>
+    </div>
+
+    <!-- Study Plan -->
+    <div class="card glass-card border-0 shadow-sm mb-5">
+        <div class="card-body p-4 p-lg-5">
+            <h2 class="h3 mb-4 d-flex align-items-center">
+                <span class="icon-circle-gradient me-3">
+                    <i class="fas fa-calendar-alt"></i>
+                </span>
+                <span class="text-gradient">30-Day Study Plan</span>
+            </h2>
+            
+            <div class="row g-4">
+                <div class="col-md-4">
+                    <div class="p-4 rounded-3 bg-light bg-opacity-10 h-100">
+                        <h3 class="h5 mb-3 d-flex align-items-center">
+                            <span class="badge bg-primary bg-opacity-10 text-primary me-2">Week 1</span>
+                            Foundation Building
+                        </h3>
+                        <ul class="mb-0">
+                            <li class="mb-2">Study 2 modules per day</li>
+                            <li class="mb-2">Focus on understanding core concepts</li>
+                            <li class="mb-2">Complete 10 practice questions daily</li>
+                            <li class="mb-0">Take notes in your own words</li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <div class="col-md-4">
+                    <div class="p-4 rounded-3 bg-light bg-opacity-10 h-100">
+                        <h3 class="h5 mb-3 d-flex align-items-center">
+                            <span class="badge bg-warning bg-opacity-10 text-warning me-2">Week 2-3</span>
+                            Deep Dive
+                        </h3>
+                        <ul class="mb-0">
+                            <li class="mb-2">Focus on difficult topics</li>
+                            <li class="mb-2">Solve complex problems</li>
+                            <li class="mb-2">Join study groups</li>
+                            <li class="mb-0">Take 2 full-length practice tests</li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <div class="col-md-4">
+                    <div class="p-4 rounded-3 bg-light bg-opacity-10 h-100">
+                        <h3 class="h5 mb-3 d-flex align-items-center">
+                            <span class="badge bg-success bg-opacity-10 text-success me-2">Week 4</span>
+                            Final Preparation
+                        </h3>
+                        <ul class="mb-0">
+                            <li class="mb-2">Review weak areas</li>
+                            <li class="mb-2">Take timed practice exams</li>
+                            <li class="mb-2">Simulate exam conditions</li>
+                            <li class="mb-0">Relax before exam day</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="mt-4">
+                <div class="alert alert-light">
+                    <h4 class="h6 mb-2"><i class="fas fa-clock me-2 text-primary"></i>Daily Study Routine (2 Hours)</h4>
+                    <div class="row g-2">
+                        <div class="col-md-3">
+                            <div class="p-2 bg-primary bg-opacity-10 rounded text-center">
+                                <strong>0:00-0:30</strong><br>
+                                Review previous concepts
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="p-2 bg-primary bg-opacity-10 rounded text-center">
+                                <strong>0:30-1:00</strong><br>
+                                Study new material
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="p-2 bg-primary bg-opacity-10 rounded text-center">
+                                <strong>1:00-1:30</strong><br>
+                                Practice problems
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="p-2 bg-primary bg-opacity-10 rounded text-center">
+                                <strong>1:30-2:00</strong><br>
+                                Review mistakes
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Interview Preparation -->
+    <div id="interview-prep" class="card glass-card border-0 shadow-sm mb-5">
+        <div class="card-body p-4 p-lg-5">
+            <h2 class="h3 mb-4 d-flex align-items-center">
+                <span class="icon-circle-gradient me-3">
+                    <i class="fas fa-user-tie"></i>
+                </span>
+                <span class="text-gradient">Technical Interview Preparation</span>
+            </h2>
+            
+            <div class="alert alert-warning bg-gradient-warning-light">
+                <i class="fas fa-exclamation-triangle me-2"></i>
+                <strong>Important:</strong> The {{ exam.title }} exam prepares you for real technical interviews. Use these strategies to convert knowledge into interview success.
+            </div>
+            
+            <div class="row g-4">
+                <!-- Interview Types -->
+                <div class="col-lg-6">
+                    <div class="p-4 rounded-3 bg-light bg-opacity-10 h-100">
+                        <h3 class="h5 mb-3 d-flex align-items-center">
+                            <i class="fas fa-list-ol text-primary me-2"></i>
+                            Interview Types
+                        </h3>
+                        <div class="accordion accordion-flush" id="interviewTypes">
+                            <div class="accordion-item border-0 mb-2">
+                                <h4 class="accordion-header">
+                                    <button class="accordion-button collapsed shadow-none py-2" type="button" data-bs-toggle="collapse" data-bs-target="#type1">
+                                        <i class="fas fa-code me-2 text-info"></i>
+                                        Coding Interview
+                                    </button>
+                                </h4>
+                                <div id="type1" class="accordion-collapse collapse" data-bs-parent="#interviewTypes">
+                                    <div class="accordion-body px-0 py-2 small">
+                                        <ul>
+                                            <li class="mb-1">Solve problems on a whiteboard or coding platform</li>
+                                            <li class="mb-1">Explain your thought process clearly</li>
+                                            <li class="mb-1">Practice on LeetCode, HackerRank</li>
+                                            <li class="mb-0">Focus on time and space complexity</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="accordion-item border-0 mb-2">
+                                <h4 class="accordion-header">
+                                    <button class="accordion-button collapsed shadow-none py-2" type="button" data-bs-toggle="collapse" data-bs-target="#type2">
+                                        <i class="fas fa-comments me-2 text-success"></i>
+                                        System Design
+                                    </button>
+                                </h4>
+                                <div id="type2" class="accordion-collapse collapse" data-bs-parent="#interviewTypes">
+                                    <div class="accordion-body px-0 py-2 small">
+                                        <ul>
+                                            <li class="mb-1">Design large-scale systems</li>
+                                            <li class="mb-1">Discuss trade-offs between approaches</li>
+                                            <li class="mb-1">Practice common questions (URL shortener, chat system)</li>
+                                            <li class="mb-0">Focus on scalability and reliability</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="accordion-item border-0">
+                                <h4 class="accordion-header">
+                                    <button class="accordion-button collapsed shadow-none py-2" type="button" data-bs-toggle="collapse" data-bs-target="#type3">
+                                        <i class="fas fa-brain me-2 text-danger"></i>
+                                        Behavioral Interview
+                                    </button>
+                                </h4>
+                                <div id="type3" class="accordion-collapse collapse" data-bs-parent="#interviewTypes">
+                                    <div class="accordion-body px-0 py-2 small">
+                                        <ul>
+                                            <li class="mb-1">Use STAR method (Situation, Task, Action, Result)</li>
+                                            <li class="mb-1">Prepare 5-7 stories from your experience</li>
+                                            <li class="mb-1">Practice common questions (conflict resolution, challenges)</li>
+                                            <li class="mb-0">Be concise and specific</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Interview Strategies -->
+                <div class="col-lg-6">
+                    <div class="p-4 rounded-3 bg-light bg-opacity-10 h-100">
+                        <h3 class="h5 mb-3 d-flex align-items-center">
+                            <i class="fas fa-chess me-2 text-primary"></i>
+                            Winning Strategies
+                        </h3>
+                        <div class="row g-2">
+                            <div class="col-md-6">
+                                <div class="p-3 border rounded h-100">
+                                    <h4 class="h6 mb-2"><i class="fas fa-comment-alt me-2 text-info"></i> Communication</h4>
+                                    <p class="small mb-0">Think aloud while solving problems. Interviewers want to understand your thought process.</p>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="p-3 border rounded h-100">
+                                    <h4 class="h6 mb-2"><i class="fas fa-clock me-2 text-warning"></i> Time Management</h4>
+                                    <p class="small mb-0">Allocate time wisely. Spend 5 minutes planning before coding.</p>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="p-3 border rounded h-100">
+                                    <h4 class="h6 mb-2"><i class="fas fa-question me-2 text-success"></i> Clarify Doubts</h4>
+                                    <p class="small mb-0">Ask clarifying questions before solving. Assumptions can lead to mistakes.</p>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="p-3 border rounded h-100">
+                                    <h4 class="h6 mb-2"><i class="fas fa-bug me-2 text-danger"></i> Edge Cases</h4>
+                                    <p class="small mb-0">Always consider edge cases and discuss them with the interviewer.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Mock Interviews -->
+                <div class="col-12">
+                    <div class="p-4 rounded-3 bg-light bg-opacity-10">
+                        <h3 class="h5 mb-3 d-flex align-items-center">
+                            <i class="fas fa-video me-2 text-primary"></i>
+                            Mock Interviews
+                        </h3>
+                        <div class="row g-4">
+                            <div class="col-md-4">
+                                <div class="card border-0 shadow-sm h-100">
+                                    <div class="card-body text-center p-4">
+                                        <div class="icon-wrapper bg-primary bg-opacity-10 text-primary rounded-circle mx-auto mb-3">
+                                            <i class="fas fa-user-friends"></i>
+                                        </div>
+                                        <h4 class="h5 mb-2">Peer Practice</h4>
+                                        <p class="text-muted small mb-3">Pair up with fellow students and take turns interviewing each other</p>
+                                        <a href="#" class="btn btn-sm btn-outline-primary">Find Study Partners</a>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="card border-0 shadow-sm h-100">
+                                    <div class="card-body text-center p-4">
+                                        <div class="icon-wrapper bg-success bg-opacity-10 text-success rounded-circle mx-auto mb-3">
+                                            <i class="fas fa-laptop-code"></i>
+                                        </div>
+                                        <h4 class="h5 mb-2">Platform Practice</h4>
+                                        <p class="text-muted small mb-3">Use platforms like Pramp for free mock interviews</p>
+                                        <a href="{% url 'home_page_coding'%}" class="btn btn-sm btn-outline-success">Try Pramp</a>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="card border-0 shadow-sm h-100">
+                                    <div class="card-body text-center p-4">
+                                        <div class="icon-wrapper bg-info bg-opacity-10 text-info rounded-circle mx-auto mb-3">
+                                            <i class="fas fa-chalkboard-teacher"></i>
+                                        </div>
+                                        <h4 class="h5 mb-2">Expert Mock</h4>
+                                        <p class="text-muted small mb-3">Schedule mock interviews with industry professionals</p>
+                                        <a href="{% url 'exams:mock_interview_form' %}" class="btn btn-sm btn-outline-info">Book Session</a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Additional Resources -->
+    <div id="resources" class="card glass-card border-0 shadow-sm mb-5">
+        <div class="card-body p-4 p-lg-5">
+            <h2 class="h3 mb-4 d-flex align-items-center">
+                <span class="icon-circle-gradient me-3">
+                    <i class="fas fa-bookmark"></i>
+                </span>
+                <span class="text-gradient">Premium Learning Resources</span>
+            </h2>
+            
+            <div class="row g-4">
+                <div class="col-md-4">
+                    <div class="card resource-card h-100 border-0 shadow-sm">
+                        <div class="card-header bg-primary text-white">
+                            <i class="fas fa-book me-2"></i>
+                            Books
+                        </div>
+                        <div class="card-body">
+                            <ul class="mb-0">
+                                <li class="mb-2">"Cracking the Coding Interview" by Gayle McDowell</li>
+                                <li class="mb-2">"Designing Data-Intensive Applications" by Martin Kleppmann</li>
+                                <li class="mb-0">"Clean Code" by Robert Martin</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-4">
+                    <div class="card resource-card h-100 border-0 shadow-sm">
+                        <div class="card-header bg-success text-white">
+                            <i class="fas fa-laptop me-2"></i>
+                            Platforms
+                        </div>
+                        <div class="card-body">
+                            <ul class="mb-0">
+                                <li class="mb-2">LeetCode (Premium recommended)</li>
+                                <li class="mb-2">Educative.io (Grokking courses)</li>
+                                <li class="mb-0">AlgoExpert (Video explanations)</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-4">
+                    <div class="card resource-card h-100 border-0 shadow-sm">
+                        <div class="card-header bg-info text-white">
+                            <i class="fas fa-video me-2"></i>
+                            Video Courses
+                        </div>
+                        <div class="card-body">
+                            <ul class="mb-0">
+                                <li class="mb-2">CS50 (Harvard's intro course)</li>
+                                <li class="mb-2">NeetCode.io (Problem patterns)</li>
+                                <li class="mb-0">Frontend Masters (Web development)</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Final Tips -->
+    <div class="card glass-card border-0 shadow-sm">
+        <div class="card-body p-4 p-lg-5">
+            <h2 class="h3 mb-4 d-flex align-items-center">
+                <span class="icon-circle-gradient me-3">
+                    <i class="fas fa-medal"></i>
+                </span>
+                <span class="text-gradient">Pro Tips from Successful Students</span>
+            </h2>
+            
+            <div class="row g-4">
+                <div class="col-md-6 col-lg-3">
+                    <div class="p-3 h-100 d-flex flex-column">
+                        <div class="icon-circle-sm bg-primary bg-opacity-10 text-primary mb-3">
+                            <i class="fas fa-brain"></i>
+                        </div>
+                        <h4 class="h6">Active Recall</h4>
+                        <p class="small mb-0">Test yourself frequently instead of passive reading. Use flashcards for key concepts.</p>
+                    </div>
+                </div>
+                
+                <div class="col-md-6 col-lg-3">
+                    <div class="p-3 h-100 d-flex flex-column">
+                        <div class="icon-circle-sm bg-success bg-opacity-10 text-success mb-3">
+                            <i class="fas fa-project-diagram"></i>
+                        </div>
+                        <h4 class="h6">Spaced Repetition</h4>
+                        <p class="small mb-0">Review material at increasing intervals to improve retention.</p>
+                    </div>
+                </div>
+                
+                <div class="col-md-6 col-lg-3">
+                    <div class="p-3 h-100 d-flex flex-column">
+                        <div class="icon-circle-sm bg-info bg-opacity-10 text-info mb-3">
+                            <i class="fas fa-hands-helping"></i>
+                        </div>
+                        <h4 class="h6">Study Groups</h4>
+                        <p class="small mb-0">Join or form study groups to explain concepts to others and learn from peers.</p>
+                    </div>
+                </div>
+                
+                <div class="col-md-6 col-lg-3">
+                    <div class="p-3 h-100 d-flex flex-column">
+                        <div class="icon-circle-sm bg-warning bg-opacity-10 text-warning mb-3">
+                            <i class="fas fa-heartbeat"></i>
+                        </div>
+                        <h4 class="h6">Self-Care</h4>
+                        <p class="small mb-0">Get enough sleep, exercise, and take breaks to maintain peak performance.</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="mt-5 pt-4 border-top">
+                <h3 class="h5 mb-4">Common Mistakes to Avoid</h3>
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <div class="p-3 border-start border-3 border-danger">
+                            <h4 class="h6 mb-2"><i class="fas fa-times-circle me-2 text-danger"></i> Cramming</h4>
+                            <p class="small mb-0">Last-minute studying leads to poor retention and increased stress.</p>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="p-3 border-start border-3 border-warning">
+                            <h4 class="h6 mb-2"><i class="fas fa-times-circle me-2 text-warning"></i> Ignoring Weak Areas</h4>
+                            <p class="small mb-0">Focusing only on comfortable topics leaves gaps in knowledge.</p>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="p-3 border-start border-3 border-info">
+                            <h4 class="h6 mb-2"><i class="fas fa-times-circle me-2 text-info"></i> No Practice Tests</h4>
+                            <p class="small mb-0">Not simulating exam conditions leads to poor time management.</p>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="p-3 border-start border-3 border-success">
+                            <h4 class="h6 mb-2"><i class="fas fa-times-circle me-2 text-success"></i> Neglecting Health</h4>
+                            <p class="small mb-0">Poor sleep and nutrition negatively impact cognitive performance.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+    <!-- Download Guide Button -->
+    <div class="fixed-bottom">
+        <button class="btn btn-primary btn-lg shadow-lg" data-bs-toggle="modal" data-bs-target="#downloadModal">
+            <i class="fas fa-download me-2"></i> Download Full Guide
+        </button>
+    </div>
+
+    <!-- Download Modal -->
+    <div class="modal fade" id="downloadModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content glass-card">
+                <div class="modal-header">
+                    <h5 class="modal-title">Download Study Guide</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Get the complete guide in your preferred format:</p>
+                    <div class="d-flex gap-3 mb-3">
+                        <a href="#" class="btn btn-outline-primary flex-grow-1">
+                            <i class="fas fa-file-pdf me-2"></i> PDF
+                        </a>
+                        <a href="#" class="btn btn-outline-success flex-grow-1">
+                            <i class="fas fa-file-word me-2"></i> DOCX
+                        </a>
+                    </div>
+                    <div class="d-flex gap-3">
+                        <a href="#" class="btn btn-outline-info flex-grow-1">
+                            <i class="fas fa-file-powerpoint me-2"></i> PPT
+                        </a>
+                        <a href="#" class="btn btn-outline-secondary flex-grow-1">
+                            <i class="fas fa-file-alt me-2"></i> TXT
+                        </a>
+                    </div>
+                    <div class="mt-3">
+                        <label class="form-label">Email Address</label>
+                        <input type="email" class="form-control" placeholder="Enter email for download link">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary">Send Download Link</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

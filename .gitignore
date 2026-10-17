@@ -1,0 +1,13 @@
+.env
+.venv/
+venv/
+__pycache__/
+*.pyc
+*.log
+debug.log
+db.sqlite3
+staticfiles/
+media/
+get-pip.py
+.vscode/
+.idea/

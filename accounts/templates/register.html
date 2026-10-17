@@ -1,0 +1,788 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+
+<div class="register-container">
+    <div class="register-hero">
+        <div class="hero-content">
+            <h1 class="hero-title">Join Our Tech Community</h1>
+            <p class="hero-subtitle">Register as a student, freelancer, or employee to access exclusive resources</p>
+            <div class="hero-image">
+                <img src="{% static 'images/register-hero.svg' %}" alt="Tech Community">
+            </div>
+        </div>
+    </div>
+    <div class="register-form-container" style="margin-top: 20px;">
+        <div class="register-card">
+            <div class="register-header">
+                <h2>Create Your Account</h2>
+                <p>Select your role and fill in the details</p>
+                
+                <!-- Updated Role Tabs with proper initial state -->
+                <div class="role-tabs">
+        {% for value, name in user_form.fields.user_type.choices %}
+        <label class="role-tab {% if user_form.user_type.value == value %}active{% endif %}">
+            <input type="radio" name="user_type" value="{{ value }}"
+                   {% if user_form.user_type.value == value %}checked{% endif %}>
+            <span>{{ name }}</span>
+        </label>
+        {% endfor %}
+    </div>
+            </div>
+
+            <form method="post" enctype="multipart/form-data" action="{% url 'signup' %}" id="registrationForm">
+                {% csrf_token %}
+                {% if messages %}
+                    {% for message in messages %}
+                        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+                
+                <div class="form-section">
+                    <h3 class="section-title">Basic Information</h3>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="id_username">Username</label>
+                            <input type="text" name="username" id="id_username" 
+                                   value="{{ user_form.username.value|default:'' }}" 
+                                   class="{% if user_form.username.errors %}is-invalid{% endif %}"
+                                   required>
+                            {% if user_form.username.errors %}
+                                <div class="error-message">{{ user_form.username.errors }}</div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="id_email">Email</label>
+                            <input type="email" name="email" id="id_email" 
+                                   value="{{ user_form.email.value|default:'' }}"
+                                   class="{% if user_form.email.errors %}is-invalid{% endif %}"
+                                   required>
+                            {% if user_form.email.errors %}
+                                <div class="error-message">{{ user_form.email.errors }}</div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="id_password1">Password</label>
+                            <div class="password-field">
+                                <input type="password" name="password1" id="id_password1"
+                                       class="{% if user_form.password1.errors %}is-invalid{% endif %}"
+                                       required>
+                                <button type="button" class="toggle-password">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                            </div>
+                            {% if user_form.password1.errors %}
+                                <div class="error-message">{{ user_form.password1.errors }}</div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="id_password2">Confirm Password</label>
+                            <div class="password-field">
+                                <input type="password" name="password2" id="id_password2"
+                                       class="{% if user_form.password2.errors %}is-invalid{% endif %}"
+                                       required>
+                                <button type="button" class="toggle-password">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                            </div>
+                            {% if user_form.password2.errors %}
+                                <div class="error-message">{{ user_form.password2.errors }}</div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="form-group full-width">
+                            <label for="id_profile_picture">Profile Picture</label>
+                            <div class="file-upload">
+                                <input type="file" name="profile_picture" id="id_profile_picture" accept="image/*">
+                                <label for="id_profile_picture" class="upload-label">
+                                    <i class="fas fa-cloud-upload-alt"></i>
+                                    <span>Choose a file</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Student Form (Only shown if STUDENT is selected) -->
+                <div class="role-form" id="student-form" 
+                     {% if request.POST and request.POST.user_type != 'STUDENT' %}style="display:none;"{% endif %}>
+                    <div class="form-section">
+                        <h3 class="section-title">Student Details</h3>
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label for="id_university">University</label>
+                                <input type="text" name="university" id="id_university" 
+                                       value="{% if request.POST.user_type == 'STUDENT' %}{{ student_profile_form.university.value|default:'' }}{% endif %}">
+                                {% if student_profile_form.university.errors %}
+                                    <div class="error-message">{{ student_profile_form.university.errors }}</div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="id_graduation_year">Graduation Year</label>
+                                <input type="number" name="graduation_year" id="id_graduation_year" 
+                                       value="{% if request.POST.user_type == 'STUDENT' %}{{ student_profile_form.graduation_year.value|default:'' }}{% endif %}">
+                                {% if student_profile_form.graduation_year.errors %}
+                                    <div class="error-message">{{ student_profile_form.graduation_year.errors }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Freelancer Form (Only shown if FREELANCER is selected) -->
+                <div class="role-form" id="freelancer-form" 
+                     {% if not request.POST or request.POST.user_type != 'FREELANCER' %}style="display:none;"{% endif %}>
+                    <div class="form-section">
+                        <h3 class="section-title">Freelancer Details</h3>
+                        <div class="form-grid">
+                            <div class="form-group full-width">
+                                <label for="id_skills">Skills</label>
+                                <input type="text" name="skills" id="id_skills" 
+                                       value="{% if request.POST.user_type == 'FREELANCER' %}{{ freelancer_profile_form.skills.value|default:'' }}{% endif %}">
+                                <small class="form-hint">Separate multiple skills with commas</small>
+                                {% if freelancer_profile_form.skills.errors %}
+                                    <div class="error-message">{{ freelancer_profile_form.skills.errors }}</div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="form-group full-width">
+                                <label for="id_portfolio_url">Portfolio URL</label>
+                                <input type="url" name="portfolio_url" id="id_portfolio_url" 
+                                       value="{% if request.POST.user_type == 'FREELANCER' %}{{ freelancer_profile_form.portfolio_url.value|default:'' }}{% endif %}">
+                                {% if freelancer_profile_form.portfolio_url.errors %}
+                                    <div class="error-message">{{ freelancer_profile_form.portfolio_url.errors }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Employee Form (Only shown if EMPLOYEE is selected) -->
+                <div class="role-form" id="employee-form" 
+                     {% if not request.POST or request.POST.user_type != 'EMPLOYEE' %}style="display:none;"{% endif %}>
+                    <div class="form-section">
+                        <h3 class="section-title">Employee Details</h3>
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label for="id_department">Department</label>
+                                <input type="text" name="department" id="id_department" 
+                                       value="{% if request.POST.user_type == 'EMPLOYEE' %}{{ employee_profile_form.department.value|default:'' }}{% endif %}">
+                                {% if employee_profile_form.department.errors %}
+                                    <div class="error-message">{{ employee_profile_form.department.errors }}</div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="id_position">Position</label>
+                                <input type="text" name="position" id="id_position" 
+                                       value="{% if request.POST.user_type == 'EMPLOYEE' %}{{ employee_profile_form.position.value|default:'' }}{% endif %}">
+                                {% if employee_profile_form.position.errors %}
+                                    <div class="error-message">{{ employee_profile_form.position.errors }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="form-check">
+                    <input type="checkbox" id="termsCheck" name="terms" required>
+                    <label for="termsCheck">
+                        I agree to the <a href="#" class="terms-link" data-bs-toggle="modal" data-bs-target="#termsModal">Terms and Conditions</a>
+                    </label>
+                </div>
+                
+                <button type="submit" class="submit-btn">
+                    <i class="fas fa-user-plus"></i> Create Account
+                </button>
+                
+                <div class="login-link">
+                    Already have an account? <a href="{% url 'login' %}">Log in</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Success Modal -->
+<!-- Success Modal -->
+<div class="modal fade" id="successModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+      <div class="modal-content">
+          <div class="modal-header bg-success text-white">
+              <h5 class="modal-title">Registration Successful!</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body text-center">
+              <i class="fas fa-check-circle text-success mb-3" style="font-size: 3rem;"></i>
+              <h4>Thank you for registering!</h4>
+              <p>You will be redirected to the login page shortly.</p>
+          </div>
+          <div class="modal-footer">
+              <button type="button" class="btn btn-success w-100" data-bs-dismiss="modal">Continue</button>
+          </div>
+      </div>
+  </div>
+</div>
+
+<!-- Terms Modal (existing) -->
+<div class="modal fade" id="termsModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Terms and Conditions</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                {% include 'terms_and_conditions.html' %}
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" data-bs-dismiss="modal">I Understand</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<style>
+    
+
+.register-container {
+    display: flex;
+    min-height: 100vh;
+}
+
+.register-hero {
+    flex: 1;
+    background: linear-gradient(135deg, #4361ee, #3a0ca3);
+    color: white;
+    padding: 3rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.hero-content {
+    max-width: 600px;
+    text-align: center;
+}
+
+.hero-title {
+    font-size: 2.5rem;
+    margin-bottom: 1rem;
+    font-weight: 700;
+}
+
+.hero-subtitle {
+    font-size: 1.1rem;
+    margin-bottom: 2rem;
+    opacity: 0.9;
+}
+
+.hero-image img {
+    max-width: 100%;
+    height: auto;
+}
+
+.register-form-container {
+    flex: 1;
+    padding: 3rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #f8f9fa;
+}
+
+.register-card {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    padding: 2.5rem;
+    width: 100%;
+    max-width: 700px;
+}
+
+.register-header {
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+.register-header h2 {
+    font-size: 1.8rem;
+    color: #2b2d42;
+    margin-bottom: 0.5rem;
+}
+
+.register-header p {
+    color: #6c757d;
+    margin-bottom: 1.5rem;
+}
+
+.role-tabs {
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.role-tab {
+    background: none;
+    border: 2px solid #e9ecef;
+    border-radius: 8px;
+    padding: 0.75rem 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    color: #495057;
+    font-weight: 500;
+}
+
+.role-tab i {
+    font-size: 1.2rem;
+}
+
+.role-tab.active {
+    border-color: #4361ee;
+    background-color: #4361ee;
+    color: white;
+}
+
+.role-tab:not(.active):hover {
+    border-color: #adb5bd;
+}
+
+.form-section {
+    margin-bottom: 1.5rem;
+}
+
+.section-title {
+    font-size: 1.2rem;
+    color: #2b2d42;
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.5rem;
+}
+
+.form-group {
+    margin-bottom: 1rem;
+}
+
+.form-group.full-width {
+    grid-column: span 2;
+}
+
+label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+    color: #495057;
+}
+
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="url"],
+input[type="number"],
+select,
+textarea {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid #ced4da;
+    border-radius: 6px;
+    font-size: 1rem;
+    transition: border-color 0.3s;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+    border-color: #4361ee;
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.2);
+}
+
+.password-field {
+    position: relative;
+}
+
+.toggle-password {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    color: #6c757d;
+    cursor: pointer;
+}
+
+.file-upload {
+    position: relative;
+}
+
+.file-upload input[type="file"] {
+    position: absolute;
+    left: 0;
+    top: 0;
+    opacity: 0;
+    width: 100%;
+    height: 100%;
+    cursor: pointer;
+}
+
+.upload-label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem;
+    border: 1px dashed #ced4da;
+    border-radius: 6px;
+    background-color: #f8f9fa;
+    color: #6c757d;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.upload-label:hover {
+    border-color: #4361ee;
+    color: #4361ee;
+}
+
+.form-hint {
+    display: block;
+    font-size: 0.8rem;
+    color: #6c757d;
+    margin-top: 0.25rem;
+}
+
+.error-message {
+    color: #dc3545;
+    font-size: 0.875rem;
+    margin-top: 0.25rem;
+}
+
+.form-check {
+    display: flex;
+    align-items: center;
+    margin: 1.5rem 0;
+}
+
+.form-check input {
+    margin-right: 0.5rem;
+}
+
+.terms-link {
+    color: #4361ee;
+    text-decoration: none;
+}
+
+.terms-link:hover {
+    text-decoration: underline;
+}
+
+.submit-btn {
+    width: 100%;
+    padding: 1rem;
+    background-color: #4361ee;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 1rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.3s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+.submit-btn:hover {
+    background-color: #3a0ca3;
+}
+
+.login-link {
+    text-align: center;
+    margin-top: 1.5rem;
+    color: #6c757d;
+}
+
+.login-link a {
+    color: #4361ee;
+    text-decoration: none;
+}
+
+.login-link a:hover {
+    text-decoration: underline;
+}
+
+@media (max-width: 992px) {
+    .register-container {
+        flex-direction: column;
+    }
+    
+    .register-hero {
+        padding: 2rem 1rem;
+    }
+    
+    .register-form-container {
+        padding: 2rem 1rem;
+    }
+}
+
+@media (max-width: 768px) {
+    .form-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .form-group.full-width {
+        grid-column: span 1;
+    }
+    
+    .role-tabs {
+        flex-direction: column;
+    }
+}
+/* Success Modal Styles */
+#successModal .modal-content {
+    border: none;
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+#successModal .modal-header {
+    border-bottom: none;
+    padding-bottom: 0;
+    justify-content: center;
+}
+
+#successModal .modal-body {
+    padding: 2rem;
+    text-align: center;
+}
+
+#successModal .fa-check-circle {
+    color: #28a745;
+    animation: bounce 0.5s;
+}
+
+@keyframes bounce {
+    0%, 20%, 50%, 80%, 100% {transform: translateY(0);}
+    40% {transform: translateY(-20px);}
+    60% {transform: translateY(-10px);}
+}
+
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize role tabs
+    const roleRadios = document.querySelectorAll('input[name="user_type"]');
+    
+    roleRadios.forEach(radio => {
+        radio.addEventListener('change', function() {
+            // Hide all role forms
+            document.querySelectorAll('.role-form').forEach(form => {
+                form.style.display = 'none';
+            });
+            
+            // Show the selected role form
+            const selectedForm = document.getElementById(`${this.value.toLowerCase()}-form`);
+            if (selectedForm) {
+                selectedForm.style.display = 'block';
+            }
+            
+            // Update active tab styling
+            document.querySelectorAll('.role-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            this.closest('.role-tab').classList.add('active');
+        });
+    });
+
+    // Initialize form on page load
+    const initialRole = document.querySelector('input[name="user_type"]:checked').value;
+    document.getElementById(`${initialRole.toLowerCase()}-form`).style.display = 'block';
+});
+
+function handleFormSubmit(event) {
+    event.preventDefault();
+    const form = event.target;
+    const submitButton = form.querySelector('button[type="submit"]');
+    const originalButtonText = submitButton.innerHTML;
+    
+    // Show loading state
+    submitButton.disabled = true;
+    submitButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+
+    const formData = new FormData(form);
+    
+    fetch(form.action, {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-CSRFToken': form.querySelector('[name=csrfmiddlewaretoken]').value
+        }
+    })
+    .then(response => {
+        if (!response.ok) {
+            return response.json().then(err => { throw err; });
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (data.success) {
+            // Show success modal
+            const successModal = new bootstrap.Modal(document.getElementById('successModal'));
+            successModal.show();
+            
+            // Redirect after delay
+            setTimeout(() => {
+                window.location.href = data.redirect_url || "/login/";
+            }, 3000);
+        } else {
+            // Display form errors
+            displayFormErrors(data.errors || {});
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showError('An error occurred during registration. Please try again.');
+    })
+    .finally(() => {
+        submitButton.disabled = false;
+        submitButton.innerHTML = originalButtonText;
+    });
+}
+
+function initializeRoleTabs() {
+    const roleRadios = document.querySelectorAll('input[name="user_type"]');
+    const roleForms = document.querySelectorAll('.role-form');
+    
+    function updateForms() {
+        const selectedRole = document.querySelector('input[name="user_type"]:checked')?.value?.toLowerCase();
+        
+        if (!selectedRole) return;
+        
+        // Hide all forms
+        roleForms.forEach(form => form.style.display = 'none');
+        
+        // Show selected form
+        const activeForm = document.getElementById(`${selectedRole}-form`);
+        if (activeForm) activeForm.style.display = 'block';
+        
+        // Update active tab
+        document.querySelectorAll('.role-tab').forEach(tab => {
+            tab.classList.remove('active');
+        });
+        
+        const activeTab = document.querySelector(`.role-tab input[value="${selectedRole.toUpperCase()}"]`)?.parentElement;
+        if (activeTab) activeTab.classList.add('active');
+    }
+    
+    roleRadios.forEach(radio => {
+        radio.addEventListener('change', updateForms);
+    });
+    
+    // Initialize on page load
+    updateForms();
+}
+
+function initializePasswordToggles() {
+    document.querySelectorAll('.toggle-password').forEach(button => {
+        button.addEventListener('click', function() {
+            const input = this.parentElement.querySelector('input');
+            const icon = this.querySelector('i');
+            
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.classList.replace('fa-eye', 'fa-eye-slash');
+            } else {
+                input.type = 'password';
+                icon.classList.replace('fa-eye-slash', 'fa-eye');
+            }
+        });
+    });
+}
+
+function initializeFileUpload() {
+    const fileInput = document.getElementById('id_profile_picture');
+    if (fileInput) {
+        fileInput.addEventListener('change', function() {
+            const label = this.nextElementSibling;
+            if (this.files.length > 0) {
+                label.querySelector('span').textContent = this.files[0].name;
+            } else {
+                label.querySelector('span').textContent = 'Choose a file';
+            }
+        });
+    }
+}
+
+function displayFormErrors(errors) {
+    // Clear previous errors
+    document.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
+    document.querySelectorAll('.error-message').forEach(el => el.remove());
+    
+    // Display user form errors
+    if (errors.user_errors) {
+        for (const [field, messages] of Object.entries(errors.user_errors)) {
+            const input = document.querySelector(`[name="${field}"]`);
+            if (input) {
+                input.classList.add('is-invalid');
+                const errorDiv = document.createElement('div');
+                errorDiv.className = 'error-message';
+                errorDiv.textContent = Array.isArray(messages) ? messages.join(' ') : messages;
+                input.parentNode.appendChild(errorDiv);
+            }
+        }
+    }
+    
+    // Display profile errors
+    if (errors.profile_errors) {
+        for (const [field, messages] of Object.entries(errors.profile_errors)) {
+            const input = document.querySelector(`[name="${field}"]`);
+            if (input) {
+                input.classList.add('is-invalid');
+                const errorDiv = document.createElement('div');
+                errorDiv.className = 'error-message';
+                errorDiv.textContent = Array.isArray(messages) ? messages.join(' ') : messages;
+                input.parentNode.appendChild(errorDiv);
+            }
+        }
+    }
+    
+    // Scroll to first error
+    const firstError = document.querySelector('.is-invalid');
+    if (firstError) {
+        firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+}
+
+function showError(message) {
+    const errorDisplay = document.getElementById('form-error-display');
+    if (errorDisplay) {
+        errorDisplay.textContent = message;
+        errorDisplay.style.display = 'block';
+        errorDisplay.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+}
+</script>
+
+{% endblock %}

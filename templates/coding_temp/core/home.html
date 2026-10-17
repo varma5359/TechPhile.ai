@@ -1,0 +1,190 @@
+{% extends 'coding_temp/core/base.html' %}
+
+{% block title %}Techphile AI - Learn AI & Machine Learning Through Coding{% endblock %}
+
+{% block content %}
+    <!-- Hero Section -->
+    <section class="hero-section">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-lg-6">
+                    <h1 class="display-4 fw-bold mb-4">Master AI & ML Through Coding</h1>
+                    <p class="lead mb-4">
+                        Practice machine learning, deep learning, and AI concepts with hands-on coding challenges. 
+                        Work with real datasets and build your skills step by step.
+                    </p>
+                    <div class="d-flex gap-3">
+                        <a href="{% url 'core:creativity_intelligence' %}" class="btn btn-light btn-lg">
+                            <i class="fas fa-code me-2"></i>Start Coding
+                        </a>
+                        {% if not user.is_authenticated %}
+                            <a href="{% url 'login' %}" class="btn btn-outline-light btn-lg">
+                                <i class="fas fa-sign-in-alt me-2"></i>Join Now
+                            </a>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="col-lg-6 text-center">
+                    <i class="fas fa-robot fa-10x text-white opacity-75"></i>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Stats Section -->
+ <!-- Stats Section -->
+{% if user.is_authenticated %}
+<section class="py-5 bg-white">
+    <div class="container">
+        <div class="row text-center">
+            <div class="col-6 col-md-3 mb-4">
+                <div class="card border-0">
+                    <div class="card-body">
+                        <i class="fas fa-trophy fa-2x text-warning mb-2"></i>
+                        <h3 class="fw-bold">{{ user_score|default:0 }}</h3>
+                        <p class="text-muted">Total Points</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-6 col-md-3 mb-4">
+                <div class="card border-0">
+                    <div class="card-body">
+                        <i class="fas fa-medal fa-2x text-primary mb-2"></i>
+                        <h3 class="fw-bold">{{ user_rank|default:"--" }}</h3>
+                        <p class="text-muted">Rank</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-6 col-md-3 mb-4">
+                <div class="card border-0">
+                    <div class="card-body">
+                        <i class="fas fa-check-circle fa-2x text-success mb-2"></i>
+                        <h3 class="fw-bold">{{ user_progress.count|default:0 }}</h3>
+                        <p class="text-muted">Problems Solved</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-6 col-md-3 mb-4">
+                <div class="card border-0">
+                    <div class="card-body">
+                        <i class="fas fa-fire fa-2x text-danger mb-2"></i>
+                        <h3 class="fw-bold">7</h3>
+                        <p class="text-muted">Day Streak</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endif %}
+
+
+    <!-- Topics Section -->
+    <section class="py-5">
+        <div class="container">
+            <div class="text-center mb-5">
+                <h2 class="fw-bold">Learning Topics</h2>
+                <p class="lead text-muted">Choose from our comprehensive AI and ML curriculum</p>
+            </div>
+            
+            <div class="row">
+                {% for topic in topics %}
+                <div class="col-md-6 col-lg-4 mb-4">
+                    <div class="card h-100 topic-card">
+                        <div class="card-body">
+                            <div class="d-flex align-items-center mb-3">
+                                <i class="fas fa-{{ topic.icon|default:'brain' }} fa-2x text-primary me-3"></i>
+                                <h5 class="card-title mb-0">{{ topic.name }}</h5>
+                            </div>
+                            <p class="card-text">{{ topic.description|truncatewords:15 }}</p>
+                            <a href="{% url 'core:topic_detail' topic.id %}" class="btn btn-primary">
+                                <i class="fas fa-arrow-right me-2"></i>Start Learning
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="col-12 text-center">
+                    <p class="text-muted">No topics available yet. Check back soon!</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </section>
+
+    <!-- Recent Problems Section -->
+    <section class="py-5 bg-light">
+        <div class="container">
+            <div class="text-center mb-5">
+                <h2 class="fw-bold">Recent Problems</h2>
+                <p class="lead text-muted">Try these popular coding challenges</p>
+            </div>
+            
+            <div class="row">
+                {% for problem in recent_problems %}
+                <div class="col-md-6 col-lg-4 mb-4">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <h6 class="card-title">{{ problem.title }}</h6>
+                                <span class="badge bg-{{ problem.difficulty|yesno:'success,warning,danger' }} difficulty-badge">
+                                    {{ problem.get_difficulty_display }}
+                                </span>
+                            </div>
+                            <p class="card-text small text-muted">{{ problem.description|truncatewords:12 }}</p>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <small class="text-muted">
+                                    <i class="fas fa-trophy me-1"></i>{{ problem.points }} pts
+                                </small>
+                                <a href="{% url 'core:problem_detail' problem.id %}" class="btn btn-sm btn-outline-primary">
+                                    Solve
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="col-12 text-center">
+                    <p class="text-muted">No problems available yet.</p>
+                </div>
+                {% endfor %}
+            </div>
+            
+            {% if recent_problems %}
+            <div class="text-center mt-4">
+                <a href="{% url 'core:creativity_intelligence' %}" class="btn btn-primary btn-lg">
+                    <i class="fas fa-plus me-2"></i>View All Problems
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section class="py-5">
+        <div class="container">
+            <div class="text-center mb-5">
+                <h2 class="fw-bold">Why Choose Techphile AI?</h2>
+                <p class="lead text-muted">Everything you need to master AI and Machine Learning</p>
+            </div>
+            
+            <div class="row">
+                <div class="col-md-4 text-center mb-4">
+                    <i class="fas fa-code fa-3x text-primary mb-3"></i>
+                    <h5>Interactive Coding</h5>
+                    <p class="text-muted">Write and execute Python code directly in your browser with our integrated development environment.</p>
+                </div>
+                <div class="col-md-4 text-center mb-4">
+                    <i class="fas fa-database fa-3x text-primary mb-3"></i>
+                    <h5>Real Datasets</h5>
+                    <p class="text-muted">Work with actual datasets from Kaggle, UCI, and other trusted sources to gain practical experience.</p>
+                </div>
+                <div class="col-md-4 text-center mb-4">
+                    <i class="fas fa-users fa-3x text-primary mb-3"></i>
+                    <h5>Community Learning</h5>
+                    <p class="text-muted">Join a community of learners, compete on leaderboards, and track your progress over time.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}

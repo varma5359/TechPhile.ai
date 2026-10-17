@@ -1,0 +1,618 @@
+/* General Form Styles */
+.custom-form-card {
+    background-color: #ffffff;
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    padding: 20px;
+}
+
+.card-title {
+    color: #2c3e50;
+    font-weight: 500;
+}
+
+.form-label {
+    font-weight: 400;
+    color: #34495e;
+}
+
+.form-control, .form-select {
+    border-radius: 5px;
+    border: 2px solid #e9ecef;
+    padding: 10px;
+    transition: border-color 0.3s ease;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.form-control:focus, .form-select:focus {
+    border-color: #4299e1;
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.15);
+}
+
+.form-check-label {
+    margin-left: 5px;
+    color: #34495e;
+}
+
+.form-check-input:checked {
+    background-color: #4299e1;
+    border-color: #4299e1;
+}
+
+.form-check-input:focus {
+    box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.15);
+}
+
+.form-submit-button {
+    background-color: #4299e1;
+    border: none;
+    color: white;
+    padding: 12px 20px;
+    border-radius: 5px;
+    font-size: 1rem;
+    transition: background-color 0.3s ease;
+    width: 100%;
+}
+
+.form-submit-button:hover {
+    background-color: #3182ce;
+}
+
+.form-footer-text {
+    color: #718096;
+    font-size: 0.9rem;
+    margin-top: 15px;
+}
+
+.form-section-title {
+    color: #2c3e50;
+    font-size: 1.2rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 2px solid #edf2f7;
+}
+
+.form-divider {
+    background-color: #e2e8f0;
+    height: 2px;
+    border: none;
+    margin: 2rem 0;
+}
+
+/* Specific Styles for Register Page */
+#register-form h2 {
+    color: #2c3e50;
+}
+
+.user-type-fields {
+    display: none;
+    padding: 20px;
+    border-radius: 10px;
+    background-color: #f7fafc;
+    margin-top: 20px;
+    border: 1px solid #e2e8f0;
+}
+
+.student-divider {
+    border-color: #4299e1;
+}
+
+.student-title {
+    color: #4299e1;
+}
+
+
+
+.freelancer-divider {
+    border-color: #38a169;
+}
+
+.freelancer-title {
+    color: #38a169;
+}
+
+
+.employee-divider {
+    border-color: #d69e2e;
+}
+
+.employee-title {
+    color: #d69e2e;
+}
+
+
+/* Specific Styles for Login Page */
+#login-form h2 {
+    color: #2c3e50;
+}
+
+
+
+
+/* Registration Form Styling */
+.registration-wrapper {
+    max-width: 800px;
+    margin: 2rem auto;
+    padding: 2rem;
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 0 20px rgba(0,0,0,0.1);
+}
+
+.user-type-options {
+    display: flex;
+    gap: 1rem;
+    margin: 1rem 0;
+}
+
+.user-type-options .form-check {
+    padding-left: 0;
+}
+
+.user-type-options input[type="radio"] {
+    margin-right: 0.5rem;
+}
+
+.form-section {
+    margin-bottom: 2rem;
+    padding: 1.5rem;
+    background: #f9f9f9;
+    border-radius: 6px;
+}
+
+.profile-section {
+    animation: fadeIn 0.3s ease-in;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.invalid-feedback {
+    color: #dc3545;
+    font-size: 0.875rem;
+}
+
+.is-invalid {
+    border-color: #dc3545;
+}
+
+#submitButton:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+}
+
+
+
+
+
+
+
+/*  coding page Responsive Styles*/
+
+/* Custom styles for TechPhile.ai Coding */
+
+/* CodeMirror custom styling */
+.CodeMirror {
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace !important;
+    font-size: 14px !important;
+    line-height: 1.5 !important;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+}
+
+.dark .CodeMirror {
+    border-color: #4b5563;
+}
+
+.CodeMirror-focused {
+    border-color: #3b82f6 !important;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1) !important;
+}
+
+.CodeMirror-gutters {
+    background-color: #f9fafb !important;
+    border-right: 1px solid #e5e7eb !important;
+}
+
+.dark .CodeMirror-gutters {
+    background-color: #374151 !important;
+    border-right-color: #4b5563 !important;
+}
+
+.CodeMirror-linenumber {
+    color: #6b7280 !important;
+    padding: 0 8px !important;
+}
+
+.dark .CodeMirror-linenumber {
+    color: #9ca3af !important;
+}
+
+/* Monokai theme adjustments for better visibility */
+.cm-s-monokai.CodeMirror {
+    background: #272822 !important;
+    color: #f8f8f2 !important;
+}
+
+.cm-s-monokai .CodeMirror-gutters {
+    background: #2f3129 !important;
+    border-right: 1px solid #3e3d32 !important;
+}
+
+.cm-s-monokai .CodeMirror-linenumber {
+    color: #75715e !important;
+}
+
+.cm-s-monokai .CodeMirror-activeline-background {
+    background: rgba(255, 255, 255, 0.1) !important;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: #f1f5f9;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+}
+
+/* Dark mode scrollbar */
+.dark ::-webkit-scrollbar-track {
+    background: #374151;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+    background: #6b7280;
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+    background: #9ca3af;
+}
+
+/* Smooth transitions */
+* {
+    transition: color 0.2s ease, background-color 0.2s ease, border-color 0.2s ease;
+}
+
+/* Button hover effects */
+.btn-hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Card hover effects */
+.card-hover:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+}
+
+/* Loading spinner */
+.spinner {
+    border: 2px solid #f3f4f6;
+    border-top: 2px solid #3b82f6;
+    border-radius: 50%;
+    width: 16px;
+    height: 16px;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Status badge animations */
+.status-badge {
+    animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Mobile responsive adjustments */
+@media (max-width: 768px) {
+    .mobile-hide {
+        display: none;
+    }
+    
+    .CodeMirror {
+        font-size: 12px !important;
+        height: 250px !important;
+    }
+    
+    .table-responsive {
+        font-size: 12px;
+    }
+}
+
+/* Focus states */
+input:focus, textarea:focus, select:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+/* Alert messages */
+.alert {
+    border-radius: 8px;
+    padding: 12px 16px;
+    margin-bottom: 16px;
+}
+
+.alert-success {
+    background-color: #dcfce7;
+    border-color: #16a34a;
+    color: #15803d;
+}
+
+.alert-error {
+    background-color: #fef2f2;
+    border-color: #dc2626;
+    color: #dc2626;
+}
+
+.alert-warning {
+    background-color: #fefce8;
+    border-color: #ca8a04;
+    color: #a16207;
+}
+
+/* Dark mode alert adjustments */
+.dark .alert-success {
+    background-color: #064e3b;
+    border-color: #059669;
+    color: #34d399;
+}
+
+.dark .alert-error {
+    background-color: #7f1d1d;
+    border-color: #dc2626;
+    color: #f87171;
+}
+
+.dark .alert-warning {
+    background-color: #78350f;
+    border-color: #d97706;
+    color: #fbbf24;
+}
+
+/* Prose styling for problem descriptions */
+.prose h3 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin-top: 1.5rem;
+    margin-bottom: 0.75rem;
+    color: #1f2937;
+}
+
+.dark .prose h3 {
+    color: #f9fafb;
+}
+
+.prose pre {
+    background-color: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    padding: 1rem;
+    overflow-x: auto;
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+}
+
+.dark .prose pre {
+    background-color: #1f2937;
+    border-color: #374151;
+    color: #e5e7eb;
+}
+
+/* Animation for mobile menu */
+#mobile-menu {
+    transition: all 0.3s ease-in-out;
+}
+
+/* Gradient text effect */
+.gradient-text {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+/* Problem difficulty colors */
+.difficulty-easy {
+    color: #059669;
+}
+
+.difficulty-medium {
+    color: #d97706;
+}
+
+.difficulty-hard {
+    color: #dc2626;
+}
+
+/* Responsive table improvements */
+.table-container {
+    overflow-x: auto;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.table-container table {
+    min-width: 600px;
+}
+
+/* Loading states */
+.loading {
+    position: relative;
+    pointer-events: none;
+}
+
+.loading::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 20px;
+    height: 20px;
+    margin: -10px 0 0 -10px;
+    border: 2px solid #f3f4f6;
+    border-top: 2px solid #3b82f6;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+/* Success animations */
+.success-animation {
+    animation: bounce 0.5s ease-in-out;
+}
+
+@keyframes bounce {
+    0%, 20%, 50%, 80%, 100% {
+        transform: translateY(0);
+    }
+    40% {
+        transform: translateY(-10px);
+    }
+    60% {
+        transform: translateY(-5px);
+    }
+}
+
+/* Notification animations */
+.notification-enter {
+    transform: translateX(100%);
+    opacity: 0;
+}
+
+.notification-enter-active {
+    transform: translateX(0);
+    opacity: 1;
+    transition: all 0.3s ease-out;
+}
+
+.notification-exit {
+    transform: translateX(0);
+    opacity: 1;
+}
+
+.notification-exit-active {
+    transform: translateX(100%);
+    opacity: 0;
+    transition: all 0.3s ease-in;
+}
+
+/* Keyboard shortcut styling */
+kbd {
+    background-color: #f3f4f6;
+    border: 1px solid #d1d5db;
+    border-radius: 4px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+    color: #374151;
+    display: inline-block;
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+    font-size: 0.75rem;
+    font-weight: 600;
+    line-height: 1;
+    padding: 2px 4px;
+    white-space: nowrap;
+}
+
+.dark kbd {
+    background-color: #374151;
+    border-color: #4b5563;
+    color: #d1d5db;
+}
+
+/* Code editor container improvements */
+#code-editor-container {
+    position: relative;
+    min-height: 400px;
+}
+
+#code-editor-container .CodeMirror {
+    height: 400px;
+}
+
+/* Results section styling */
+#results-section {
+    animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Improved button states */
+button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none !important;
+}
+
+button:not(:disabled):hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+/* Enhanced focus indicators */
+.CodeMirror-focused {
+    outline: none;
+}
+
+/* Better syntax highlighting contrast */
+.cm-s-monokai .cm-keyword {
+    color: #f92672 !important;
+    font-weight: bold;
+}
+
+.cm-s-monokai .cm-string {
+    color: #e6db74 !important;
+}
+
+.cm-s-monokai .cm-comment {
+    color: #75715e !important;
+    font-style: italic;
+}
+
+.cm-s-monokai .cm-number {
+    color: #ae81ff !important;
+}
+
+.cm-s-monokai .cm-def {
+    color: #a6e22e !important;
+}
+
+.cm-s-monokai .cm-variable {
+    color: #f8f8f2 !important;
+}
+
+.cm-s-monokai .cm-operator {
+    color: #f92672 !important;
+}
+
+.cm-s-monokai .cm-builtin {
+    color: #66d9ef !important;
+}

@@ -1,0 +1,121 @@
+
+   
+  /* background section of about and alignments of it .*/
+   
+ 
+ .about-section {
+     display: flex;
+     align-items: center;
+     justify-content: space-between;
+     flex-wrap: wrap;
+     margin-bottom: 40px;
+     padding: 20px 0;
+ }
+ 
+ .about-section.reverse {
+     flex-direction: row-reverse;
+ }
+ .about-section .about-image{
+     margin-top: -30px;
+ }
+ .about-text {
+     width: 50%;
+     padding: 15px;
+     font-size: 18px;
+     color: #2c3e50;
+     line-height: 1.5;
+     text-align: left;
+ }
+ 
+ .about-text h2,
+ .about-text h3 {
+     font-size: 22px;
+     margin-bottom: 10px;
+ }
+ 
+ .about-text ul {
+     padding-left: 15px;
+ }
+ 
+ .about-image {
+     width: 50%;
+ }
+ 
+ .about-image img {
+     width: 100%;
+     border-radius: 10px;
+ }
+ 
+ .cta-section {
+     text-align: center;
+     margin-top: 30px;
+     padding: 20px 0;
+ }
+ 
+ .cta-section h3 {
+     font-size: 20px;
+     margin-bottom: 10px;
+ }
+ 
+ .cta-section p {
+     font-size: 16px;
+     margin-bottom: 15px;
+ }
+ 
+ .cta-section button {
+     background-color: #0c0a09;
+     padding: 12px 25px;
+     color: white;
+     font-size: 16px;
+     border-radius: 8px;
+     border: none;
+     cursor: pointer;
+ }
+ 
+ @media (max-width: 768px) {
+     .breadcrumb-section {
+         max-height: 180px;
+         padding: 30px 0;
+     }
+ 
+     .about-section {
+         flex-direction: column;
+         text-align: left;
+         padding: 15px 0;
+         margin-bottom: 20px;
+     }
+ 
+     .about-text, .about-image {
+         width: 100%;
+         padding: 10px;
+     }
+ #about h1{
+     margin-top: -100px;
+ }
+     .about-text h2,
+     .about-text h3 {
+         font-size: 20px;
+     }
+ 
+     .about-text p, .about-text ul {
+         font-size: 16px;
+         line-height: 1.4;
+     }
+     .about-section.reverse {
+     margin-top: -100px;
+ }
+ 
+     .cta-section {
+         margin-top: 20px;
+         padding: 15px;
+     }
+ 
+     .cta-section button {
+         width: 90%;
+         max-width: 280px;
+         font-size: 15px;
+         padding: 10px 20px;
+     }
+ }
+ 
+

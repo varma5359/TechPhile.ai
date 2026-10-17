@@ -1,0 +1,6 @@
+product_id,name,category,price,stock
+1001,Laptop,Electronics,999,15
+1002,Phone,Electronics,699,30
+1003,Desk,Furniture,250,10
+1004,Chair,Furniture,120,25
+1005,Printer,Electronics,200,8

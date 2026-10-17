@@ -1,0 +1,70 @@
+{% extends 'coding_temp/core/base.html' %}
+
+{% block title %}Datasets - Techphile AI{% endblock %}
+
+{% block content %}
+    <div class="container py-5">
+        <div class="text-center mb-5">
+            <h1 class="display-5 fw-bold">
+                <i class="fas fa-database text-primary me-3"></i>Datasets
+            </h1>
+            <p class="lead text-muted">Real datasets for your AI and Machine Learning projects</p>
+        </div>
+        
+        <div class="row">
+            {% for dataset in datasets %}
+            <div class="col-md-6 col-lg-4 mb-4">
+                <div class="card h-100 border-0 shadow-sm">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center mb-3">
+                            <i class="fas fa-file-csv fa-2x text-primary me-3"></i>
+                            <div>
+                                <h5 class="card-title mb-1">{{ dataset.name }}</h5>
+                                <small class="text-muted">{{ dataset.filename }}</small>
+                            </div>
+                        </div>
+                        
+                        <p class="card-text">{{ dataset.description|truncatewords:15 }}</p>
+                        
+                        <div class="d-flex justify-content-between align-items-center mt-auto">
+                            <small class="text-muted">
+                                {% if dataset.file_size %}
+                                    {{ dataset.file_size|filesizeformat }}
+                                {% else %}
+                                    --
+                                {% endif %}
+                            </small>
+                           {% if dataset.file %}
+                           <a href="{{ dataset.file.url }}" class="btn btn-primary btn-sm" download>
+                               <i class="fas fa-download me-2"></i>Download
+                           </a>
+                       {% else %}
+                           <span class="text-muted small">No file available</span>
+                       {% endif %}
+
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% empty %}
+            <div class="col-12 text-center py-5">
+                <i class="fas fa-database fa-4x text-muted mb-3"></i>
+                <h3 class="text-muted">No Datasets Available</h3>
+                <p class="text-muted">Datasets will be added soon for practice problems!</p>
+            </div>
+            {% endfor %}
+        </div>
+        
+        {% if datasets %}
+        <div class="text-center mt-5">
+            <div class="card border-0 bg-light">
+                <div class="card-body">
+                    <h5 class="fw-bold">How to Use Datasets</h5>
+                    <p class="mb-0">Download datasets and use them in your Python code solutions. Most datasets are in CSV format and can be loaded with pandas.</p>
+                    <code class="d-block mt-2">df = pd.read_csv('dataset.csv')</code>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+{% endblock %}

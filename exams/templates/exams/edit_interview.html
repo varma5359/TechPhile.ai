@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edit Interview</title>
+    <link rel="stylesheet" href="/static/css/styles.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Edit Interview</h1>
+        <form action="{% url 'edit_interview' interview.id %}" method="post">
+            {% csrf_token %}
+            <div class="form-group">
+                <label for="candidate_name">Candidate Name:</label>
+                <input type="text" id="candidate_name" name="candidate_name" value="{{ interview.candidate_name }}" required>
+            </div>
+            <div class="form-group">
+                <label for="interviewer_name">Interviewer Name:</label>
+                <input type="text" id="interviewer_name" name="interviewer_name" value="{{ interview.interviewer_name }}" required>
+            </div>
+            <div class="form-group">
+                <label for="date">Date:</label>
+                <input type="date" id="date" name="date" value="{{ interview.date }}" required>
+            </div>
+            <div class="form-group">
+                <label for="time">Time:</label>
+                <input type="time" id="time" name="time" value="{{ interview.time }}" required>
+            </div>
+            <div class="form-group">
+                <label for="status">Status:</label>
+                <select id="status" name="status" required>
+                    <option value="Scheduled" {% if interview.status == "Scheduled" %}selected{% endif %}>Scheduled</option>
+                    <option value="Completed" {% if interview.status == "Completed" %}selected{% endif %}>Completed</option>
+                    <option value="Cancelled" {% if interview.status == "Cancelled" %}selected{% endif %}>Cancelled</option>
+                </select>
+            </div>
+            <button type="submit" class="btn btn-primary">Save Changes</button>
+        </form>
+        <a href="{% url 'interview_list' %}" class="btn btn-secondary">Back to List</a>
+    </div>
+</body>
+</html>

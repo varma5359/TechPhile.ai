@@ -1,0 +1,59 @@
+/* General admin background (for non-login pages) */
+body {
+    background: rgb(94, 47, 47) !important;
+}
+
+/* Make admin table headers bold and blue */
+th {
+    font-weight: bold;
+    color: #007bff;
+}
+
+/* Jazzmin login page background and centering */
+.jazzmin-login-page {
+    min-height: 100vh;
+    display: flex !important;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    background: #181818 !important;
+}
+
+/* Center and size the logo on the login page */
+.jazzmin-login-logo {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-bottom: 2.5rem;
+}
+
+.jazzmin-login-logo img {
+    max-width: 320px !important;
+    max-height: 120px !important;
+    display: block;
+    margin: 0 auto;
+}
+
+/* Style and center the login card */
+.jazzmin-login-card {
+    max-width: 450px !important;
+    width: 100% !important;
+    padding: 2.5rem 2rem !important;
+    font-size: 1.1rem !important;
+    box-shadow: 0 4px 32px rgba(0,0,0,0.12) !important;
+    background: #fff !important;
+    border-radius: 14px !important;
+    margin: 0 auto !important;
+    display: block !important;
+}
+
+/* Responsive: Make sure it looks good on mobile */
+@media (max-width: 600px) {
+    .jazzmin-login-card {
+        max-width: 98vw !important;
+        padding: 1.5rem 0.5rem !important;
+    }
+    .jazzmin-login-logo img {
+        max-width: 90vw !important;
+    }
+}

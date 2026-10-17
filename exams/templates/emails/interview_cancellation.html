@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background-color: #dc3545; color: white; padding: 20px; text-align: center; }
+        .content { padding: 20px; }
+        .details { background-color: #f8f9fa; padding: 15px; border-radius: 5px; margin: 15px 0; }
+        .footer { margin-top: 20px; font-size: 12px; color: #6c757d; text-align: center; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h2>Mock Interview Cancelled</h2>
+        </div>
+        
+        <div class="content">
+            <p>Dear {{ interview.first_name }},</p>
+            
+            <p>We regret to inform you that your scheduled mock interview on the following date has been cancelled:</p>
+            
+            <div class="details">
+                <p><strong>Date:</strong> {{ interview.interview_date }}</p>
+                <p><strong>Time:</strong> {{ interview.interview_time }}</p>
+            </div>
+            
+            <p>If you wish to reschedule, please visit our website or reply to this email.</p>
+            
+            <p>We apologize for any inconvenience caused.<br>– TechPhile.ai Team</p>
+        </div>
+        
+        <div class="footer">
+            <p>© {% now "Y" %} TechPhile.ai. All rights reserved.</p>
+            <p>Contact us at {{ support_email }} for any queries.</p>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,54 @@
+/* Registration Form Styles */
+.profile-fields {
+  transition: all 0.3s ease;
+  padding: 20px;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  margin-bottom: 20px;
+}
+
+.btn-group-toggle .btn {
+  border-radius: 0;
+}
+
+.btn-group-toggle .btn:first-child {
+  border-top-left-radius: 5px;
+  border-bottom-left-radius: 5px;
+}
+
+.btn-group-toggle .btn:last-child {
+  border-top-right-radius: 5px;
+  border-bottom-right-radius: 5px;
+}
+
+/* Login Form Styles */
+.divider {
+  color: #6c757d;
+}
+
+.divider::before,
+.divider::after {
+  content: "";
+  flex: 1;
+  border-bottom: 1px solid #dee2e6;
+}
+
+/* Form Validation */
+.is-invalid {
+  border-color: #dc3545;
+}
+
+.text-danger {
+  font-size: 0.875em;
+  margin-top: 0.25rem;
+}
+
+/* Card Styles */
+.card {
+  border: none;
+  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+}
+
+.card-header {
+  padding: 1.5rem;
+}

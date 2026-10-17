@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background-color: #ffc107; color: #212529; padding: 20px; text-align: center; }
+        .content { padding: 20px; }
+        .details { background-color: #f8f9fa; padding: 15px; border-radius: 5px; margin: 15px 0; }
+        .footer { margin-top: 20px; font-size: 12px; color: #6c757d; text-align: center; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h2>Mock Interview Rescheduled</h2>
+        </div>
+        
+        <div class="content">
+            <p>Dear {{ interview.first_name }},</p>
+            
+            <p>Your mock interview has been successfully rescheduled. Here are your updated interview details:</p>
+            
+            <div class="details">
+                <p><strong>New Date:</strong> {{ interview.interview_date }}</p>
+                <p><strong>New Time:</strong> {{ interview.interview_time }}</p>
+                <p><strong>Interview Link:</strong> 
+                    <a href="{{ interview.interview_link }}" target="_blank">{{ interview.interview_link }}</a>
+                </p>
+            </div>
+            
+            <p>Please ensure you join on time and follow the standard interview etiquette.</p>
+            
+            <p>Best regards,<br>The TechPhile.ai Team</p>
+        </div>
+        
+        <div class="footer">
+            <p>© {% now "Y" %} TechPhile.ai. All rights reserved.</p>
+            <p>Contact us at {{ support_email }} for any queries.</p>
+        </div>
+    </div>
+</body>
+</html>

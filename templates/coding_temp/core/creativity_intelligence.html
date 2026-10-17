@@ -1,0 +1,679 @@
+{% extends 'coding_temp/core/base.html' %}
+{% load core_filters %}
+{% load static %}
+
+{% block title %}Creativity & Intelligence - AI/ML Coding Challenges{% endblock %}
+{% block description %}Master AI and Machine Learning through hands-on coding challenges. Practice with real datasets in Machine Learning, Deep Learning, Computer Vision, and NLP.{% endblock %}
+
+{% block content %}
+    <!-- Hero Section -->
+    <section class="techphile-hero py-5">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-lg-8">
+                    <h1 class="techphile-main-heading mb-4">
+                        <i class="fas fa-brain techphile-icon"></i> Creativity & Intelligence
+                    </h1>
+                    <p class="techphile-subheading mb-4">
+                        Master AI and Machine Learning through hands-on coding challenges. 
+                        Practice with real datasets and build intelligent systems.
+                    </p>
+                    <div class="d-flex flex-wrap gap-3">
+                        <a href="#topics" class="btn techphile-primary-btn">
+                            <i class="fas fa-rocket me-2"></i>Explore Challenges
+                        </a>
+                        {% if not user.is_authenticated %}
+                        <a href="#" class="btn techphile-secondary-btn">
+                            <i class="fas fa-user-plus me-2"></i>Join Free
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+               <div class="col-lg-4 text-center">
+    <div class="d-flex justify-content-center align-items-center gap-4 flex-wrap bg-light rounded p-4 shadow-sm">
+        <!-- Machine Learning -->
+        <div class="text-center">
+            <i class="fas fa-robot fa-3x text-primary mb-2"></i>
+            <p class="fw-semibold text-dark mb-0">Machine Learning</p>
+        </div>
+        <!-- Computer Vision -->
+        <div class="text-center">
+            <i class="fas fa-camera-retro fa-3x text-success mb-2"></i>
+            <p class="fw-semibold text-dark mb-0">Computer Vision</p>
+        </div>
+        <!-- Natural Language Processing -->
+        <div class="text-center">
+            <i class="fas fa-language fa-3x text-danger mb-2"></i>
+            <p class="fw-semibold text-dark mb-0">Natural Language</p>
+        </div>
+        <!-- Deep Learning -->
+        <div class="text-center">
+            <i class="fas fa-layer-group fa-3x text-warning mb-2"></i>
+            <p class="fw-semibold text-dark mb-0">Deep Learning</p>
+        </div>
+    </div>
+</div>
+
+            </div>
+        </div>
+    </section>
+
+    <!-- Topics Section -->
+    <section id="topics" class="py-5 techphile-section">
+        <div class="container">
+            <div class="techphile-section-header text-center mb-5">
+                <h2 class="techphile-section-title">Master AI Domains</h2>
+                <p class="techphile-section-subtitle">Select a domain to start your hands-on learning journey</p>
+            </div>
+
+            <div class="row g-4">
+                {% for topic in topics %}
+                <div class="col-md-6 col-lg-3">
+                    <div class="techphile-topic-card h-100">
+                        <div class="techphile-topic-header bg-techphile-{{ topic.color|default:'primary' }}">
+                            <div class="techphile-topic-icon">
+                                <i class="fas fa-{{ topic.icon|default:'brain' }}"></i>
+                            </div>
+                            <h3 style="color: white;">{{ topic.name }}</h3>
+                        </div>
+                        <div class="techphile-topic-body">
+                            <p>{{ topic.description|truncatewords:20 }}</p>
+                            <div class="techphile-progress-container">
+                                <div class="techphile-progress-bar" 
+                                     style="width: {% widthratio problems_by_topic|lookup:topic|length 20 100 %}%"></div>
+                            </div>
+                            <div class="techphile-topic-meta">
+                                <span>{% with problems=problems_by_topic|lookup:topic %}{{ problems.count }}{% endwith %} Challenges</span>
+                                <span>{{ topic.difficulty_level|default:"Beginner" }}</span>
+                            </div>
+                        </div>
+                        <div class="techphile-topic-footer">
+                            <a href="{% url 'core:topic_detail' topic.id %}" 
+                               class="techphile-topic-link">
+                                Explore <i class="fas fa-arrow-right ms-2"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="col-12">
+                    <div class="techphile-empty-state text-center py-5">
+                        <i class="fas fa-robot techphile-empty-icon"></i>
+                        <h3>Coming Soon!</h3>
+                        <p>We're preparing exciting AI/ML content for you.</p>
+                        <a href="#" class="btn techphile-primary-btn">Notify Me</a>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </section>
+
+    <!-- Featured Challenges -->
+    <section class="py-5 techphile-alt-section">
+        <div class="container">
+            <div class="techphile-section-header text-center mb-5">
+                <h2 class="techphile-section-title">Featured Challenges</h2>
+                <p class="techphile-section-subtitle">Hand-picked problems to boost your skills</p>
+            </div>
+
+            <div class="row g-4">
+                {% for topic in topics|slice:":4" %}
+                {% with problems=problems_by_topic|lookup:topic|slice:":2" %}
+                {% for problem in problems %}
+                <div class="col-md-6">
+                    <div class="techphile-challenge-card">
+                        <div class="techphile-challenge-header">
+                            <div class="techphile-topic-badge bg-techphile-{{ topic.color|default:'primary' }}">
+                                <i class="fas fa-{{ topic.icon|default:'brain' }}"></i>
+                            </div>
+                            <div>
+                                <h4>{{ problem.title }}</h4>
+                                <div class="techphile-challenge-meta">
+                                    <span class="techphile-difficulty techphile-difficulty-{{ problem.difficulty }}">
+                                        {{ problem.get_difficulty_display }}
+                                    </span>
+                                    <span class="techphile-points">
+                                        <i class="fas fa-trophy"></i> {{ problem.points }} pts
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="techphile-challenge-body">
+                            <p>{{ problem.description|truncatewords:25 }}</p>
+                            {% if problem.dataset %}
+                            <div class="techphile-dataset-tag">
+                                <i class="fas fa-database"></i> {{ problem.dataset.name }}
+                            </div>
+                            {% endif %}
+                        </div>
+                        <div class="techphile-challenge-footer">
+                            <div class="techphile-tags">
+                                {% if problem.topic.name == "Computer Vision" %}
+                                <span class="techphile-tag"><i class="fas fa-camera"></i> CV</span>
+                                {% elif problem.topic.name == "NLP" %}
+                                <span class="techphile-tag"><i class="fas fa-comments"></i> NLP</span>
+                                {% endif %}
+                                <span class="techphile-topic-name">{{ problem.topic.name }}</span>
+                            </div>
+                            <a href="{% url 'core:problem_detail' problem.id %}" class="techphile-challenge-btn">
+                                Solve Challenge <i class="fas fa-arrow-right"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+                {% endwith %}
+                {% endfor %}
+            </div>
+        </div>
+    </section>
+
+    <!-- Learning Path -->
+    <section class="py-5 techphile-section">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-lg-5 mb-4 mb-lg-0">
+                    <div class="techphile-section-header mb-4">
+                        <h2 class="techphile-section-title">Structured Learning Path</h2>
+                        <p class="techphile-section-subtitle">
+                            Our carefully curated path takes you from fundamentals to advanced AI specialization.
+                        </p>
+                    </div>
+                    <div class="techphile-path-list">
+                        <div class="techphile-path-item active">
+                            <div class="techphile-path-step bg-techphile-success">1</div>
+                            <div>
+                                <h5>Python & Data Science</h5>
+                                <p>Master the essential tools and libraries</p>
+                            </div>
+                        </div>
+                        <div class="techphile-path-item">
+                            <div class="techphile-path-step bg-techphile-primary">2</div>
+                            <div>
+                                <h5>Machine Learning</h5>
+                                <p>Learn predictive modeling and algorithms</p>
+                            </div>
+                        </div>
+                        <div class="techphile-path-item">
+                            <div class="techphile-path-step bg-techphile-warning">3</div>
+                            <div>
+                                <h5>Deep Learning</h5>
+                                <p>Build neural networks and complex models</p>
+                            </div>
+                        </div>
+                        <div class="techphile-path-item">
+                            <div class="techphile-path-step bg-techphile-danger">4</div>
+                            <div>
+                                <h5>Specialization</h5>
+                                <p>Focus on your area of interest</p>
+                            </div>
+                        </div>
+                    </div>
+                    <a href="#" class="btn techphile-primary-btn mt-3">
+                        View Full Curriculum <i class="fas fa-arrow-right ms-2"></i>
+                    </a>
+                </div>
+               <div class="col-lg-7 text-center">
+    <img src="{% static 'images/Ai_path.png' %}" 
+         alt="AI Learning Path" 
+         class="img-fluid rounded shadow-lg techphile-path-image">
+</div>
+
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section class="py-5 techphile-cta-section">
+        <div class="container text-center">
+            <div class="techphile-cta-card">
+                <h2 class="techphile-cta-title">Ready to Build AI Solutions?</h2>
+                <p class="techphile-cta-subtitle">Join our community of AI enthusiasts and professionals</p>
+                <div class="techphile-cta-buttons">
+                    {% if not user.is_authenticated %}
+                    <a href="#" class="btn techphile-primary-btn">
+                        <i class="fas fa-user-plus me-2"></i>Sign Up Free
+                    </a>
+                    {% endif %}
+                    <a href="{% url 'core:leaderboard' %}" class="btn techphile-outline-btn">
+                        <i class="fas fa-trophy me-2"></i>View Leaderboard
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Techphile Color Palette */
+    :root {
+        --techphile-primary: #2563bf;
+        --techphile-secondary: #2ecc71;
+        --techphile-success: #27ae60;
+        --techphile-info: #2980b9;
+        --techphile-warning: #f39c12;
+        --techphile-danger: #e74c3c;
+        --techphile-dark: #2c3e50;
+        --techphile-light: #ecf0f1;
+        --techphile-text: #34495e;
+        --techphile-muted: #95a5a6;
+    }
+
+    /* Base Styles */
+    .techphile-hero {
+        background-color: var(--techphile-light);
+        padding: 4rem 0;
+    }
+    
+    .techphile-main-heading {
+        font-size: 2.5rem;
+        font-weight: 700;
+        color: var(--techphile-dark);
+    }
+    
+    .techphile-icon {
+        color: var(--techphile-primary);
+        margin-right: 0.75rem;
+    }
+    
+    .techphile-subheading {
+        font-size: 1.25rem;
+        color: var(--techphile-text);
+        max-width: 600px;
+    }
+    
+    .techphile-hero-image {
+        border-radius: 12px;
+        box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+    }
+    
+    /* Buttons */
+    .techphile-primary-btn {
+        background-color: var(--techphile-primary);
+        color: white;
+        border: none;
+        padding: 0.5rem 1.5rem;
+        border-radius: 6px;
+        font-weight: 500;
+        transition: all 0.3s ease;
+    }
+    
+    .techphile-primary-btn:hover {
+        background-color: #2980b9;
+        color: white;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(52, 152, 219, 0.3);
+    }
+    
+    .techphile-secondary-btn {
+        background-color: var(--techphile-secondary);
+        color: white;
+        border: none;
+        padding: 0.5rem 1.5rem;
+        border-radius: 6px;
+        font-weight: 500;
+        transition: all 0.3s ease;
+    }
+    
+    .techphile-secondary-btn:hover {
+        background-color: #27ae60;
+        color: white;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(46, 204, 113, 0.3);
+    }
+    
+    .techphile-outline-btn {
+        border: 2px solid white;
+        color: white;
+        background: transparent;
+        padding: 0.5rem 1.5rem;
+        border-radius: 6px;
+        font-weight: 500;
+        transition: all 0.3s ease;
+    }
+    
+    .techphile-outline-btn:hover {
+        background: white;
+        color: var(--techphile-primary);
+    }
+    
+    /* Section Styling */
+    .techphile-section {
+        padding: 3rem 0;
+        background-color: white;
+    }
+    
+    .techphile-alt-section {
+        padding: 3rem 0;
+        background-color: var(--techphile-light);
+    }
+    
+    .techphile-section-header {
+        margin-bottom: 3rem;
+    }
+    
+    .techphile-section-title {
+        font-size: 2rem;
+        font-weight: 700;
+        color: var(--techphile-dark);
+        margin-bottom: 0.5rem;
+    }
+    
+    .techphile-section-subtitle {
+        color: var(--techphile-muted);
+        font-size: 1.1rem;
+    }
+    
+ /* Topic Cards */
+.techphile-topic-card {
+    background: rgba(185, 200, 203, 0.803);
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    transition: all 0.3s ease;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.techphile-topic-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.12);
+}
+
+.techphile-topic-header {
+    padding: 1.5rem;
+    text-align: center;
+    color: white;
+}
+
+.techphile-topic-header h3 {
+    color: #2563eb; /* Your requested blue color for titles */
+    margin: 0.5rem 0 0;
+}
+
+.techphile-topic-icon {
+    font-size: 2rem;
+    margin-bottom: 1rem;
+    color: #f59e0b; /* A warm amber color that complements the blue */
+}
+
+.techphile-topic-body {
+    padding: 1.5rem;
+    flex-grow: 1;
+}
+
+.techphile-topic-footer {
+    padding: 1rem 1.5rem;
+    text-align: center;
+    border-top: 1px solid rgba(0,0,0,0.05);
+}
+
+.techphile-topic-link {
+    color: var(--techphile-primary);
+    font-weight: 500;
+    text-decoration: none;
+}
+
+.techphile-progress-container {
+    height: 6px;
+    background-color: #f5f5f5;
+    border-radius: 3px;
+    margin: 1rem 0;
+    overflow: hidden;
+}
+
+.techphile-progress-bar {
+    height: 100%;
+    background-color: var(--techphile-primary);
+}
+
+.techphile-topic-meta {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.85rem;
+    color: var(--techphile-muted);
+}
+    
+    /* Challenge Cards */
+    .techphile-challenge-card {
+        background: white;
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .techphile-challenge-header {
+        padding: 1.5rem;
+        display: flex;
+        align-items: center;
+        border-bottom: 1px solid rgba(0,0,0,0.05);
+    }
+    
+    .techphile-topic-badge {
+        width: 50px;
+        height: 50px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-right: 1rem;
+        color: white;
+        font-size: 1.25rem;
+    }
+    
+    .techphile-challenge-meta {
+        display: flex;
+        align-items: center;
+        margin-top: 0.5rem;
+    }
+    
+    .techphile-difficulty {
+        padding: 0.25rem 0.75rem;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        margin-right: 0.75rem;
+    }
+    
+    .techphile-difficulty-beginner {
+        background-color: rgba(46, 204, 113, 0.1);
+        color: var(--techphile-success);
+    }
+    
+    .techphile-difficulty-intermediate {
+        background-color: rgba(241, 196, 15, 0.1);
+        color: var(--techphile-warning);
+    }
+    
+    .techphile-difficulty-advanced {
+        background-color: rgba(231, 76, 60, 0.1);
+        color: var(--techphile-danger);
+    }
+    
+    .techphile-points {
+        font-size: 0.85rem;
+        color: var(--techphile-muted);
+    }
+    
+    .techphile-challenge-body {
+        padding: 1.5rem;
+        flex-grow: 1;
+    }
+    
+    .techphile-dataset-tag {
+        display: inline-block;
+        background-color: rgba(52, 152, 219, 0.1);
+        color: var(--techphile-primary);
+        padding: 0.25rem 0.75rem;
+        border-radius: 20px;
+        font-size: 0.85rem;
+        margin-top: 1rem;
+    }
+    
+    .techphile-challenge-footer {
+        padding: 1rem 1.5rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-top: 1px solid rgba(0,0,0,0.05);
+    }
+    
+    .techphile-tags {
+        display: flex;
+        align-items: center;
+    }
+    
+    .techphile-tag {
+        background-color: rgba(52, 152, 219, 0.1);
+        color: var(--techphile-primary);
+        padding: 0.25rem 0.75rem;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        margin-right: 0.5rem;
+    }
+    
+    .techphile-topic-name {
+        font-size: 0.85rem;
+        color: var(--techphile-muted);
+    }
+    
+    .techphile-challenge-btn {
+        background-color: var(--techphile-primary);
+        color: white;
+        padding: 0.5rem 1rem;
+        border-radius: 6px;
+        font-size: 0.85rem;
+        font-weight: 500;
+        text-decoration: none;
+        transition: all 0.3s ease;
+    }
+    
+    .techphile-challenge-btn:hover {
+        background-color: #2980b9;
+        color: white;
+        transform: translateY(-2px);
+    }
+    
+    /* Learning Path */
+    .techphile-path-list {
+        margin-top: 2rem;
+    }
+    
+    .techphile-path-item {
+        display: flex;
+        align-items: center;
+        padding: 1rem 0;
+        border-bottom: 1px solid rgba(0,0,0,0.05);
+    }
+    
+    .techphile-path-item.active {
+        opacity: 1;
+    }
+    
+    .techphile-path-step {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-weight: bold;
+        margin-right: 1rem;
+        flex-shrink: 0;
+    }
+    
+    .techphile-path-image {
+        border-radius: 10px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+    }
+    
+    /* CTA Section */
+    .techphile-cta-section {
+        background-color: var(--techphile-primary);
+        padding: 4rem 0;
+        color: white;
+    }
+    
+    .techphile-cta-card {
+        max-width: 800px;
+        margin: 0 auto;
+    }
+    
+    .techphile-cta-title {
+        font-size: 2rem;
+        font-weight: 700;
+        margin-bottom: 1rem;
+    }
+    
+    .techphile-cta-subtitle {
+        font-size: 1.25rem;
+        margin-bottom: 2rem;
+        opacity: 0.9;
+    }
+    
+    .techphile-cta-buttons {
+        display: flex;
+        justify-content: center;
+        gap: 1rem;
+    }
+    
+    /* Empty State */
+    .techphile-empty-state {
+        padding: 3rem;
+        background-color: white;
+        border-radius: 10px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    }
+    
+    .techphile-empty-icon {
+        font-size: 3rem;
+        color: var(--techphile-muted);
+        margin-bottom: 1.5rem;
+    }
+    
+    /* Color Utilities */
+    .bg-techphile-primary { background-color: var(--techphile-primary); }
+    .bg-techphile-secondary { background-color: var(--techphile-secondary); }
+    .bg-techphile-success { background-color: var(--techphile-success); }
+    .bg-techphile-info { background-color: var(--techphile-info); }
+    .bg-techphile-warning { background-color: var(--techphile-warning); }
+    .bg-techphile-danger { background-color: var(--techphile-danger); }
+    .bg-techphile-dark { background-color: var(--techphile-dark); }
+    .bg-techphile-light { background-color: var(--techphile-light); }
+    
+    /* Responsive Adjustments */
+    @media (max-width: 768px) {
+        .techphile-main-heading {
+            font-size: 2rem;
+        }
+        
+        .techphile-subheading {
+            font-size: 1.1rem;
+        }
+        
+        .techphile-section-title {
+            font-size: 1.75rem;
+        }
+        
+        .techphile-cta-title {
+            font-size: 1.75rem;
+        }
+        
+        .techphile-cta-subtitle {
+            font-size: 1.1rem;
+        }
+        
+        .techphile-cta-buttons {
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+    }
+</style>
+{% endblock %}

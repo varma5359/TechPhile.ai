@@ -1,0 +1,260 @@
+{% extends "exams/exam_base.html" %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h3 class="mb-0">
+                        <i class="fas fa-user-tie me-2"></i>
+                        Interviewer Dashboard
+                    </h3>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="card border-success mb-3">
+                                <div class="card-body text-center">
+                                    <h2 class="display-4">{{ assigned_interviews.count }}</h2>
+                                    <p class="mb-0">Assigned Interviews</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card border-info mb-3">
+                                <div class="card-body text-center">
+                                    <h2 class="display-4">{{ upcoming_interviews.count }}</h2>
+                                    <p class="mb-0">Upcoming (7 days)</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card border-warning mb-3">
+                                <div class="card-body text-center">
+                                    <h2 class="display-4">{{ completed_interviews.count }}</h2>
+                                    <p class="mb-0">Completed</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Upcoming Interviews -->
+        <div class="col-lg-6">
+            <div class="card shadow mb-4">
+                <div class="card-header bg-info text-white">
+                    <h4 class="mb-0">
+                        <i class="fas fa-calendar-alt me-2"></i>
+                        Upcoming Interviews (Next 7 Days)
+                    </h4>
+                </div>
+                <div class="card-body">
+                    {% if upcoming_interviews %}
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Candidate</th>
+                                        <th>Date</th>
+                                        <th>Time</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for interview in upcoming_interviews %}
+                                        <tr>
+                                            <td>{{ interview.first_name }} {{ interview.last_name }}</td>
+                                            <td>{{ interview.interview_date|date:"M j" }}</td>
+                                            <td>{{ interview.interview_time }}</td>
+                                            <td>
+                                                <a href="{% url 'exams:view_interview' interview.pk %}" 
+                                                   class="btn btn-sm btn-outline-primary">
+                                                    <i class="fas fa-eye"></i> View
+                                                </a>
+                                                <a href="{{ interview.interview_link }}" 
+                                                   class="btn btn-sm btn-success" 
+                                                   target="_blank">
+                                                    <i class="fas fa-video"></i> Join
+                                                </a>
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="alert alert-info">
+                            No upcoming interviews in the next 7 days.
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Completed Interviews -->
+        <div class="col-lg-6">
+            <div class="card shadow mb-4">
+                <div class="card-header bg-success text-white">
+                    <h4 class="mb-0">
+                        <i class="fas fa-check-circle me-2"></i>
+                        Recently Completed Interviews
+                    </h4>
+                </div>
+                <div class="card-body">
+                    {% if completed_interviews %}
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Candidate</th>
+                                        <th>Date</th>
+                                        <th>Rating</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for interview in completed_interviews|slice:":5" %}
+                                        <tr>
+                                            <td>{{ interview.first_name }} {{ interview.last_name }}</td>
+                                            <td>{{ interview.interview_date|date:"M j" }}</td>
+                                            <td>
+                                                {% if interview.rating %}
+                                                    <span class="badge bg-primary">
+                                                        {{ interview.rating }}/5.0
+                                                    </span>
+                                                {% else %}
+                                                    <span class="badge bg-secondary">Pending</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                <a href="{% url 'exams:interview_feedback' interview.pk %}" 
+                                                   class="btn btn-sm btn-outline-warning">
+                                                    <i class="fas fa-edit"></i> Feedback
+                                                </a>
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        {% if completed_interviews.count > 5 %}
+                            <div class="text-center mt-2">
+                                <a href="#" class="btn btn-sm btn-outline-secondary">
+                                    View All ({{ completed_interviews.count }})
+                                </a>
+                            </div>
+                        {% endif %}
+                    {% else %}
+                        <div class="alert alert-info">
+                            No completed interviews yet.
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- All Assigned Interviews -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header bg-secondary text-white">
+                    <h4 class="mb-0">
+                        <i class="fas fa-list me-2"></i>
+                        All Assigned Interviews
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-hover">
+                            <thead class="thead-light">
+                                <tr>
+                                    <th>Candidate</th>
+                                    <th>Email</th>
+                                    <th>Interview Date</th>
+                                    <th>Type</th>
+                                    <th>Skills</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for interview in assigned_interviews %}
+                                    <tr>
+                                        <td>{{ interview.first_name }} {{ interview.last_name }}</td>
+                                        <td>{{ interview.email }}</td>
+                                        <td>
+                                            {{ interview.interview_date|date:"M j, Y" }}
+                                            <br>
+                                            <small>{{ interview.interview_time }}</small>
+                                        </td>
+                                        <td>{{ interview.get_interview_type_display }}</td>
+                                        <td>
+                                            {% for skill in interview.skills_list|slice:":3" %}
+                                                <span class="badge bg-info me-1">{{ skill }}</span>
+                                            {% endfor %}
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-{% if interview.status == 'scheduled' %}info{% elif interview.status == 'completed' %}success{% else %}danger{% endif %}">
+                                                {{ interview.get_status_display }}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <div class="btn-group btn-group-sm">
+                                                <a href="{% url 'exams:view_interview' interview.pk %}" 
+                                                   class="btn btn-outline-primary" 
+                                                   title="View Details">
+                                                    <i class="fas fa-eye"></i>
+                                                </a>
+                                                {% if interview.status == 'scheduled' %}
+                                                    <a href="{{ interview.interview_link }}" 
+                                                       class="btn btn-outline-success" 
+                                                       title="Join Interview"
+                                                       target="_blank">
+                                                        <i class="fas fa-video"></i>
+                                                    </a>
+                                                {% endif %}
+                                                <a href="{% url 'exams:interview_feedback' interview.pk %}" 
+                                                   class="btn btn-outline-warning" 
+                                                   title="Provide Feedback">
+                                                    <i class="fas fa-edit"></i>
+                                                </a>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                {% empty %}
+                                    <tr>
+                                        <td colspan="7" class="text-center">
+                                            <div class="alert alert-info mb-0">
+                                                No interviews assigned to you yet.
+                                            </div>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .card-header {
+        border-radius: 0.5rem 0.5rem 0 0 !important;
+    }
+    .table-hover tbody tr:hover {
+        background-color: rgba(74, 107, 255, 0.05);
+    }
+    .badge {
+        font-size: 0.85em;
+        font-weight: 500;
+    }
+</style>
+{% endblock %}

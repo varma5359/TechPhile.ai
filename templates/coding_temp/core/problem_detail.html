@@ -1,0 +1,388 @@
+{% extends 'coding_temp/core/base.html' %}
+
+{% block title %}{{ problem.title }} - Techphile AI{% endblock %}
+
+{% block content %}
+    <div class="container py-4">
+        <div class="row">
+            <!-- Problem Description -->
+            <div class="col-lg-6">
+                <div class="card border-0 shadow-sm mb-4">
+                    <div class="card-header bg-white border-0">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <h2 class="h4 mb-2">{{ problem.title }}</h2>
+                                <div class="d-flex align-items-center gap-2">
+                                    <span class="badge bg-{{ problem.difficulty|yesno:'success,warning,danger' }}">
+                                        {{ problem.get_difficulty_display }}
+                                    </span>
+                                    <span class="badge bg-primary">{{ problem.topic.name }}</span>
+                                    <span class="text-muted">
+                                        <i class="fas fa-trophy me-1"></i>{{ problem.points }} points
+                                    </span>
+                                </div>
+                            </div>
+                            {% if progress.status == 'completed' %}
+                                <i class="fas fa-check-circle fa-2x text-success" title="Completed"></i>
+                            {% elif progress.status == 'attempted' %}
+                                <i class="fas fa-clock fa-2x text-warning" title="In Progress"></i>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="card-body">
+                        <!-- Computer Vision specific instructions -->
+                        {% if problem.topic.name == "Computer Vision" %}
+                        <div class="alert alert-warning mb-3">
+                            <h6><i class="fas fa-camera"></i> Image Processing Instructions</h6>
+                            <ul class="mb-0">
+                                <li>Your code must save the output image to the current directory</li>
+                                <li>Print exactly the output filename (e.g. <code>output.jpg</code>)</li>
+                                <li>The system will validate the image content</li>
+                            </ul>
+                        </div>
+                        {% endif %}
+                        
+                        <div class="problem-description">
+                            {{ problem.description|linebreaks }}
+                        </div>
+                        
+                        {% if problem.dataset %}
+                        <div class="mt-4">
+                            <h6 class="fw-bold">Dataset:</h6>
+                            <div class="d-flex align-items-center gap-2">
+                                <i class="fas fa-database text-primary"></i>
+                                <span>{{ problem.dataset.name }}</span>
+                                <a href="{{ problem.dataset.file.url }}" class="btn btn-sm btn-outline-primary" download>
+                                    <i class="fas fa-download me-1"></i>Download
+                                </a>
+                            </div>
+                        </div>
+                        {% endif %}
+                        
+                       {% if problem.dataset %}
+                        <p class="mt-3">Expected Output:</p>
+                        <div id="expectedOutputTable" style="white-space: pre; font-family: monospace;"></div>
+                      
+                      {% else %}
+                        <pre>{{ problem.expected_output }}</pre>
+                      {% endif %}
+
+                    </div>
+                </div>
+
+                <!-- Progress & Submissions -->
+                <div class="card border-0 shadow-sm">
+                    <div class="card-header bg-white border-0">
+                        <h5 class="mb-0">Your Progress</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row text-center">
+                            <div class="col-4">
+                                <div class="fw-bold">{{ progress.attempts }}</div>
+                                <small class="text-muted">Attempts</small>
+                            </div>
+                            <div class="col-4">
+                                <div class="fw-bold">{{ progress.best_score|floatformat:0 }}</div>
+                                <small class="text-muted">Best Score</small>
+                            </div>
+                            <div class="col-4">
+                                <div class="fw-bold text-{{ progress.status|yesno:'success,warning,muted' }}">
+                                    {{ progress.get_status_display }}
+                                </div>
+                                <small class="text-muted">Status</small>
+                            </div>
+                        </div>
+                        
+                        {% if submissions %}
+                        <hr>
+                        <h6 class="fw-bold mb-3">Recent Submissions</h6>
+                        {% for submission in submissions|slice:":3" %}
+                        <div class="d-flex justify-content-between align-items-center mb-2 p-2 bg-light rounded">
+                            <div class="d-flex align-items-center">
+                                <i class="fas fa-{{ submission.status|yesno:'check-circle,times-circle,exclamation-circle' }} 
+                                   text-{{ submission.status|yesno:'success,danger,warning' }} me-2"></i>
+                                <small>{{ submission.submitted_at|timesince }} ago</small>
+                            </div>
+                            <small class="text-muted">{{ submission.score|floatformat:0 }} pts</small>
+                        </div>
+                        {% endfor %}
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Code Editor -->
+            <div class="col-lg-6">
+                <div class="card border-0 shadow-sm">
+                    <div class="card-header bg-white border-0">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0">Code Editor</h5>
+                         <!-- Add this near the Run/Submit buttons in the card-header -->
+                        <div class="btn-group" role="group">
+                            <button type="button" id="runCode" class="btn btn-success">
+                                <i class="fas fa-play me-2"></i>Run Code
+                            </button>
+                            <button type="button" id="submitCode" class="btn btn-primary">
+                                <i class="fas fa-paper-plane me-2"></i>Submit
+                            </button>
+                            <!-- Add this new button -->
+                            <button type="button" id="viewSolution" class="btn btn-info" data-bs-toggle="modal" data-bs-target="#solutionModal">
+                                <i class="fas fa-lightbulb me-2"></i>Solution
+                            </button>
+                        </div>
+                        </div>
+                    </div>
+                    
+                    <div class="card-body p-0">
+                        <!-- Help message -->
+                        <div class="alert alert-info mb-2 py-2 px-3 small">
+                            <i class="fas fa-info-circle"></i>
+                            {% if problem.topic.name == "Computer Vision" %}
+                                Use <code>/datasets/{{ problem.dataset.filename }}</code> as input path
+                            {% else %}
+                                For dataset problems, use <code>datasets/titanic.csv</code> as the file path in <code>pd.read_csv()</code>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- Monaco Editor Container -->
+                        <div id="codeEditor" class="code-editor"></div>
+                    </div>
+                </div>
+
+                <!-- Output Panel -->
+                <div class="card border-0 shadow-sm mt-3">
+                    <div class="card-header bg-white border-0">
+                        <h6 class="mb-0">Output</h6>
+                    </div>
+                    <div class="card-body p-0">
+                        <div id="outputStatus"></div>
+                        <div id="outputPanel" class="output-panel">
+                            Ready to run your code...
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Execution Status -->
+                <div id="executionStatus" class="mt-3" style="display: none;">
+                    <div class="alert alert-info mb-0">
+                        <div class="d-flex align-items-center">
+                            <div class="spinner-border spinner-border-sm me-2" role="status"></div>
+                            <span>Executing your code...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+<!-- Solution Modal -->
+<div class="modal fade" id="solutionModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title">Solution</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <pre class="bg-light p-3 rounded">{{ problem.solution }}</pre>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{% csrf_token %}
+<script>
+    const isComputerVision = {% if problem.topic.name == "Computer Vision" %}true{% else %}false{% endif %};
+    const submitUrl = "{% url 'core:submit_code' %}";
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+</script>
+<script src="https://cdn.jsdelivr.net/npm/requirejs@2.3.6/require.min.js"></script>
+
+
+<script>
+    // Initialize Monaco Editor
+    let editor;
+    
+    require.config({ paths: { vs: 'https://cdn.jsdelivr.net/npm/monaco-editor@0.41.0/min/vs' } });
+    require(['vs/editor/editor.main'], function() {
+        editor = monaco.editor.create(document.getElementById('codeEditor'), {
+            value: `{{ problem.starter_code|default:"# Write your solution here\nprint('Hello, AI!')" }}`,
+            language: 'python',
+            theme: 'vs-dark',
+            automaticLayout: true,
+            minimap: { enabled: false },
+            fontSize: 14,
+            wordWrap: 'on',
+            lineNumbers: 'on',
+            scrollBeyondLastLine: false
+        });
+    });
+
+    // Run Code Function (demo only)
+    document.getElementById('runCode').addEventListener('click', function() {
+        if (!editor) return;
+        
+        const code = editor.getValue();
+        const outputPanel = document.getElementById('outputPanel');
+        
+        outputPanel.textContent = 'Running your code...';
+        outputPanel.className = 'output-panel text-info';
+        
+        setTimeout(() => {
+            outputPanel.textContent = 'Code executed successfully!\nHello, AI!';
+            outputPanel.className = 'output-panel text-success';
+        }, 1000);
+    });
+
+    // Submit Code Function
+    document.getElementById('submitCode').addEventListener('click', async function() {
+        if (!editor) return;
+        
+        const code = editor.getValue();
+        const statusDiv = document.getElementById('executionStatus');
+        const outputPanel = document.getElementById('outputPanel');
+        const outputStatus = document.getElementById('outputStatus');
+        const submitBtn = this;
+        
+        // Show loading state
+        statusDiv.style.display = 'block';
+        submitBtn.disabled = true;
+        outputPanel.textContent = 'Processing submission...';
+        outputPanel.className = 'output-panel text-info';
+        
+        try {
+            const response = await fetch(submitUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken,
+                    'X-Requested-With': 'XMLHttpRequest'  // Helps identify AJAX requests
+                },
+                body: JSON.stringify({
+                    problem_id: {{ problem.id }},
+                    code: code
+                })
+            });
+
+            // First check if the response is OK (status 200-299)
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            // Try to parse as JSON
+            const contentType = response.headers.get('content-type');
+            if (!contentType || !contentType.includes('application/json')) {
+                const text = await response.text();
+                throw new Error(`Expected JSON but got: ${text.substring(0, 100)}...`);
+            }
+
+            const data = await response.json();
+
+            statusDiv.style.display = 'none';
+            submitBtn.disabled = false;
+
+            if (data.success) {
+                outputStatus.innerHTML = '<div class="alert alert-success mb-2 py-2 px-3">✓ Correct Solution!</div>';
+                
+                if (isComputerVision) {
+                    outputPanel.innerHTML = `
+                        <div class="alert alert-success">
+                            <i class="fas fa-check-circle"></i> ${data.output}
+                        </div>
+                        <p>Image processed successfully!</p>
+                        <p>Execution Time: ${data.execution_time}ms</p>
+                        <p>Score: ${data.score} points</p>
+                    `;
+                } else {
+                    // Default output handling
+                    try {
+                        const parsed = JSON.parse(data.output);
+                        if (Array.isArray(parsed) && parsed.length > 0 && typeof parsed[0] === 'object') {
+                            const keys = Object.keys(parsed[0]);
+                            outputPanel.innerHTML = `
+                                <table class="table table-bordered table-striped mt-2">
+                                    <thead><tr>${keys.map(k => `<th>${k}</th>`).join('')}</tr></thead>
+                                    <tbody>
+                                        ${parsed.map(row => `<tr>${keys.map(k => `<td>${row[k]}</td>`).join('')}</tr>`).join('')}
+                                    </tbody>
+                                </table>
+                                <p>Execution Time: ${data.execution_time}ms</p>
+                                <p>Score: ${data.score} points</p>
+                            `;
+                        } else {
+                            outputPanel.innerHTML = `<pre>${data.output}\n\nExecution Time: ${data.execution_time}ms\nScore: ${data.score} points</pre>`;
+                        }
+                    } catch (e) {
+                        outputPanel.innerHTML = `<pre>${data.output}\n\nExecution Time: ${data.execution_time}ms\nScore: ${data.score} points</pre>`;
+                    }
+                }
+
+                // Show success alert
+                const alert = document.createElement('div');
+                alert.className = 'alert alert-success alert-dismissible fade show mt-3';
+                alert.innerHTML = `
+                    <strong>Success!</strong> You earned ${data.score} points!
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                `;
+                document.querySelector('.container').prepend(alert);
+
+
+                setTimeout(() => location.reload(), 2000);
+            } else {
+                outputStatus.innerHTML = '<div class="alert alert-danger mb-2 py-2 px-3">✗ Incorrect Solution</div>';
+                outputPanel.innerHTML = `<pre>${data.error || data.output}\n\nExecution Time: ${data.execution_time || 'N/A'}ms</pre>`;
+                outputPanel.className = 'output-panel text-danger';
+            }
+        } catch (error) {
+            statusDiv.style.display = 'none';
+            submitBtn.disabled = false;
+            outputStatus.innerHTML = '<div class="alert alert-danger mb-2 py-2 px-3">⚠️ Submission Error</div>';
+            outputPanel.textContent = `Error: ${error.message}`;
+            outputPanel.className = 'output-panel text-danger';
+            console.error('Submission error:', error);
+        }
+    });
+
+    // Table parsing for expected output
+    const expectedOutput = `{{ problem.expected_output|escapejs }}`;
+    function parseTable(text) {
+        const lines = text.trim().split("\n");
+        let table = '<table class="table table-bordered table-striped">';
+        lines.forEach((line, index) => {
+            const cells = line.split("|").map(cell => cell.trim()).filter(cell => cell);
+            table += '<tr>';
+            cells.forEach(cell => {
+                table += index === 0 ? `<th>${cell}</th>` : `<td>${cell}</td>`;
+            });
+            table += '</tr>';
+        });
+        table += '</table>';
+        return table;
+    }
+    if (document.getElementById('expectedOutputTable')) {
+        document.getElementById('expectedOutputTable').innerHTML = parseTable(expectedOutput);
+    }
+</script>
+<script src="https://cdn.jsdelivr.net/npm/requirejs@2.3.6/require.min.js"></script>
+
+<!-- CSRF Token for AJAX requests -->
+{% csrf_token %}
+{% endblock %}
+
+<style>
+    .modal-pre {
+        white-space: pre-wrap;
+        word-wrap: break-word;
+        font-family: monospace;
+        background-color: #f8f9fa;
+        padding: 1rem;
+        border-radius: 0.25rem;
+        border: 1px solid #dee2e6;
+    }
+</style>

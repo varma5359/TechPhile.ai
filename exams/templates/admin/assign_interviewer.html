@@ -1,0 +1,107 @@
+{% extends "admin/base_site.html" %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow-lg">
+                <div class="card-header bg-primary text-white">
+                    <h3 class="card-title mb-0">
+                        <i class="fas fa-user-plus me-2"></i>
+                        Assign Interviewer to {{ interview.first_name }} {{ interview.last_name }}
+                    </h3>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        
+                        <div class="row mb-4">
+                            <div class="col-md-6">
+                                <h5>Candidate Details</h5>
+                                <ul class="list-group">
+                                    <li class="list-group-item">
+                                        <strong>Email:</strong> {{ interview.email }}
+                                    </li>
+                                    <li class="list-group-item">
+                                        <strong>Interview Date:</strong> {{ interview.interview_date|date:"F j, Y" }}
+                                    </li>
+                                    <li class="list-group-item">
+                                        <strong>Time:</strong> {{ interview.interview_time }}
+                                    </li>
+                                    <li class="list-group-item">
+                                        <strong>Type:</strong> {{ interview.get_interview_type_display }}
+                                    </li>
+                                </ul>
+                            </div>
+                            <div class="col-md-6">
+                                <h5>Skills</h5>
+                                <div class="skill-tags mb-3">
+                                    {% for skill in interview.skills_list %}
+                                        <span class="badge bg-info me-1 mb-1">{{ skill }}</span>
+                                    {% endfor %}
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="{{ form.interviewer.id_for_label }}" class="form-label">
+                                        <i class="fas fa-user-tie me-1"></i>
+                                        Select Interviewer
+                                    </label>
+                                    
+                                    {{ form.interviewer }}
+                                    
+                                    {% if not form.interviewer.field.queryset.exists %}
+                                        <div class="alert alert-warning mt-2">
+                                            <i class="fas fa-exclamation-triangle me-1"></i>
+                                            No active interviewers available. Please create some in the admin first.
+                                        </div>
+                                    {% endif %}
+                                    
+                                    {% if form.interviewer.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {{ form.interviewer.errors|join:", " }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                                
+                            </div>
+                        </div>
+                        
+                        <div class="d-flex justify-content-between mt-4">
+                            <a href="{% url 'admin:exams_applicant_changelist' %}" class="btn btn-outline-secondary">
+                                <i class="fas fa-arrow-left me-1"></i> Back to List
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save me-1"></i> Assign Interviewer
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .skill-tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+    .select2-container {
+        width: 100% !important;
+    }
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize select2 if available
+    if (typeof $ !== 'undefined' && $.fn.select2) {
+        $('#id_interviewer').select2({
+            placeholder: "Select an interviewer",
+            allowClear: true,
+            width: '100%'
+        });
+    }
+});
+</script>
+{% endblock %}

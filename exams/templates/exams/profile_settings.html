@@ -1,0 +1,356 @@
+{% extends "exams/exam_base.html" %}
+{% load static %}
+
+{% block content %}
+<style>
+    /* Alignment fixes without changing structure */
+    .form-floating > .form-control {
+        height: calc(3.5rem + 2px);
+        padding: 1rem 0.75rem;
+    }
+    .form-floating > label {
+        padding: 1rem 0.75rem;
+    }
+    .form-floating > .form-control:focus,
+    .form-floating > .form-control:not(:placeholder-shown) {
+        padding-top: 1.625rem;
+        padding-bottom: 0.625rem;
+    }
+    .form-control, .form-select {
+        height: 50px;
+    }
+    .form-check-input {
+        margin-top: 0.25em;
+    }
+    .table td, .table th {
+        vertical-align: middle;
+    }
+    .profile-photo-container {
+        min-height: 80px;
+    }
+
+    /* --- Custom styles for tab names --- */
+    .nav-tabs .nav-link {
+        color: #4361ee; /* A vibrant blue for inactive tab names */
+        font-weight: 500; /* Slightly bolder for readability */
+        transition: color 0.3s ease; /* Smooth transition for hover */
+    }
+
+    .nav-tabs .nav-link:hover {
+        color: #3a86ff; /* A slightly lighter blue on hover */
+    }
+
+    .nav-tabs .nav-link.active {
+        color: #1a1a2e; /* Darker text for the active tab */
+        font-weight: 600; /* More emphasis on the active tab */
+        border-color: #dee2e6 #dee2e6 #fff; /* Standard Bootstrap active tab border */
+        background-color: #fff;
+    }
+</style>
+
+
+
+<div class="container-fluid px-4">
+    <div class="card shadow-sm border-0 mb-4">
+        <div class="card-header bg-white">
+            <h5 class="mb-0"><i class="fas fa-user-cog me-2 text-white"></i>Profile Settings</h5>
+        </div>
+        <div class="card-body" >
+            {% if messages %}
+            <div class="mb-4">
+                {% for message in messages %}
+                <div class="alert alert-{{ message.tags }} alert-dismissible fade show">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <ul class="nav nav-tabs mb-4" id="profileTabs" role="tablist" >
+                <li class="nav-item" role="presentation"> {# Removed inline style here #}
+                    <button class="nav-link {% if active_tab == 'basic' %}active{% endif %}" id="basic-tab" data-bs-toggle="tab" data-bs-target="#basic" type="button">
+                        <i class="fas fa-id-card me-1"></i> Basic Info
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link {% if active_tab == 'security' %}active{% endif %}" id="security-tab" data-bs-toggle="tab" data-bs-target="#security" type="button">
+                        <i class="fas fa-shield-alt me-1"></i> Security
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link {% if active_tab == 'notifications' %}active{% endif %}" id="notifications-tab" data-bs-toggle="tab" data-bs-target="#notifications" type="button">
+                        <i class="fas fa-bell me-1"></i> Notifications
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link {% if active_tab == 'preferences' %}active{% endif %}" id="preferences-tab" data-bs-toggle="tab" data-bs-target="#preferences" type="button">
+                        <i class="fas fa-sliders-h me-1"></i> Preferences
+                    </button>
+                </li>
+            </ul>
+
+            <div class="tab-content">
+                  <div class="tab-pane fade {% if active_tab == 'basic' %}show active{% endif %}" id="basic">
+                      <form method="post" action="{% url 'exams:update_profile' %}" enctype="multipart/form-data">
+                          {% csrf_token %}
+                          <div class="row g-3">
+                              <div class="col-md-6">
+                                  <div class="form-floating mb-3">
+                                      <input type="text" class="form-control" id="id_first_name" name="first_name" 
+                                              value="{{ user.first_name }}" placeholder="First Name" required>
+                                      <label for="id_first_name">First Name</label>
+                                  </div>
+                              </div>
+                              <div class="col-md-6">
+                                  <div class="form-floating mb-3">
+                                      <input type="text" class="form-control" id="id_last_name" name="last_name" 
+                                              value="{{ user.last_name }}" placeholder="Last Name" required>
+                                      <label for="id_last_name">Last Name</label>
+                                  </div>
+                              </div>
+                              <div class="col-md-6">
+                                  <div class="form-floating mb-3">
+                                      <input type="email" class="form-control" value="{{ user.email }}" disabled>
+                                      <label>Email <small class="text-muted">(Contact admin to change)</small></label>
+                                  </div>
+                              </div>
+                              <div class="col-md-6">
+                                  <div class="form-floating mb-3">
+                                      <input type="tel" class="form-control" id="id_phone" name="phone" 
+                                              value="{{ user.profile.phone|default:'' }}" placeholder="Phone Number">
+                                      <label for="id_phone">Phone Number</label>
+                                  </div>
+                              </div>
+                              <div class="col-12">
+                                  <div class="mb-3">
+                                      <label class="form-label">Profile Photo</label>
+                                      <div class="d-flex align-items-center profile-photo-container">
+                                          <div class="me-3">
+                                              {% if user.profile.photo %}
+                                                  <img src="{{ user.profile.photo.url }}" class="rounded-circle" width="80" height="80" alt="Profile">
+                                              {% else %}
+                                                  <i class="fas fa-user-circle fa-4x text-secondary"></i>
+                                              {% endif %}
+                                          </div>
+                                          <div class="flex-grow-1">
+                                              <input type="file" class="form-control" id="id_photo" name="photo" accept="image/*">
+                                              <small class="text-muted">JPG or PNG, max 2MB</small>
+                                          </div>
+                                      </div>
+                                  </div>
+                              </div>
+                          </div>
+                          <button type="submit" class="btn btn-primary px-4 mt-2">Update Profile</button> 
+                      </form>
+                  
+                      {% if user.profile.photo %}
+                      <form method="post" action="{% url 'exams:delete_profile_photo' %}">
+                          {% csrf_token %}
+                          <button type="submit" class="btn btn-danger px-4 mt-2">Delete</button> 
+                      </form>
+                      {% endif %}
+                  </div>
+
+
+                <div class="tab-pane fade {% if active_tab == 'security' %}show active{% endif %}" id="security">
+                    <div class="mb-4">
+                        <h6 class="mb-3"><i class="fas fa-key me-2"></i>Password</h6>
+                        <form method="post" action="{% url 'exams:change_password' %}">
+                            {% csrf_token %}
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <div class="form-floating mb-3">
+                                        <input type="password" class="form-control" id="id_old_password" name="old_password" 
+                                                placeholder="Current Password" required>
+                                        <label for="id_old_password">Current Password</label>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-floating mb-3">
+                                        <input type="password" class="form-control" id="id_new_password1" name="new_password1" 
+                                                placeholder="New Password" required>
+                                        <label for="id_new_password1">New Password</label>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-floating mb-3">
+                                        <input type="password" class="form-control" id="id_new_password2" name="new_password2" 
+                                                placeholder="Confirm Password" required>
+                                        <label for="id_new_password2">Confirm Password</label>
+                                    </div>
+                                </div>
+                            </div>
+                            <button type="submit" class="btn btn-primary px-4">Change Password</button>
+                        </form>
+                    </div>
+                    
+                    <hr class="my-4">
+                    
+                    <div>
+                        <h6 class="mb-3"><i class="fas fa-lock me-2"></i>Active Sessions</h6>
+                        <div class="table-responsive">
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>Device</th>
+                                        <th>Location</th>
+                                        <th>Last Active</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for session in active_sessions %}
+                                    <tr>
+                                        <td>{{ session.user_agent|truncatechars:30 }}</td>
+                                        <td>{{ session.ip_address }}</td>
+                                        <td>{{ session.last_activity|timesince }} ago</td>
+                                        <td>
+                                            {% if not session.is_current %}
+                                            <form method="post" action="{% url 'terminate_session' session.pk %}">
+                                                {% csrf_token %}
+                                                <button type="submit" class="btn btn-link text-danger p-0">Logout</button>
+                                            </form>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="tab-pane fade {% if active_tab == 'notifications' %}show active{% endif %}" id="notifications">
+                    <form method="post" action="{% url 'exams:update_notifications' %}">
+                        {% csrf_token %}
+                        <h6 class="mb-3"><i class="fas fa-envelope me-2"></i>Email Notifications</h6>
+                        <div class="form-check form-switch mb-3 d-flex align-items-center">
+                            <input class="form-check-input me-2" type="checkbox" id="examNotifications" name="exam_notifications" 
+                                    {% if user.profile.exam_notifications %}checked{% endif %}>
+                            <label class="form-check-label" for="examNotifications">Exam results and updates</label>
+                        </div>
+                        <div class="form-check form-switch mb-3 d-flex align-items-center">
+                            <input class="form-check-input me-2" type="checkbox" id="interviewNotifications" name="interview_notifications" 
+                                    {% if user.profile.interview_notifications %}checked{% endif %}>
+                            <label class="form-check-label" for="interviewNotifications">Interview schedules and feedback</label>
+                        </div>
+                        <div class="form-check form-switch mb-3 d-flex align-items-center">
+                            <input class="form-check-input me-2" type="checkbox" id="promotionalEmails" name="promotional_emails" 
+                                    {% if user.profile.promotional_emails %}checked{% endif %}>
+                            <label class="form-check-label" for="promotionalEmails">Promotional offers</label>
+                        </div>
+                        
+                        <hr class="my-4">
+                        
+                        <h6 class="mb-3"><i class="fas fa-mobile-alt me-2"></i>Push Notifications</h6>
+                        <div class="form-check form-switch mb-3 d-flex align-items-center">
+                            <input class="form-check-input me-2" type="checkbox" id="upcomingReminders" name="push_reminders" 
+                                    {% if user.profile.push_reminders %}checked{% endif %}>
+                            <label class="form-check-label" for="upcomingReminders">Upcoming exam/interview reminders</label>
+                        </div>
+                        <div class="form-check form-switch mb-3 d-flex align-items-center">
+                            <input class="form-check-input me-2" type="checkbox" id="importantAlerts" name="important_alerts" 
+                                    {% if user.profile.important_alerts %}checked{% endif %}>
+                            <label class="form-check-label" for="importantAlerts">Important alerts</label>
+                        </div>
+                        
+                        <button type="submit" class="btn btn-primary px-4 mt-2">Save Preferences</button>
+                    </form>
+                </div>
+
+                <div class="tab-pane fade {% if active_tab == 'preferences' %}show active{% endif %}" id="preferences">
+                    <form method="post" action="{% url 'exams:update_preferences' %}">
+                        {% csrf_token %}
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Time Zone</label>
+                                    {{ preferences_form.timezone }}
+                                    {% if preferences_form.timezone.errors %}
+                                        <div class="text-danger">{{ preferences_form.timezone.errors }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Theme Preference</label>
+                                    <div class="d-flex gap-3">
+                                        {% for radio in preferences_form.theme %}
+                                            <div class="form-check">
+                                                {{ radio.tag }}
+                                                <label class="form-check-label" for="{{ radio.id_for_label }}">
+                                                    <i class="fas {% if radio.choice_value == 'light' %}fa-sun{% else %}fa-moon{% endif %} me-1"></i> 
+                                                    {{ radio.choice_label }}
+                                                </label>
+                                            </div>
+                                        {% endfor %}
+                                    </div>
+                                    {% if preferences_form.theme.errors %}
+                                        <div class="text-danger">{{ preferences_form.theme.errors }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Dashboard View</label>
+                                    {{ preferences_form.dashboard_view }}
+                                    {% if preferences_form.dashboard_view.errors %}
+                                        <div class="text-danger">{{ preferences_form.dashboard_view.errors }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-primary px-4">Save Preferences</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+    // Listen for theme radio changes
+    document.querySelectorAll('input[name="theme"]').forEach(function(radio) {
+        radio.addEventListener('change', function() {
+            // Set data-theme attribute on <html> or <body>
+            document.documentElement.setAttribute('data-theme', this.value);
+            // Optionally, save to localStorage for persistence
+            localStorage.setItem('theme', this.value);
+        });
+    });
+
+    // On page load, apply theme from localStorage or Django session
+    var savedTheme = localStorage.getItem('theme');
+    if (savedTheme) {
+        document.documentElement.setAttribute('data-theme', savedTheme);
+        // Optionally, check the correct radio button
+        var radio = document.querySelector('input[name="theme"][value="' + savedTheme + '"]');
+        if (radio) radio.checked = true;
+    }
+});
+// Activate the correct tab based on URL hash or active_tab
+document.addEventListener('DOMContentLoaded', function() {
+    // If coming from a redirect with ?tab= parameter
+    const urlParams = new URLSearchParams(window.location.search);
+    const activeTab = urlParams.get('tab');
+    
+    if (activeTab) {
+        const tabButton = document.querySelector(`button[data-bs-target="#${activeTab}"]`);
+        if (tabButton) {
+            new bootstrap.Tab(tabButton).show();
+        }
+    }
+    
+    // If there's a hash in the URL
+    if (window.location.hash) {
+        const tabButton = document.querySelector(`button[data-bs-target="${window.location.hash}"]`);
+        if (tabButton) {
+            new bootstrap.Tab(tabButton).show();
+        }
+    }
+});
+    document.documentElement.setAttribute('data-theme', '{{ request.session.theme|default:"light" }}');
+
+</script>
+{% endblock %}

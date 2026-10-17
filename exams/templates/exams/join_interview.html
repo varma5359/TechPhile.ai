@@ -1,0 +1,124 @@
+{% extends 'exams/exam_base.html' %}
+{% load static %}
+
+{% block title %}Join Interview - TechPhile.ai{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-primary text-white">
+                    <h2 class="h5 mb-0">Join Your Interview</h2>
+                </div>
+                
+                <div class="card-body">
+                    <!-- Interview Details -->
+                    <div class="interview-details mb-4 p-4 bg-light rounded">
+                        <h3 class="h4 mb-3">{{ interview.job_position }} Interview</h3>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <p class="mb-2">
+                                    <strong><i class="far fa-calendar-alt me-2"></i>Date:</strong>
+                                    {{ interview.interview_date|date:"F j, Y" }}
+                                </p>
+                                <p class="mb-2">
+                                    <strong><i class="far fa-clock me-2"></i>Time:</strong>
+                                    {{ interview.interview_time|time:"g:i A" }}
+                                </p>
+                            </div>
+                            <div class="col-md-6">
+                                <p class="mb-2">
+                                    <strong><i class="fas fa-user-tie me-2"></i>Interviewer:</strong>
+                                    {{ interview.interviewer_name }}
+                                </p>
+                                <p class="mb-2">
+                                    <strong><i class="fas fa-link me-2"></i>Meeting ID:</strong>
+                                    {{ interview.interview_link|default:"Will be provided soon" }}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Join Button -->
+                    <!-- <div class="text-center my-4">
+                        {% if interview.interview_link %}
+                            <a href="{{ interview.interview_link }}" 
+                               class="btn btn-success btn-lg px-5 py-3"
+                               target="_blank">
+                                <i class="fas fa-video me-2"></i> Join Interview Now
+                            </a>
+                        {% else %}
+                            <button class="btn btn-secondary btn-lg px-5 py-3" disabled>
+                                <i class="fas fa-hourglass-half me-2"></i> Waiting for Meeting Link
+                            </button>
+                        {% endif %}
+                    </div> -->
+
+                    <!-- Important Notes -->
+                    <div class="alert alert-info mt-4">
+                        <h4 class="h5 mb-3"><i class="fas fa-info-circle me-2"></i>Before You Join:</h4>
+                        <ul class="mb-0">
+                            <li>Ensure you have a stable internet connection</li>
+                            <li>Use Chrome or Firefox for best experience</li>
+                            <li>Join 5 minutes before scheduled time</li>
+                            <li>Have your ID ready for verification</li>
+                            <li>Test your microphone and camera beforehand</li>
+                        </ul>
+                    </div>
+
+                    <!-- Troubleshooting -->
+                    <div class="mt-4">
+                        <button class="btn btn-outline-primary" type="button" data-bs-toggle="collapse" data-bs-target="#troubleshooting">
+                            <i class="fas fa-question-circle me-2"></i> Having Trouble?
+                        </button>
+                        
+                        <div class="collapse mt-2" id="troubleshooting">
+                            <div class="card card-body">
+                                <h5 class="h6">Technical Support</h5>
+                                <p>If you're experiencing technical difficulties:</p>
+                                <ol>
+                                    <li>Refresh this page and try again</li>
+                                    <li>Clear your browser cache</li>
+                                    <li>Try a different browser</li>
+                                    <li>Contact support at <a href="mailto:support@techphile.ai">support@techphile.ai</a></li>
+                                </ol>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card-footer bg-light text-center">
+                    <a href="{% url 'exams:student_dashboard' %}" class="btn btn-outline-secondary">
+                        <i class="fas fa-arrow-left me-2"></i> Back to Dashboard
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .interview-details {
+        border-left: 4px solid #4361ee;
+    }
+    
+    .btn-success {
+        background-color: #2ecc71;
+        border-color: #2ecc71;
+        transition: all 0.3s;
+    }
+    
+    .btn-success:hover {
+        background-color: #27ae60;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(46, 204, 113, 0.3);
+    }
+    
+    .card {
+        border-radius: 10px;
+        overflow: hidden;
+    }
+</style>
+{% endblock %}

@@ -1,0 +1,137 @@
+{% extends "exams/exam_base.html" %}
+
+{% block content %}
+<div class="container my-3 my-md-5">
+    <div class="card shadow-lg">
+        <div class="card-header bg-primary text-white">
+            <h3 class="mb-0 h5 h4-md">
+                <i class="fas fa-calendar-check me-2"></i>
+                Interview Details
+            </h3>
+        </div>
+        <div class="card-body p-3 p-md-4">
+            <div class="row mb-3 mb-md-4">
+                <div class="col-12 col-md-6 mb-3 mb-md-0">
+                    <h5 class="h6-md">Candidate Information</h5>
+                    <div class="table-responsive">
+                        <table class="table table-sm table-borderless">
+                            <tr>
+                                <td class="text-muted" style="width: 120px;"><strong>Name:</strong></td>
+                                <td>{{ interview.first_name }} {{ interview.last_name }}</td>
+                            </tr>
+                            <tr>
+                                <td class="text-muted"><strong>Email:</strong></td>
+                                <td><a href="mailto:{{ interview.email }}">{{ interview.email }}</a></td>
+                            </tr>
+                            <tr>
+                                <td class="text-muted"><strong>Phone:</strong></td>
+                                <td><a href="tel:{{ interview.phone }}">{{ interview.phone }}</a></td>
+                            </tr>
+                            <tr>
+                                <td class="text-muted"><strong>Qualification:</strong></td>
+                                <td>{{ interview.qualification }}</td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+                <div class="col-12 col-md-6">
+                    <h5 class="h6-md">Interview Details</h5>
+                    <div class="table-responsive">
+                        <table class="table table-sm table-borderless">
+                            <tr>
+                                <td class="text-muted" style="width: 120px;"><strong>Type:</strong></td>
+                                <td>{{ interview.get_interview_type_display }}</td>
+                            </tr>
+                            <tr>
+                                <td class="text-muted"><strong>Difficulty:</strong></td>
+                                <td>{{ interview.get_difficulty_display }}</td>
+                            </tr>
+                            <tr>
+                                <td class="text-muted"><strong>Date:</strong></td>
+                                <td>{{ interview.interview_date|date:"F j, Y" }}</td>
+                            </tr>
+                            <tr>
+                                <td class="text-muted"><strong>Time:</strong></td>
+                                <td>{{ interview.interview_time }}</td>
+                            </tr>
+                            <tr>
+                                <td class="text-muted"><strong>Status:</strong></td>
+                                <td>
+                                    <span class="badge bg-{% if interview.status == 'scheduled' %}info{% elif interview.status == 'completed' %}success{% else %}danger{% endif %}">
+                                        {{ interview.get_status_display }}
+                                    </span>
+                                </td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row mb-3 mb-md-4">
+                <div class="col-12">
+                    <h5 class="h6-md">Skills</h5>
+                    <div class="skill-tags mb-2">
+                        {% for skill in interview.skills_list %}
+                            <span class="badge bg-secondary me-1 mb-1">{{ skill }}</span>
+                        {% endfor %}
+                    </div>
+                    {% if interview.additional_skills %}
+                        <p class="mb-0"><strong>Additional Skills:</strong> {{ interview.additional_skills }}</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            {% if interview.status == 'completed' and interview.rating %}
+                <div class="row mb-3 mb-md-4">
+                    <div class="col-12">
+                        <h5 class="h6-md">Feedback</h5>
+                        <p><strong>Rating:</strong> <span class="badge bg-warning text-dark">{{ interview.rating }}/5.0</span></p>
+                        {% if interview.feedback %}
+                            <div class="feedback-box p-2 p-md-3 bg-light rounded">
+                                {{ interview.feedback|linebreaks }}
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            {% endif %}
+
+            <div class="d-flex flex-wrap gap-2 mt-3 mt-md-4">
+                {% if interview.status == 'scheduled' %}
+                    <a href="{% url 'exams:join_interview' interview.interview_id %}" class="btn btn-primary flex-grow-1 flex-md-grow-0">
+                        <i class="fas fa-video me-2"></i> <span class="d-none d-md-inline">Join</span> Interview
+                    </a>
+                    <a href="{% url 'exams:reschedule_interview' interview.pk %}" class="btn btn-outline-secondary flex-grow-1 flex-md-grow-0">
+                        <i class="fas fa-calendar-alt me-2"></i> Reschedule
+                    </a>
+                    <a href="{% url 'exams:cancel_interview' interview.pk %}" class="btn btn-outline-danger flex-grow-1 flex-md-grow-0">
+                        <i class="fas fa-times me-2"></i> Cancel
+                    </a>
+                {% endif %}
+                <a href="{% url 'exams:student_dashboard' %}" class="btn btn-outline-primary flex-grow-1 flex-md-grow-0">
+                    <i class="fas fa-arrow-left me-2"></i> Dashboard
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    /* Custom responsive adjustments */
+    @media (max-width: 768px) {
+        .card-header h3 {
+            font-size: 1.25rem;
+        }
+        .h6-md {
+            font-size: 1.1rem;
+        }
+        .table-responsive {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+        .btn {
+            white-space: nowrap;
+            padding: 0.375rem 0.75rem;
+        }
+    }
+</style>
+{% endblock %}

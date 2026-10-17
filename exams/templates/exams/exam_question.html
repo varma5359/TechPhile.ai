@@ -1,0 +1,423 @@
+{% extends 'exams/exam_base.html' %}
+
+{% block content %}
+<div class="exam-question-container">
+    <!-- Question Navigation Panel -->
+    <div class="question-nav-panel shadow">
+        {% for i in total_question_range %}
+            {% if i == current_question %}
+                <a class="question-nav-btn active" href="{% url 'exams:exam_question' exam.slug level set_number i %}">{{ i }}</a>
+            {% else %}
+                <a class="question-nav-btn" href="{% url 'exams:exam_question' exam.slug level set_number i %}">{{ i }}</a>
+            {% endif %}
+        {% endfor %}
+    </div>
+
+    <!-- Question Card -->
+    <div class="question-card shadow">
+        <div class="question-header">
+            <div class="question-header-content">
+                <h3>Question {{ current_question }} <span class="of-total">/ {{ total_questions }}</span></h3>
+                <div class="progress-bar-outer">
+                    <div class="progress-bar-inner" style="width: {% widthratio current_question total_questions 100 %}%"></div>
+                </div>
+            </div>
+        </div>
+        <div class="question-body">
+            <h4 class="question-text">{{ question.question_text }}</h4>
+            <form method="post">
+                {% csrf_token %}
+                {% if form.errors %}
+                    <div class="alert alert-danger mb-3">
+                        <i class="fas fa-exclamation-circle me-2"></i>
+                        Please select an answer before proceeding
+                    </div>
+                {% endif %}
+                <div class="answer-options">
+                    {% for radio in form.selected_answer %}
+                    <label class="answer-option">
+                        {{ radio.tag }}
+                        <span class="option-label">{{ radio.choice_label }}</span>
+                    </label>
+                    {% endfor %}
+                </div>
+                <div class="question-actions">
+                    {% if current_question > 1 %}
+                    <a href="{% url 'exams:exam_question' exam.slug level set_number current_question|add:'-1' %}" class="btn btn-outline-secondary">
+                        <i class="fas fa-arrow-left me-1"></i> Previous
+                    </a>
+                    {% else %}
+                    <span></span>
+                    {% endif %}
+                    <button type="submit" class="btn btn-gradient">
+                        {% if current_question == total_questions %}
+                            <i class="fas fa-check-circle me-1"></i> Finish Exam
+                        {% else %}
+                            Next <i class="fas fa-arrow-right ms-1"></i>
+                        {% endif %}
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<style>
+/* Base Styles */
+.exam-question-container {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background: linear-gradient(120deg, #f8fafc 0%, #e0e7ff 100%);
+    padding: 1rem;
+}
+
+.question-nav-panel {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin: 1rem auto;
+    padding: 0.75rem;
+    background: #fff;
+    border-radius: 1rem;
+    max-width: 100%;
+    width: 640px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    position: sticky;
+    top: 1rem;
+    z-index: 10;
+}
+
+.question-nav-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 36px;
+    height: 36px;
+    text-decoration: none;
+    background: #e0e7ff;
+    color: #4361ee;
+    border-radius: 0.5rem;
+    font-weight: 600;
+    transition: all 0.2s ease;
+}
+
+.question-nav-btn:hover {
+    background: #4cc9f0;
+    color: #fff;
+    transform: translateY(-2px);
+}
+
+.question-nav-btn.active {
+    background: #4361ee;
+    color: white;
+    box-shadow: 0 4px 8px rgba(67, 97, 238, 0.3);
+}
+
+.question-card {
+    background: #fff;
+    border-radius: 1.25rem;
+    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.12);
+    width: 100%;
+    max-width: 680px;
+    margin: 1rem auto 3rem;
+    overflow: hidden;
+    animation: fadeIn 0.5s ease-out;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.question-header {
+    background: linear-gradient(90deg, #4361ee 0%, #4cc9f0 100%);
+    color: #fff;
+    padding: 1.5rem 2rem;
+    position: relative;
+}
+
+.question-header-content {
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.question-header h3 {
+    margin: 0 0 0.5rem 0;
+    font-weight: 700;
+    font-size: 1.3rem;
+    letter-spacing: 0.5px;
+}
+
+.of-total {
+    font-size: 1rem;
+    opacity: 0.85;
+    font-weight: 500;
+}
+
+.progress-bar-outer {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 1rem;
+    height: 8px;
+    width: 100%;
+    overflow: hidden;
+}
+
+.progress-bar-inner {
+    background: white;
+    height: 100%;
+    border-radius: 1rem;
+    transition: width 0.4s ease-out;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.question-body {
+    padding: 2rem;
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.question-text {
+    font-size: 1.15rem;
+    font-weight: 600;
+    color: #22223b;
+    margin-bottom: 1.5rem;
+    line-height: 1.5;
+}
+
+.answer-options {
+    margin: 2rem 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.answer-option {
+    display: flex;
+    align-items: center;
+    background: #f8f9fa;
+    border-radius: 0.75rem;
+    padding: 1rem 1.5rem;
+    font-size: 1rem;
+    font-weight: 500;
+    color: #22223b;
+    cursor: pointer;
+    border: 2px solid #e9ecef;
+    transition: all 0.2s ease;
+}
+
+.answer-option:hover {
+    background: #f1f3f5;
+    border-color: #dee2e6;
+    transform: translateY(-2px);
+}
+
+.answer-option:focus-within {
+    border-color: #4361ee;
+    box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.2);
+}
+
+.answer-option input[type="radio"] {
+    margin-right: 1rem;
+    min-width: 18px;
+    min-height: 18px;
+    accent-color: #4361ee;
+}
+
+.option-label {
+    flex: 1;
+    line-height: 1.4;
+}
+
+.question-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 2.5rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid #e9ecef;
+}
+
+.btn-gradient {
+    background: linear-gradient(90deg, #4361ee 0%, #4cc9f0 100%);
+    color: #fff;
+    border: none;
+    padding: 0.75rem 2rem;
+    border-radius: 2rem;
+    font-weight: 600;
+    font-size: 1rem;
+    box-shadow: 0 2px 8px rgba(67,97,238,0.1);
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+}
+
+.btn-gradient:hover {
+    background: linear-gradient(90deg, #3a56d4 0%, #3fb8e0 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(67,97,238,0.15);
+}
+
+.btn-outline-secondary {
+    border: 2px solid #4361ee;
+    color: #4361ee;
+    background: transparent;
+    border-radius: 2rem;
+    padding: 0.75rem 2rem;
+    font-weight: 600;
+    font-size: 1rem;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+}
+
+.btn-outline-secondary:hover {
+    background: #4361ee;
+    color: #fff;
+    transform: translateY(-2px);
+}
+
+.alert-danger {
+    background: rgba(220, 53, 69, 0.1);
+    border: 1px solid rgba(220, 53, 69, 0.2);
+    color: #dc3545;
+    border-radius: 0.5rem;
+    padding: 0.75rem 1.25rem;
+}
+
+/* Media Queries */
+@media (max-width: 768px) {
+    .question-nav-panel {
+        padding: 0.5rem;
+        border-radius: 0.75rem;
+        top: 0.5rem;
+    }
+    
+    .question-nav-btn {
+        min-width: 32px;
+        height: 32px;
+        font-size: 0.9rem;
+    }
+    
+    .question-card {
+        border-radius: 1rem;
+        margin: 0.5rem auto 2rem;
+    }
+    
+    .question-header {
+        padding: 1.25rem 1.5rem;
+    }
+    
+    .question-body {
+        padding: 1.5rem;
+    }
+    
+    .question-text {
+        font-size: 1.1rem;
+    }
+    
+    .answer-options {
+        margin: 1.5rem 0;
+        gap: 0.5rem;
+    }
+    
+    .answer-option {
+        padding: 0.75rem 1.25rem;
+    }
+    
+    .question-actions {
+        margin-top: 2rem;
+    }
+    
+    .btn-gradient, .btn-outline-secondary {
+        padding: 0.65rem 1.5rem;
+        font-size: 0.95rem;
+    }
+}
+
+@media (max-width: 576px) {
+    .exam-question-container {
+        padding: 0.5rem;
+    }
+    
+    .question-nav-panel {
+        gap: 0.25rem;
+        padding: 0.5rem;
+    }
+    
+    .question-header {
+        padding: 1rem;
+    }
+    
+    .question-header h3 {
+        font-size: 1.2rem;
+    }
+    
+    .question-body {
+        padding: 1.25rem;
+    }
+    
+    .question-text {
+        font-size: 1.05rem;
+        margin-bottom: 1.25rem;
+    }
+    
+    .answer-option {
+        padding: 0.75rem 1rem;
+        font-size: 0.95rem;
+    }
+    
+    .answer-option input[type="radio"] {
+        margin-right: 0.75rem;
+    }
+    
+    .question-actions {
+        flex-direction: column-reverse;
+        gap: 1rem;
+        align-items: stretch;
+    }
+    
+    .btn-gradient, .btn-outline-secondary {
+        width: 100%;
+        justify-content: center;
+    }
+}
+
+/* Print Styles */
+@media print {
+    .exam-question-container {
+        background: white;
+        padding: 0;
+    }
+    
+    .question-nav-panel, .question-actions {
+        display: none;
+    }
+    
+    .question-card {
+        box-shadow: none;
+        border: 1px solid #ddd;
+        page-break-inside: avoid;
+    }
+    
+    .question-header {
+        background: white !important;
+        color: black !important;
+        border-bottom: 2px solid #4361ee;
+    }
+    
+    .progress-bar-outer {
+        display: none;
+    }
+    
+    .answer-option {
+        background: white !important;
+        border: 1px solid #ddd !important;
+        color: black !important;
+        page-break-inside: avoid;
+    }
+}
+</style>
+{% endblock %}

@@ -1,0 +1,258 @@
+{% extends "exams/exam_base.html" %}
+{% load static %}
+
+{% block title %}Your Interview Results - {{ interview.first_name }} {{ interview.last_name }}{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <div class="card shadow-lg border-0 rounded-4">
+        <!-- Header with gradient background -->
+        <div class="card-header bg-gradient-muted text-dark py-4">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h3 class="mb-1">
+                        <i class="fas fa-award me-2"></i>
+                        Your Interview Results
+                    </h3>
+                    <p class="mb-0">Detailed feedback on your performance</p>
+                </div>
+                <span class="badge bg-secondary text-white fs-6">{{ interview.interview_type }}</span>
+            </div>
+        </div>
+
+        <!-- Body -->
+        <div class="card-body p-4">
+            <!-- Congratulations Banner -->
+            <div class="alert alert-light border-start border-4 border-success mb-4">
+                <div class="d-flex align-items-center">
+                    <i class="fas fa-check-circle fa-2x me-3 text-success"></i>
+                    <div>
+                        <h4 class="alert-heading mb-1">Well done!</h4>
+                        <p class="mb-0">You've successfully completed your {{ interview.interview_type }} interview.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Interviewer Card -->
+            <div class="card mb-4 border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-shrink-0">
+                            <div class="avatar avatar-lg bg-secondary text-white rounded-circle d-flex align-items-center justify-content-center">
+                                <i class="fas fa-user-tie fa-lg"></i>
+                            </div>
+                        </div>
+                        <div class="flex-grow-1 ms-4">
+                            <h5 class="mb-1">Interviewer Feedback</h5>
+                            <p class="mb-1"><strong>Evaluator Name :{{ interview.interview_feedback.evaluator.name }}</strong></p>
+                            <p class="text-muted small mb-0">Evaluator Specialization :{{ interview.interview_feedback.evaluator.specialization }}</p>
+                        </div>
+                        <div class="flex-shrink-0 text-end">
+                            <p class="text-muted small mb-0">{{ interview.interview_date|date:"M j, Y" }}</p>
+                            <p class="text-muted small mb-0">{{ interview.interview_time|time:"g:i A" }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Overall Performance -->
+            <div class="text-center mb-5">
+                <h4 class="fw-bold mb-4">Your Overall Performance</h4>
+                <div class="d-flex justify-content-center mb-3">
+                    <div class="radial-progress" style="--value:{{ overall_score_percent }}; --size:8rem; --thickness:8px;">
+                        <span class="progress-value">{{ interview.interview_feedback.overall_score }}</span>
+                        <span class="progress-label">/5</span>
+                    </div>
+                </div>
+                <h5 class="text-muted mb-3">
+                    {{ interview.interview_feedback.get_recommendation_display }}
+                </h5>
+                <p class="text-muted mx-auto" style="max-width: 600px;">
+                    {% if interview.interview_feedback.overall_score >= 4 %}
+                        Excellent performance! You demonstrated strong skills and knowledge.
+                    {% elif interview.interview_feedback.overall_score >= 3 %}
+                        Good job! You met expectations with room for improvement.
+                    {% else %}
+                        Keep working! Focus on improving key areas.
+                    {% endif %}
+                </p>
+            </div>
+
+            <!-- Skill Breakdown -->
+            <div class="mb-5">
+                <h4 class="fw-bold text-center mb-4">Skill Assessment</h4>
+                <div class="row g-4">
+                    <!-- Technical Skills -->
+                    <div class="col-md-4">
+                        <div class="card border-0 shadow-sm h-100">
+                            <div class="card-body text-center">
+                                <div class="icon-circle bg-muted text-dark mb-3">
+                                    <i class="fas fa-code"></i>
+                                </div>
+                                <h5 class="fw-bold">Technical Skills</h5>
+                                <div class="rating mb-2">
+                                    {% for i in "12345" %}
+                                        <i class="fas fa-star{% if forloop.counter > interview.interview_feedback.technical_rating %} far{% endif %}"></i>
+                                    {% endfor %}
+                                    <span class="ms-2">{{ interview.interview_feedback.technical_rating }}/5</span>
+                                </div>
+                                <p class="text-muted small mb-0">Coding ability & technical knowledge</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Communication -->
+                    <div class="col-md-4">
+                        <div class="card border-0 shadow-sm h-100">
+                            <div class="card-body text-center">
+                                <div class="icon-circle bg-muted text-dark mb-3">
+                                    <i class="fas fa-comments"></i>
+                                </div>
+                                <h5 class="fw-bold">Communication</h5>
+                                <div class="rating mb-2">
+                                    {% for i in "12345" %}
+                                        <i class="fas fa-star{% if forloop.counter > interview.interview_feedback.communication_rating %} far{% endif %}"></i>
+                                    {% endfor %}
+                                    <span class="ms-2">{{ interview.interview_feedback.communication_rating }}/5</span>
+                                </div>
+                                <p class="text-muted small mb-0">Clarity & articulation</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Problem Solving -->
+                    <div class="col-md-4">
+                        <div class="card border-0 shadow-sm h-100">
+                            <div class="card-body text-center">
+                                <div class="icon-circle bg-muted text-dark mb-3">
+                                    <i class="fas fa-lightbulb"></i>
+                                </div>
+                                <h5 class="fw-bold">Problem Solving</h5>
+                                <div class="rating mb-2">
+                                    {% for i in "12345" %}
+                                        <i class="fas fa-star{% if forloop.counter > interview.interview_feedback.problem_solving_rating %} far{% endif %}"></i>
+                                    {% endfor %}
+                                    <span class="ms-2">{{ interview.interview_feedback.problem_solving_rating }}/5</span>
+                                </div>
+                                <p class="text-muted small mb-0">Approach & creativity</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Feedback Sections -->
+            <div class="row g-4">
+                <!-- Strengths -->
+                <div class="col-md-6">
+                    <div class="card border-0 shadow-sm h-100">
+                        <div class="card-header bg-success text-white">
+                            <i class="fas fa-thumbs-up me-2"></i> Strengths
+                        </div>
+                        <div class="card-body">
+                            <p>{{ interview.interview_feedback.strengths }}</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Areas for Improvement -->
+                <div class="col-md-6">
+                    <div class="card border-0 shadow-sm h-100">
+                        <div class="card-header bg-warning text-white">
+                            <i class="fas fa-bullseye me-2"></i> Areas for Improvement
+                        </div>
+                        <div class="card-body">
+                            <p>{{ interview.interview_feedback.areas_for_improvement }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Next Steps -->
+            <div class="mt-5">
+                <h4 class="fw-bold text-center mb-4">Next Steps</h4>
+                <div class="row g-4">
+                    <div class="col-md-4">
+                        <div class="card border-0 shadow-sm h-100 text-center">
+                            <div class="card-body">
+                                <div class="icon-circle bg-muted text-dark mb-3">
+                                    <i class="fas fa-book"></i>
+                                </div>
+                                <h5 class="fw-bold">Study Resources</h5>
+                                <p class="text-muted small">Access recommended materials to improve your skills.</p>
+                                <a href="{% url 'exams:study_guide' %}" class="btn btn-outline-primary btn-sm">View Resources</a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card border-0 shadow-sm h-100 text-center">
+                            <div class="card-body">
+                                <div class="icon-circle bg-muted text-dark mb-3">
+                                    <i class="fas fa-calendar-check"></i>
+                                </div>
+                                <h5 class="fw-bold">Schedule Next Interview</h5>
+                                <p class="text-muted small">Ready for another challenge? Schedule your next interview.</p>
+                                <a href="{% url 'exams:mock_interview_form' %}" class="btn btn-outline-success btn-sm">Schedule Now</a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card border-0 shadow-sm h-100 text-center">
+                            <div class="card-body">
+                                <div class="icon-circle bg-muted text-dark mb-3">
+                                    <i class="fas fa-question-circle"></i>
+                                </div>
+                                <h5 class="fw-bold">Need Help?</h5>
+                                <p class="text-muted small">Have questions about your feedback? Contact support.</p>
+                                <a href="{% url 'contact' %}" class="btn btn-outline-info btn-sm">Contact Support</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block styles %}
+<style>
+    .bg-gradient-muted {
+        background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+    }
+    .icon-circle {
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+    }
+    .radial-progress {
+        --value: 0;
+        --size: 8rem;
+        --thickness: 8px;
+        --track-color: #e9ecef;
+        --progress-color: #6c757d;
+        width: var(--size);
+        height: var(--size);
+        border-radius: 50%;
+        display: grid;
+        place-items: center;
+        background: radial-gradient(circle, transparent calc(var(--size)/2 - var(--thickness)), var(--track-color) 0),
+                    conic-gradient(var(--progress-color) calc(var(--value)*1%), transparent 0);
+    }
+    .progress-value {
+        font-size: 1.5rem;
+        font-weight: bold;
+        color: #6c757d;
+    }
+    .rating i {
+        color: #ffc107;
+    }
+    .rating i.far {
+        color: #e4e5e9;
+    }
+</style>
+{% endblock %}

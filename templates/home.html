@@ -1,0 +1,625 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block contents %}
+<style>
+    /* Main Colors */
+    :root {
+        --primary-blue: #2563eb;
+        --dark-blue: #1e40af;
+        --light-blue: #93c5fd;
+        --white: #ffffff;
+        --light-gray: #f3f4f6;
+        --dark-gray: #374151;
+    }
+
+    /* Base Styles */
+    body {
+        font-family: 'Inter', sans-serif;
+        line-height: 1.6;
+        color: var(--dark-gray);
+    }
+
+    .container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 0 20px;
+    }
+
+    section {
+        padding: 80px 0;
+    }
+
+    h1, h2, h3, h4 {
+        font-weight: 700;
+        line-height: 1.2;
+    }
+
+    /* Hero Section */
+    .hero-section {
+        background: linear-gradient(135deg, var(--primary-blue), var(--dark-blue));
+        color: var(--white);
+        text-align: center;
+        padding: 100px 0;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .hero-section::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background:  center/cover;
+        opacity: 0.1;
+    }
+
+    .hero-content {
+        position: relative;
+        z-index: 2;
+        max-width: 800px;
+        margin: 0 auto;
+    }
+
+    .hero-title {
+        font-size: 3rem;
+        margin-bottom: 20px;
+        text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .hero-subtitle {
+        font-size: 1.25rem;
+        margin-bottom: 30px;
+        opacity: 0.9;
+    }
+
+    .hero-btn {
+        display: inline-block;
+        background: var(--white);
+        color: var(--primary-blue);
+        padding: 12px 32px;
+        border-radius: 50px;
+        font-weight: 600;
+        text-decoration: none;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+
+    .hero-btn:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+    }
+
+    /* Features Section */
+    .features-section {
+        background: var(--white);
+    }
+
+    .section-header {
+        text-align: center;
+        margin-bottom: 60px;
+    }
+
+    .section-title {
+        font-size: 2.5rem;
+        color: var(--dark-blue);
+        margin-bottom: 15px;
+    }
+
+    .section-subtitle {
+        font-size: 1.1rem;
+        color: var(--dark-gray);
+        max-width: 700px;
+        margin: 0 auto;
+    }
+
+    .features-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 30px;
+    }
+
+    .feature-card {
+        background: var(--white);
+        border-radius: 12px;
+        padding: 30px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        transition: all 0.3s ease;
+        border: 1px solid rgba(0,0,0,0.05);
+    }
+
+    .feature-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+    }
+
+    .feature-icon {
+        width: 60px;
+        height: 60px;
+        background: var(--light-blue);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 20px;
+    }
+
+    .feature-icon i {
+        font-size: 1.5rem;
+        color: var(--primary-blue);
+    }
+
+    .feature-title {
+        font-size: 1.5rem;
+        color: var(--dark-blue);
+        margin-bottom: 15px;
+    }
+
+    .feature-desc {
+        color: var(--dark-gray);
+        font-size: 1rem;
+    }
+
+    /* How It Works */
+    .process-section {
+        background: var(--light-gray);
+    }
+
+    .process-steps {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 30px;
+        margin-top: 50px;
+    }
+
+    .process-step {
+        flex: 1;
+        min-width: 250px;
+        max-width: 300px;
+        text-align: center;
+        position: relative;
+    }
+
+    .step-number {
+        width: 50px;
+        height: 50px;
+        background: var(--primary-blue);
+        color: var(--white);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        margin: 0 auto 20px;
+    }
+
+    .step-title {
+        font-size: 1.3rem;
+        color: var(--dark-blue);
+        margin-bottom: 15px;
+    }
+
+    .step-desc {
+        color: var(--dark-gray);
+    }
+
+    /* Testimonials */
+    .testimonials-section {
+        background: var(--white);
+    }
+
+    .testimonials-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 30px;
+    }
+
+    .testimonial-card {
+        background: var(--white);
+        border-radius: 12px;
+        padding: 30px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        border: 1px solid rgba(0,0,0,0.05);
+    }
+
+    .testimonial-text {
+        font-style: italic;
+        margin-bottom: 20px;
+        position: relative;
+    }
+
+    .testimonial-text::before {
+        content: '"';
+        font-size: 4rem;
+        color: var(--light-blue);
+        position: absolute;
+        top: -20px;
+        left: -15px;
+        opacity: 0.3;
+    }
+
+    .testimonial-author {
+        display: flex;
+        align-items: center;
+    }
+
+    .author-avatar {
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        overflow: hidden;
+        margin-right: 15px;
+    }
+
+    .author-avatar img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .author-info h4 {
+        margin: 0;
+        color: var(--dark-blue);
+    }
+
+    .author-info p {
+        margin: 5px 0 0;
+        color: var(--dark-gray);
+        font-size: 0.9rem;
+    }
+
+    /* CTA Section */
+    .cta-section {
+        background: var(--primary-blue);
+        color: var(--white);
+        text-align: center;
+        padding: 100px 0;
+    }
+
+    .cta-title {
+        font-size: 2.5rem;
+        margin-bottom: 20px;
+    }
+
+    .cta-subtitle {
+        font-size: 1.1rem;
+        max-width: 700px;
+        margin: 0 auto 30px;
+        opacity: 0.9;
+    }
+
+    .cta-btn {
+        display: inline-block;
+        background: var(--white);
+        color: var(--primary-blue);
+        padding: 12px 32px;
+        border-radius: 50px;
+        font-weight: 600;
+        text-decoration: none;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+
+    .cta-btn:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+    }
+
+    /* Responsive Adjustments */
+    @media (max-width: 768px) {
+        .hero-title {
+            font-size: 2.5rem;
+        }
+        
+        .section-title {
+            font-size: 2rem;
+        }
+        
+        section {
+            padding: 60px 0;
+        }
+    }
+</style>
+
+<div class="hero-image-section" style="margin-top: -50px;">
+    <div class="container text-center text-white py-5">
+        <h1 class="animate__animated animate__fadeInUp">Welcome to Mock Interviews</h1>
+        <p class="lead animate__animated animate__fadeInUp animate__delay-1s">
+            Empowering Students and Professionals with Real-Time Interview Practice
+        </p>
+        <a href="{% url 'exams:mock_interview_form' %}" class="btn btn-primary btn-lg mt-3 animate__animated animate__fadeInUp animate__delay-2s">
+            Apply for Mock Interview
+        </a>
+    </div>
+</div>
+
+
+<style>
+    .hero-image-section {
+        background-image: url("/static/images/download.jpg");
+; /* Replace with your image path */
+        background-size: cover;
+        background-position: center;
+        background-repeat: no-repeat;
+        padding: 100px 0;
+        position: relative;
+    }
+    
+    .hero-image-section::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.6); /* Dark overlay for better text readability */
+        z-index: 1;
+    }
+    
+    .hero-image-section .container {
+        position: relative;
+        z-index: 2;
+    }
+    
+    /* Adjust text styling if needed */
+    .hero-image-section h1 {
+        font-size: 2.8rem;
+        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+    }
+    
+    .hero-image-section .lead {
+        font-size: 1.4rem;
+        text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.5);
+    }
+</style>
+
+
+<!-- Hero Section -->
+<section class="hero-section">
+    
+    <div class="container">
+        <div class="hero-content">
+            <h1 class="hero-title">Master Your Interview Skills</h1>
+            <p class="hero-subtitle">Practice with our free mock interviews and get expert feedback to land your dream job</p>
+            <a href="{% url 'exams:mock_interview_form' %}" class="hero-btn">Schedule Your Mock Interview</a>
+        </div>
+    </div>
+</section>
+
+<!-- Features Section -->
+<section class="features-section">
+    <div class="container">
+        <div class="section-header">
+            <h2 class="section-title">Why Practice Matters</h2>
+            <p class="section-subtitle">In today's competitive job market, preparation makes all the difference</p>
+        </div>
+        
+        <div class="features-grid">
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <i class="fas fa-chart-line"></i>
+                </div>
+                <h3 class="feature-title">Boost Confidence</h3>
+                <p class="feature-desc">Reduce anxiety by practicing in a realistic interview environment before the real thing.</p>
+            </div>
+            
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <i class="fas fa-comments"></i>
+                </div>
+                <h3 class="feature-title">Expert's Feedback</h3>
+                <p class="feature-desc">Receive detailed feedback on your answers, body language, and communication skills.</p>
+            </div>
+            
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <i class="fas fa-lightbulb"></i>
+                </div>
+                <h3 class="feature-title">Identify Weaknesses</h3>
+                <p class="feature-desc">Discover areas for improvement you might not have noticed on your own.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+
+<!-- Job Market Comparison Section -->
+<section class="job-market-section" style="padding: 80px 0; background-color: #f8fafc;">
+    <div class="container" style="max-width: 1200px; margin: 0 auto; padding: 0 20px;">
+        <div class="section-header" style="text-align: center; margin-bottom: 50px;">
+            <h2 style="color: #1e40af; font-size: 2.2rem; margin-bottom: 15px;">
+                <i class="fas fa-chart-line" style="margin-right: 10px;"></i>
+                Job Market Evolution: Then vs. Now
+            </h2>
+            <p style="color: #4b5563; font-size: 1.1rem; max-width: 700px; margin: 0 auto;">
+                The job market landscape has transformed dramatically. Understanding these changes is key to positioning yourself for success.
+            </p>
+        </div>
+
+        <div class="comparison-container" style="display: flex; flex-wrap: wrap; gap: 30px; justify-content: center;">
+            <!-- Past Job Market -->
+            <div class="comparison-card" style="flex: 1; min-width: 300px; max-width: 500px; 
+                background: white; border-radius: 12px; padding: 30px; 
+                box-shadow: 0 4px 6px rgba(0,0,0,0.05); border-top: 4px solid #93c5fd;">
+                <div class="card-header" style="display: flex; align-items: center; margin-bottom: 20px;">
+                    <div class="icon-circle" style="width: 40px; height: 40px; background: #bfdbfe; 
+                        border-radius: 50%; display: flex; align-items: center; justify-content: center; 
+                        margin-right: 15px;">
+                        <i class="fas fa-history" style="color: #1e40af; font-size: 1.2rem;"></i>
+                    </div>
+                    <h3 style="color: #1e40af; font-size: 1.5rem; margin: 0;">Past Job Market</h3>
+                </div>
+                <ul style="list-style: none; padding: 0; margin: 0;">
+                    <li style="padding: 10px 0; border-bottom: 1px solid #e5e7eb; display: flex; align-items: flex-start;">
+                        <i class="fas fa-check-circle" style="color: #3b82f6; margin-right: 10px; margin-top: 3px;"></i>
+                        <span>More job openings available</span>
+                    </li>
+                    <li style="padding: 10px 0; border-bottom: 1px solid #e5e7eb; display: flex; align-items: flex-start;">
+                        <i class="fas fa-check-circle" style="color: #3b82f6; margin-right: 10px; margin-top: 3px;"></i>
+                        <span>Fewer candidates per position</span>
+                    </li>
+                    <li style="padding: 10px 0; border-bottom: 1px solid #e5e7eb; display: flex; align-items: flex-start;">
+                        <i class="fas fa-check-circle" style="color: #3b82f6; margin-right: 10px; margin-top: 3px;"></i>
+                        <span>Basic technical skills were sufficient</span>
+                    </li>
+                    <li style="padding: 10px 0; border-bottom: 1px solid #e5e7eb; display: flex; align-items: flex-start;">
+                        <i class="fas fa-check-circle" style="color: #3b82f6; margin-right: 10px; margin-top: 3px;"></i>
+                        <span>Straightforward interview processes</span>
+                    </li>
+                    <li style="padding: 10px 0; display: flex; align-items: flex-start;">
+                        <i class="fas fa-check-circle" style="color: #3b82f6; margin-right: 10px; margin-top: 3px;"></i>
+                        <span>Minimal online application requirements</span>
+                    </li>
+                </ul>
+            </div>
+
+            <!-- Present Job Market -->
+            <div class="comparison-card" style="flex: 1; min-width: 300px; max-width: 500px; 
+                background: white; border-radius: 12px; padding: 30px; 
+                box-shadow: 0 4px 6px rgba(0,0,0,0.05); border-top: 4px solid #2563eb;">
+                <div class="card-header" style="display: flex; align-items: center; margin-bottom: 20px;">
+                    <div class="icon-circle" style="width: 40px; height: 40px; background: #dbeafe; 
+                        border-radius: 50%; display: flex; align-items: center; justify-content: center; 
+                        margin-right: 15px;">
+                        <i class="fas fa-bolt" style="color: #2563eb; font-size: 1.2rem;"></i>
+                    </div>
+                    <h3 style="color: #2563eb; font-size: 1.5rem; margin: 0;">Current Job Market</h3>
+                </div>
+                <ul style="list-style: none; padding: 0; margin: 0;">
+                    <li style="padding: 10px 0; border-bottom: 1px solid #e5e7eb; display: flex; align-items: flex-start;">
+                        <i class="fas fa-check-circle" style="color: #2563eb; margin-right: 10px; margin-top: 3px;"></i>
+                        <span>Intense competition for fewer roles</span>
+                    </li>
+                    <li style="padding: 10px 0; border-bottom: 1px solid #e5e7eb; display: flex; align-items: flex-start;">
+                        <i class="fas fa-check-circle" style="color: #2563eb; margin-right: 10px; margin-top: 3px;"></i>
+                        <span>Hundreds of applicants per opening</span>
+                    </li>
+                    <li style="padding: 10px 0; border-bottom: 1px solid #e5e7eb; display: flex; align-items: flex-start;">
+                        <i class="fas fa-check-circle" style="color: #2563eb; margin-right: 10px; margin-top: 3px;"></i>
+                        <span>Demand for specialized, advanced skills</span>
+                    </li>
+                    <li style="padding: 10px 0; border-bottom: 1px solid #e5e7eb; display: flex; align-items: flex-start;">
+                        <i class="fas fa-check-circle" style="color: #2563eb; margin-right: 10px; margin-top: 3px;"></i>
+                        <span>AI screening and automated processes</span>
+                    </li>
+                    <li style="padding: 10px 0; display: flex; align-items: flex-start;">
+                        <i class="fas fa-check-circle" style="color: #2563eb; margin-right: 10px; margin-top: 3px;"></i>
+                        <span>Multiple rigorous interview stages</span>
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="key-takeaway" style="max-width: 800px; margin: 40px auto 0; padding: 25px; 
+            background: #eff6ff; border-radius: 12px; text-align: center; border-left: 4px solid #2563eb;">
+            <h4 style="color: #1e40af; font-size: 1.3rem; margin-bottom: 15px;">
+                <i class="fas fa-lightbulb" style="margin-right: 10px;"></i>
+                Key Insight for Job Seekers
+            </h4>
+            <p style="color: #1e40af; margin: 0; font-size: 1.1rem; line-height: 1.6;">
+                In today's market, preparation is no longer optional. Our mock interviews give you the competitive edge by simulating real interview conditions and providing expert feedback to help you stand out.
+            </p>
+        </div>
+    </div>
+</section>
+
+<!-- How It Works -->
+<section class="process-section">
+    <div class="container">
+        <div class="section-header">
+            <h2 class="section-title">How It Works</h2>
+            <p class="section-subtitle">Get interview-ready in just 3 simple steps</p>
+        </div>
+        
+        <div class="process-steps">
+            <div class="process-step">
+                <div class="step-number">1</div>
+                <h3 class="step-title">Schedule Your Session</h3>
+                <p class="step-desc">Choose a convenient time for your mock interview from our available slots.</p>
+            </div>
+            
+            <div class="process-step">
+                <div class="step-number">2</div>
+                <h3 class="step-title">Practice Interview</h3>
+                <p class="step-desc">Participate in a realistic interview simulation tailored to your target job.</p>
+            </div>
+            
+            <div class="process-step">
+                <div class="step-number">3</div>
+                <h3 class="step-title">Receive Feedback</h3>
+                <p class="step-desc">Get detailed, actionable feedback to improve your performance.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Testimonials -->
+<section class="testimonials-section">
+    <div class="container">
+        <div class="section-header">
+            <h2 class="section-title">Success Stories</h2>
+            <p class="section-subtitle">Hear from candidates who aced their interviews after practicing with us</p>
+        </div>
+        
+        <div class="testimonials-grid">
+            <div class="testimonial-card">
+                <div class="testimonial-text">
+                    The mock interview was incredibly helpful. The feedback I received helped me identify my weak areas and I landed a job at Google!
+                </div>
+                <div class="testimonial-author">
+                    <div class="author-avatar">
+                        <!-- <img src="https://randomuser.me/api/portraits/women/32.jpg" alt="Sarah K."> -->
+                    </div>
+                    <div class="author-info">
+                        <h4>Sarah K.</h4>
+                        <p>Software Engineer at Infosys</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="testimonial-card">
+                <div class="testimonial-text">
+                    I was struggling with behavioral questions. The practice session gave me the confidence to structure my answers effectively.
+                </div>
+                <div class="testimonial-author">
+                    <div class="author-avatar">
+                        <!-- <img src="https://randomuser.me/api/portraits/men/45.jpg" alt="Raj P."> -->
+                    </div>
+                    <div class="author-info">
+                        <h4>Raj P.</h4>
+                        <p>Tibco Developer at Capgemini</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="testimonial-card">
+                <div class="testimonial-text">
+                    The technical mock interview was spot-on. It helped me prepare for the real interview at Microsoft.
+                </div>
+                <div class="testimonial-author">
+                    <div class="author-avatar">
+                        <!-- <img src="https://randomuser.me/api/portraits/women/68.jpg" alt="Priya M."> -->
+                    </div>
+                    <div class="author-info">
+                        <h4>Priya M.</h4>
+                        <p>Data Scientist at Microsoft</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- CTA Section -->
+<section class="cta-section">
+    <div class="container">
+        <h2 class="cta-title">Ready to Ace Your Next Interview?</h2>
+        <p class="cta-subtitle">Join hundreds of job seekers who transformed their interview skills with our free mock interviews</p>
+        <a href="{% url 'exams:mock_interview_form' %}" class="cta-btn">Get Started Now</a>
+    </div>
+</section>
+
+{% endblock %}
