@@ -18,3 +18,5 @@ pandas
 pytz
 requests
 whitenoise
+nh3==0.3.7
+Markdown==3.11.1

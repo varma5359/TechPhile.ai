@@ -1,0 +1,17 @@
+<nav class="lx-nav" aria-label="Day navigation">
+    {% if previous_day %}
+        <a class="cp-btn outline" href="{{ previous_day.get_absolute_url }}">&larr; Day {{ previous_day.day_number }}</a>
+    {% else %}
+        <span></span>
+    {% endif %}
+    <a class="cp-btn outline" href="{{ role.get_absolute_url }}">Back to {{ role.title }} plan</a>
+    {% if next_day %}
+        {% if next_unlocked %}
+            <a class="cp-btn" href="{{ next_day.get_absolute_url }}">Day {{ next_day.day_number }} &rarr;</a>
+        {% else %}
+            <span class="cp-badge locked" title="Submit this day to unlock the next one"><i class="fas fa-lock"></i> Day {{ next_day.day_number }} locked</span>
+        {% endif %}
+    {% else %}
+        <span></span>
+    {% endif %}
+</nav>

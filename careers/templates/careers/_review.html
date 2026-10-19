@@ -1,0 +1,26 @@
+{% for a in answers %}
+    <div class="cp-question">
+        <div class="d-flex justify-content-between flex-wrap mb-2">
+            <strong>Question {{ forloop.counter }}</strong>
+            {% if a.is_correct %}<span class="cp-badge completed">Correct</span>{% else %}<span class="cp-badge revision_recommended">Incorrect</span>{% endif %}
+        </div>
+        {% if a.question.scenario %}<div class="cp-scenario">{{ a.question.scenario|linebreaksbr }}</div>{% endif %}
+        <p><strong>{{ a.question.text|linebreaksbr }}</strong></p>
+        {% for option in a.question.options.all %}
+            <div class="cp-option static {% if option.is_correct %}correct{% elif option.pk == a.selected_option_id %}wrong{% endif %}">
+                <span>
+                    {{ option.text }}
+                    {% if option.pk == a.selected_option_id %}<em class="cp-muted small">(your answer)</em>{% endif %}
+                    {% if option.is_correct %}<em class="small">(correct)</em>{% endif %}
+                    {% if option.explanation %}<span class="d-block small cp-muted mt-1">{{ option.explanation }}</span>{% endif %}
+                </span>
+            </div>
+        {% endfor %}
+        {% if a.question.explanation %}
+            <p class="mt-2 mb-0"><strong>Why:</strong> {{ a.question.explanation|linebreaksbr }}</p>
+        {% endif %}
+        {% if a.question.takeaway %}
+            <div class="cp-takeaway"><strong>Takeaway:</strong> {{ a.question.takeaway }}</div>
+        {% endif %}
+    </div>
+{% endfor %}

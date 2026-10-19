@@ -79,9 +79,11 @@
                             </a>
                         </div>
                         <div class="tab-pane fade" id="interviews-tab-pane">
+                            {% if features.mock_interviews %}
                             <a href="{% url 'exams:mock_interview_form' %}" class="btn btn-primary w-100 mb-2">
                                 <i class="fas fa-plus me-2"></i>Schedule
                             </a>
+                            {% endif %}
                             <a href="#" class="btn btn-outline-primary w-100">
                                 <i class="fas fa-video me-2"></i>Practice Room
                             </a>
@@ -559,10 +561,12 @@
         <div class="text-center py-5">
             <i class="fas fa-user-tie fa-3x text-muted mb-4"></i>
             <h5 class="mb-3">No interview history yet</h5>
+            {% if features.mock_interviews %}
             <p class="text-muted mb-4">Schedule your first mock interview</p>
             <a href="{% url 'exams:mock_interview_form' %}" class="btn btn-primary px-4">
                 <i class="fas fa-plus me-2"></i>Schedule Now
             </a>
+            {% endif %}
         </div>
     {% endif %}
 </div>

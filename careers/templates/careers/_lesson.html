@@ -1,0 +1,21 @@
+{% load careers_extras %}
+{% if day.objective_list %}
+<h2>What you will learn</h2>
+<ul class="lx-checks">{% for item in day.objective_list %}<li>{{ item }}</li>{% endfor %}</ul>
+{% endif %}
+
+{% if day.lesson_scenario %}
+<aside class="lx-scenario">
+    <span class="lx-label">Real-world scenario</span>
+    <div class="lx-md">{{ day.lesson_scenario|markdown_lesson }}</div>
+</aside>
+{% endif %}
+
+{% if day.lesson_body %}<div class="lx-md">{{ day.lesson_body|markdown_lesson }}</div>{% endif %}
+
+{% if day.lesson_revision %}
+<section class="lx-revision" aria-labelledby="lx-revision-title">
+    <h2 id="lx-revision-title" style="border:0;margin-top:1rem">Quick revision</h2>
+    <div class="lx-md">{{ day.lesson_revision|markdown_lesson }}</div>
+</section>
+{% endif %}

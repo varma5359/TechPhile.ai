@@ -330,8 +330,8 @@
         <p class="lead animate__animated animate__fadeInUp animate__delay-1s">
             Empowering Students and Professionals with Real-Time Interview Practice
         </p>
-        <a href="{% url 'exams:mock_interview_form' %}" class="btn btn-primary btn-lg mt-3 animate__animated animate__fadeInUp animate__delay-2s">
-            Apply for Mock Interview
+        <a href="{% if features.mock_interviews %}{% url 'exams:mock_interview_form' %}{% else %}{% url 'careers:role_list' %}{% endif %}" class="btn btn-primary btn-lg mt-3 animate__animated animate__fadeInUp animate__delay-2s">
+            {% if features.mock_interviews %}Apply for Mock Interview{% else %}Explore Career Paths{% endif %}
         </a>
     </div>
 </div>
@@ -384,7 +384,7 @@
         <div class="hero-content">
             <h1 class="hero-title">Master Your Interview Skills</h1>
             <p class="hero-subtitle">Practice with our free mock interviews and get expert feedback to land your dream job</p>
-            <a href="{% url 'exams:mock_interview_form' %}" class="hero-btn">Schedule Your Mock Interview</a>
+            <a href="{% if features.mock_interviews %}{% url 'exams:mock_interview_form' %}{% else %}{% url 'careers:role_list' %}{% endif %}" class="hero-btn">{% if features.mock_interviews %}Schedule Your Mock Interview{% else %}Explore Career Paths{% endif %}</a>
         </div>
     </div>
 </section>
@@ -618,7 +618,7 @@
     <div class="container">
         <h2 class="cta-title">Ready to Ace Your Next Interview?</h2>
         <p class="cta-subtitle">Join hundreds of job seekers who transformed their interview skills with our free mock interviews</p>
-        <a href="{% url 'exams:mock_interview_form' %}" class="cta-btn">Get Started Now</a>
+        <a href="{% if features.mock_interviews %}{% url 'exams:mock_interview_form' %}{% else %}{% url 'careers:role_list' %}{% endif %}" class="cta-btn">Get Started Now</a>
     </div>
 </section>
 

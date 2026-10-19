@@ -1,0 +1,121 @@
+{% extends 'base.html' %}
+{% load careers_extras %}
+
+{% block contents %}
+<div class="container cp-page">
+    <div class="main-content">
+        {% include 'careers/_shared.html' %}
+        <div class="cp-breadcrumb">
+            <a href="{% url 'careers:role_list' %}">Career Preparation</a> /
+            <a href="{{ role.get_absolute_url }}">{{ role.title }}</a> / Day {{ day.day_number }}
+        </div>
+
+        {% if lesson %}
+            {% include 'careers/_lesson_styles.html' %}
+            <article class="lx">
+                <header class="lx-header">
+                    <span class="lx-label">{{ role.title }} &middot; Day {{ day.day_number }}</span>
+                    <h1>{{ day.title }}</h1>
+                    <div class="lx-meta">
+                        {% if lesson.level %}<span>{{ lesson.level }}</span>{% endif %}
+                        {% if lesson.minutes %}<span>About {{ lesson.minutes }} min</span>{% endif %}
+                        {% if questions %}<span>{{ questions|length }} practice question{{ questions|length|pluralize }}</span>{% endif %}
+                        {% if progress %}<span>{{ progress.get_status_display }}</span>{% endif %}
+                    </div>
+                    {% if lesson.intro %}<p class="lx-intro">{{ lesson.intro|inline }}</p>{% endif %}
+                    <div class="lx-progress">
+                        <span>Path progress: {{ role_summary.submitted_days }} of {{ role_summary.total_days }} days submitted</span>
+                        <div class="cp-bar" role="progressbar" aria-valuenow="{{ role_summary.percent }}" aria-valuemin="0" aria-valuemax="100"><span style="width: {{ role_summary.percent }}%"></span></div>
+                    </div>
+                </header>
+
+                {% include 'careers/_lesson.html' %}
+
+                <div class="lx-qhead">
+                    <h2 id="questions">Check your understanding</h2>
+                    <p class="cp-muted">Answer every question, then submit. Your score, the correct answers and an explanation of every option appear on the next page.</p>
+                </div>
+
+                {% if progress and progress.is_submitted %}
+                    <div class="cp-alert info">
+                        You have submitted this day {{ progress.attempts_count }} time{{ progress.attempts_count|pluralize }}.
+                        Best score {{ progress.best_score|floatformat:0 }}%. You can retake it to improve.
+                    </div>
+                {% endif %}
+
+                {% if questions %}
+                    <form method="post" novalidate>
+                        {% csrf_token %}
+                        {% for q in questions %}
+                            <fieldset class="lx-question">
+                                <legend class="h6 mb-2">
+                                    <span class="lx-qnum">Q{{ forloop.counter }}</span>
+                                    <span class="cp-muted small">{{ q.get_difficulty_display }}{% if q.skill %} &middot; {{ q.skill.name }}{% endif %} &middot; {{ q.marks }} mark{{ q.marks|pluralize }}</span>
+                                </legend>
+                                {% if q.scenario %}<div class="cp-scenario">{{ q.scenario|linebreaksbr }}</div>{% endif %}
+                                <p><strong>{{ q.text|linebreaksbr }}</strong></p>
+                                {% for option in q.options.all %}
+                                    <label class="lx-option">
+                                        <input type="radio" name="q_{{ q.pk }}" value="{{ option.pk }}"
+                                               {% if q.selected_id == option.pk|stringformat:"s" %}checked{% endif %}>
+                                        <span>{{ option.text }}</span>
+                                    </label>
+                                {% endfor %}
+                            </fieldset>
+                        {% endfor %}
+                        <button type="submit" class="cp-btn">Submit answers</button>
+                    </form>
+                {% else %}
+                    <div class="cp-panel">Questions for this day have not been added yet.</div>
+                {% endif %}
+
+                {% include 'careers/_day_nav.html' %}
+            </article>
+        {% else %}
+            <div class="d-flex justify-content-between flex-wrap align-items-center">
+                <h1>Day {{ day.day_number }}: {{ day.title }}</h1>
+                {% if progress %}<span class="cp-badge {{ progress.status }}">{{ progress.get_status_display }}</span>{% endif %}
+            </div>
+
+            {% if day.objective_list or day.topic_list %}
+                <div class="row">
+                    {% if day.objective_list %}
+                        <div class="col-md-6">
+                            <div class="cp-panel">
+                                <h2>Learning objectives</h2>
+                                <ul class="cp-list">{% for item in day.objective_list %}<li>{{ item }}</li>{% endfor %}</ul>
+                            </div>
+                        </div>
+                    {% endif %}
+                    {% if day.topic_list %}
+                        <div class="col-md-6">
+                            <div class="cp-panel">
+                                <h2>Topics to prepare</h2>
+                                <ul class="cp-list">{% for item in day.topic_list %}<li>{{ item }}</li>{% endfor %}</ul>
+                            </div>
+                        </div>
+                    {% endif %}
+                </div>
+            {% endif %}
+
+            {% if progress and progress.is_submitted %}
+                <div class="cp-alert info">
+                    You have submitted this day {{ progress.attempts_count }} time{{ progress.attempts_count|pluralize }}.
+                    Best score {{ progress.best_score|floatformat:0 }}%. You can retake it to improve.
+                </div>
+            {% endif %}
+
+            {% if questions %}
+                <form method="post" novalidate>
+                    {% csrf_token %}
+                    {% include 'careers/_question_form.html' %}
+                    <button type="submit" class="cp-btn">Submit answers</button>
+                    <a class="cp-btn outline ml-2" href="{{ role.get_absolute_url }}">Back to plan</a>
+                </form>
+            {% else %}
+                <div class="cp-panel">Questions for this day have not been added yet.</div>
+            {% endif %}
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

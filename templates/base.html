@@ -840,13 +840,22 @@ footer {
         </a>
     </li>
 
-    <!-- About -->
+    {% if features.coding %}
+    <!-- Coding -->
     <li class="nav-item">
         <a class="nav-link {% if 'coding' in request.path %}active{% endif %}" href="{% url 'home_page_coding' %}">
     <i class="fas fa-laptop-code"></i> Coding
 
 </a>
 
+    </li>
+    {% endif %}
+
+    <!-- Career Prep -->
+    <li class="nav-item">
+        <a class="nav-link {% if '/careers/' in request.path %}active{% endif %}" href="{% url 'careers:role_list' %}">
+            <i class="fas fa-route mr-1"></i> Career Prep
+        </a>
     </li>
 
                       <!-- Dropdown: Assessments -->
@@ -859,9 +868,11 @@ footer {
                               <a class="dropdown-item" href="{% url 'exams:exam_list' %}">
                                   <i class="fas fa-file-alt mr-2"></i> Mock Exams
                               </a>
+                              {% if features.mock_interviews %}
                               <a class="dropdown-item" href="{% url 'exams:mock_interview_form' %}">
                                   <i class="fas fa-comments mr-2"></i> Mock Interviews
                               </a>
+                              {% endif %}
                               <div class="dropdown-divider"></div>
                               <h6 class="dropdown-header">Company Info</h6>
                               <a class="dropdown-item" href="{% url 'about' %}">

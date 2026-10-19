@@ -73,6 +73,23 @@ Each Django app follows the usual layout: `models.py`, `views.py`, `urls.py`, `a
 
 REST auth endpoints live under `/exams/api/auth/` (`login`, `signup`, `logout`, `token`, `token/refresh`). Exam, interview, profile, dashboard and study-guide APIs are under `/exams/api/`.
 
+## Career Preparation (`careers` app)
+
+Role-based learning paths (Data Analytics, Business Analytics, ML Engineering, Computer Vision, GenAI, RAG, Agentic AI) with day-wise scenario questions, per-student progress, rule-based recommendations (next day, revision days, weak skills) and a milestone exam for every 5-day block. Served under `/careers/`; content is managed in Django admin (student progress is read-only there).
+
+```powershell
+python manage.py migrate
+python manage.py seed_careers   # idempotent starter roles, days, questions; never overwrites admin edits
+```
+
+Unlock policy is set per role (`open`, `sequential` (default), `sequential_min_score`).
+
+Day pages can carry a structured lesson (`LearningDay.lesson` JSON: intro, objectives, scenario, sections, diagrams, worked example, revision) plus per-option explanations and a takeaway on each question. Days without a lesson keep the plain layout. `seed_careers` loads the lesson for Data Analytics Day 1 only when its fields are empty.
+
+### Feature flags
+
+The Coding and Mock Interview navigation entries are hidden by default. Set `FEATURE_CODING=True` and/or `FEATURE_MOCK_INTERVIEWS=True` in `.env` to show them again. Only the entry points are hidden; their URLs remain routable.
+
 ## Authentication flow
 
 - Anonymous users are sent to `/accounts/login/`; after login they go to the `next` URL if it is a safe internal URL, otherwise to the student dashboard (`exams:student_dashboard`).

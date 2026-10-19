@@ -1,0 +1,144 @@
+{% extends 'base.html' %}
+
+{% block contents %}
+<div class="container cp-page">
+    <div class="main-content">
+        {% include 'careers/_shared.html' %}
+        <div class="cp-breadcrumb"><a href="{% url 'careers:role_list' %}">Career Preparation</a> / {{ role.title }}</div>
+        <h1>{{ role.title }}</h1>
+        <p>{{ role.summary|linebreaksbr }}</p>
+
+        <div class="cp-stats">
+            <div class="cp-stat"><span class="cp-muted">Planned duration</span><strong>{{ role.duration_days }} days</strong></div>
+            <div class="cp-stat"><span class="cp-muted">Days submitted</span><strong>{{ summary.submitted_days }} / {{ summary.total_days }}</strong></div>
+            <div class="cp-stat">
+                <span class="cp-muted">Average score</span>
+                <strong>{% if summary.average_score is not None %}{{ summary.average_score }}%{% else %}&ndash;{% endif %}</strong>
+            </div>
+            <div class="cp-stat">
+                <span class="cp-muted">Current level</span>
+                <strong style="font-size:1.05rem">{% if summary.readiness %}{{ summary.readiness }}{% else %}Not assessed yet{% endif %}</strong>
+            </div>
+        </div>
+        <div class="cp-bar mb-1"><span style="width: {{ summary.percent }}%"></span></div>
+        <p class="cp-muted small">
+            {{ summary.percent }}% of the published plan submitted.
+            {% if summary.total_days < role.duration_days %}{{ summary.total_days }} of {{ role.duration_days }} planned days are published so far.{% endif %}
+            {% if summary.average_score is not None %}Level is based on your average best score across submitted days.{% endif %}
+        </p>
+
+        <div class="cp-panel">
+            <h2>Your next step</h2>
+            {% if recommendation.milestone_due %}
+                <p>You have finished a full five-day block. Take
+                    <strong>{{ recommendation.milestone_due.milestone.title }}</strong>
+                    (days {{ recommendation.milestone_due.milestone.start_day }}-{{ recommendation.milestone_due.milestone.end_day }}).</p>
+                <a class="cp-btn" href="{{ recommendation.milestone_due.milestone.get_absolute_url }}">Start milestone exam</a>
+            {% elif recommendation.next_day %}
+                <p>{% if summary.submitted_days %}Continue with{% else %}Begin with{% endif %}
+                    <strong>Day {{ recommendation.next_day.day_number }}: {{ recommendation.next_day.title }}</strong>.</p>
+                <a class="cp-btn" href="{{ recommendation.next_day.get_absolute_url }}">
+                    {% if summary.submitted_days %}Continue preparation{% else %}Begin preparation{% endif %}
+                </a>
+            {% elif summary.total_days %}
+                <p>You have submitted every published day. Revisit weak areas below or wait for new content.</p>
+            {% else %}
+                <p class="cp-muted">No days have been published for this role yet.</p>
+            {% endif %}
+            {% if recommendation.revision_days %}
+                <p class="mt-3 mb-1"><strong>Revision recommended:</strong></p>
+                <ul class="cp-list">
+                    {% for day in recommendation.revision_days %}
+                        <li><a href="{{ day.get_absolute_url }}">Day {{ day.day_number }}: {{ day.title }}</a></li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+            {% if recommendation.weak_skills %}
+                <p class="mt-3 mb-1"><strong>Weaker skills so far</strong> (rule based, from your latest answers):</p>
+                <div class="cp-chips">
+                    {% for item in recommendation.weak_skills %}
+                        <span class="cp-chip weak">{{ item.skill }} &middot; {{ item.percent }}%</span>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        </div>
+
+        <div class="row">
+            <div class="col-lg-6">
+                <div class="cp-panel">
+                    <h2>What the role involves</h2>
+                    {% if role.responsibility_list %}
+                        <ul class="cp-list">{% for item in role.responsibility_list %}<li>{{ item }}</li>{% endfor %}</ul>
+                    {% else %}<p class="cp-muted mb-0">Not specified yet.</p>{% endif %}
+                </div>
+            </div>
+            <div class="col-lg-6">
+                <div class="cp-panel">
+                    <h2>Required skills</h2>
+                    {% if role.skill_list %}
+                        <div class="cp-chips">{% for item in role.skill_list %}<span class="cp-chip">{{ item }}</span>{% endfor %}</div>
+                    {% else %}<p class="cp-muted mb-0">Not specified yet.</p>{% endif %}
+                </div>
+            </div>
+        </div>
+
+        {% if role.objective_list or role.syllabus_list %}
+            <div class="cp-panel">
+                {% if role.objective_list %}
+                    <h2>Career objectives</h2>
+                    <ul class="cp-list mb-3">{% for item in role.objective_list %}<li>{{ item }}</li>{% endfor %}</ul>
+                {% endif %}
+                {% if role.syllabus_list %}
+                    <h2>Syllabus</h2>
+                    <ul class="cp-list">{% for item in role.syllabus_list %}<li>{{ item }}</li>{% endfor %}</ul>
+                {% endif %}
+            </div>
+        {% endif %}
+
+        <div class="cp-panel">
+            <h2>Day-wise plan</h2>
+            {% for row in rows %}
+                <div class="cp-day-row">
+                    <span class="cp-day-num">Day {{ row.day.day_number }}</span>
+                    <span class="cp-day-title">
+                        {{ row.day.title }}
+                        {% if row.progress and row.progress.best_score is not None %}
+                            <span class="cp-muted small">&middot; best {{ row.progress.best_score|floatformat:0 }}%</span>
+                        {% endif %}
+                    </span>
+                    {% if not row.unlocked %}
+                        <span class="cp-badge locked"><i class="fas fa-lock"></i> Locked</span>
+                    {% else %}
+                        <span class="cp-badge {{ row.status }}">{{ row.status_label }}</span>
+                        {% if row.has_questions %}
+                            <a class="cp-btn outline" href="{{ row.day.get_absolute_url }}">
+                                {% if row.progress and row.progress.is_submitted %}Review / retake{% else %}Open{% endif %}
+                            </a>
+                        {% else %}
+                            <span class="cp-muted small">Questions coming soon</span>
+                        {% endif %}
+                    {% endif %}
+                </div>
+                {% for item in row.milestones %}
+                        <div class="cp-milestone-row">
+                            <strong><i class="fas fa-flag-checkered"></i> {{ item.milestone.title }}</strong>
+                            <span class="cp-muted small">(days {{ item.milestone.start_day }}-{{ item.milestone.end_day }}, separate from regular mock exams)</span>
+                            {% if item.done %}
+                                <span class="cp-badge completed">Best {{ item.best_score|floatformat:0 }}%</span>
+                            {% endif %}
+                            {% if item.available %}
+                                <a class="cp-btn outline ml-2" href="{{ item.milestone.get_absolute_url }}">
+                                    {% if item.done %}Retake{% else %}Start{% endif %}
+                                </a>
+                            {% else %}
+                                <span class="cp-muted small d-block">{{ item.reason }}</span>
+                            {% endif %}
+                        </div>
+                {% endfor %}
+            {% empty %}
+                <p class="cp-muted mb-0">No days have been published yet.</p>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}

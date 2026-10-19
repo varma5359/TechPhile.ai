@@ -681,7 +681,7 @@
                                         </div>
                                         <h4 class="h5 mb-2">Platform Practice</h4>
                                         <p class="text-muted small mb-3">Use platforms like Pramp for free mock interviews</p>
-                                        <a href="{% url 'home_page_coding'%}" class="btn btn-sm btn-outline-success">Try Pramp</a>
+                                        {% if features.coding %}<a href="{% url 'home_page_coding'%}" class="btn btn-sm btn-outline-success">Try Pramp</a>{% endif %}
                                     </div>
                                 </div>
                             </div>
@@ -693,7 +693,7 @@
                                         </div>
                                         <h4 class="h5 mb-2">Expert Mock</h4>
                                         <p class="text-muted small mb-3">Schedule mock interviews with industry professionals</p>
-                                        <a href="{% url 'exams:mock_interview_form' %}" class="btn btn-sm btn-outline-info">Book Session</a>
+                                        {% if features.mock_interviews %}<a href="{% url 'exams:mock_interview_form' %}" class="btn btn-sm btn-outline-info">Book Session</a>{% endif %}
                                     </div>
                                 </div>
                             </div>

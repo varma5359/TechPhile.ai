@@ -42,7 +42,8 @@ LOCAL_APPS = [
     'tech',
     'api',
     'coding',
-    'core'
+    'core',
+    'careers',
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
@@ -78,6 +79,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'careers.context_processors.features',
             ],
         },
     },
@@ -137,6 +139,14 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # Authentication URLs
 LOGIN_URL = 'login'
+
+# Student-facing navigation visibility. The coding and mock interview features
+# stay installed and routable; these flags only show or hide their entry points.
+# Set FEATURE_CODING=True / FEATURE_MOCK_INTERVIEWS=True in .env to show them again.
+FEATURE_FLAGS = {
+    'coding': config('FEATURE_CODING', default=False, cast=bool),
+    'mock_interviews': config('FEATURE_MOCK_INTERVIEWS', default=False, cast=bool),
+}
 LOGIN_REDIRECT_URL = 'exams:student_dashboard'
 LOGOUT_REDIRECT_URL = 'home'
 
