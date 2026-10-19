@@ -1,0 +1,34 @@
+{% load static %}
+<footer class="footer-modern">
+    <div class="container">
+        <div class="footer-grid">
+            <section class="footer-brand" aria-label="About TechPhile.ai">
+                <a href="{% url 'home' %}" class="footer-brand-mark" aria-label="TechPhile.ai home">
+                    <img src="{% static 'images/logo-nav.png' %}" alt="TechPhile.ai" class="footer-brand-logo">
+                </a>
+                <p class="footer-description">Build technology skills with focused learning paths, lessons, and practice.</p>
+            </section>
+
+            <section aria-labelledby="footer-contact-heading">
+                <h2 class="footer-heading" id="footer-contact-heading">Contact</h2>
+                <ul class="footer-contact-list">
+                    <li><i class="fas fa-map-marker-alt" aria-hidden="true"></i>TechPhile.ai, Bengaluru, India</li>
+                    <li><i class="fas fa-envelope" aria-hidden="true"></i><a href="mailto:techphile@techphile.in">techphile@techphile.in</a></li>
+                </ul>
+            </section>
+
+            <nav aria-labelledby="footer-services-heading">
+                <h2 class="footer-heading" id="footer-services-heading">Explore</h2>
+                <ul class="footer-service-list">
+                    <li><a href="{% url 'careers:role_list' %}">Career learning paths</a></li>
+                    <li><a href="{% url 'exams:exam_list' %}">Subject exam practice</a></li>
+                    {% if features.coding %}<li><a href="{% url 'home_page_coding' %}">Coding practice</a></li>{% endif %}
+                    <li><a href="{% url 'about' %}">About TechPhile.ai</a></li>
+                </ul>
+            </nav>
+        </div>
+        <div class="footer-bottom">
+            <p>&copy; {% now "Y" %} TechPhile.ai. All rights reserved.</p>
+        </div>
+    </div>
+</footer>

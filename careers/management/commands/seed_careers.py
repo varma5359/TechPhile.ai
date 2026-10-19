@@ -2,7 +2,7 @@ from django.core.management.base import BaseCommand
 from django.db import transaction
 
 from careers.models import (
-    CareerRole, LearningDay, MilestoneExam, QuestionOption, ScenarioQuestion, Skill,
+    CareerRole, LearningDay, MilestoneExam, QuestionOption, ScenarioQuestion, Skill, LEVEL_BEGINNER,
 )
 from careers import lessons
 from careers.seed_data import ROLES
@@ -33,7 +33,7 @@ class Command(BaseCommand):
 
             for number, day_data in enumerate(data['days'], start=1):
                 day, created = LearningDay.objects.get_or_create(
-                    role=role, day_number=number,
+                    role=role, level=LEVEL_BEGINNER, day_number=number,
                     defaults={
                         'title': day_data['title'], 'objectives': day_data['objectives'],
                         'topics': day_data['topics'], 'is_published': True,
@@ -55,7 +55,7 @@ class Command(BaseCommand):
                         ])
 
             _, created = MilestoneExam.objects.get_or_create(
-                role=role, number=1,
+                role=role, level=LEVEL_BEGINNER, number=1,
                 defaults={'start_day': 1, 'end_day': 5, 'question_count': 10, 'is_published': True})
             counts['milestones'] += created
 
@@ -67,7 +67,7 @@ class Command(BaseCommand):
     def apply_lessons(self):
         """Fill the redesigned day's lesson and feedback, leaving existing text untouched."""
         day = LearningDay.objects.filter(
-            role__title=lessons.ROLE_TITLE, day_number=lessons.DAY_NUMBER).first()
+            role__title=lessons.ROLE_TITLE, level=LEVEL_BEGINNER, day_number=lessons.DAY_NUMBER).first()
         if day is None:
             return
         if not day.objectives.strip() or day.objectives == ORIGINAL_DAY1_OBJECTIVES:

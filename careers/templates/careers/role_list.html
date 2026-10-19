@@ -1,31 +1,54 @@
 {% extends 'base.html' %}
 
 {% block contents %}
-<div class="container cp-page">
+<div class="container cp-page cp-role-list-page">
     <div class="main-content">
         {% include 'careers/_shared.html' %}
-        <h1>Career Preparation</h1>
-        <p class="cp-muted">
-            Pick a role to follow a structured, scenario based preparation plan with day-wise questions
-            and a milestone exam after every five days.
-        </p>
+        <div class="cp-role-hero">
+            <span class="cp-badge mb-2">CAREER PREP &middot; YOUR NEXT CHAPTER</span>
+            <h1>Build skills for the role you want.</h1>
+            <p class="mb-0">Choose a career track and follow a practical, day-by-day plan with interview-style questions and milestone check-ins.</p>
+        </div>
+        <div class="cp-panel cp-settings-panel d-flex flex-wrap align-items-center justify-content-between">
+            <div>
+                <strong><i class="fas fa-sliders-h mr-1" aria-hidden="true"></i> Your learning settings</strong>
+                <div class="cp-muted small">{{ experience_label }} experience &middot; {{ selected_path_label }} path</div>
+                {% if preferred_role %}
+                    <div class="cp-muted small">Your selected role is highlighted below.</div>
+                {% else %}
+                    <div class="cp-muted small">Choose a career role to personalize your plan.</div>
+                {% endif %}
+            </div>
+            <div class="d-flex flex-wrap gap-2">
+                {% if preferred_role %}<a class="cp-btn" href="{% url 'careers:level_role_detail' preferred_role.slug level %}">Continue {{ preferred_role.title }} plan</a>{% endif %}
+                <a class="cp-btn outline" href="{% url 'exams:profile_settings' %}?tab=career">Edit career preferences</a>
+            </div>
+        </div>
 
         {% if cards %}
+            <div class="cp-section-heading">
+                <div><span class="cp-section-kicker">Explore career tracks</span><h2>Choose your starting point</h2></div>
+                <span class="cp-muted small">{{ cards|length }} learning track{{ cards|length|pluralize }}</span>
+            </div>
             <div class="cp-grid">
                 {% for card in cards %}
-                    <div class="cp-card">
-                        <h3>{{ card.role.title }}</h3>
-                        <p class="cp-muted flex-grow-1">{{ card.role.summary|truncatewords:28 }}</p>
-                        <p class="mb-2">
-                            <i class="fas fa-calendar-alt"></i> {{ card.role.duration_days }}-day plan
-                            <span class="cp-muted">&middot; {{ card.total }} day{{ card.total|pluralize }} available</span>
-                        </p>
-                        <div class="cp-bar mb-1"><span style="width: {{ card.percent }}%"></span></div>
-                        <p class="cp-muted small mb-3">{{ card.done }} of {{ card.total }} days submitted</p>
-                        <a class="cp-btn" href="{{ card.role.get_absolute_url }}">
-                            {% if card.done %}Continue{% else %}View plan{% endif %}
-                        </a>
-                    </div>
+                    <article class="cp-card">
+                        <div class="cp-role-icon" aria-hidden="true"><i class="fas fa-laptop-code"></i></div>
+                        <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2 cp-role-card-title">
+                            <h3 class="mb-0">{{ card.role.title }}</h3>
+                            {% if card.is_preferred_role %}<span class="cp-badge completed">Your selected role</span>{% endif %}
+                        </div>
+                        <p class="cp-muted cp-role-card-summary flex-grow-1">{{ card.role.summary|truncatewords:28 }}</p>
+                        <p class="cp-role-card-meta mb-2"><i class="fas fa-calendar-alt mr-1" aria-hidden="true"></i>{{ card.role.duration_days }}-day learning paths</p>
+                        {% for path in card.paths %}
+                            <div class="cp-role-card-path">
+                                <p class="cp-muted small mb-1">{{ path.label }} &middot; {{ path.done }} of {{ path.total }} days completed</p>
+                                <a class="cp-btn {% if not path.is_selected %}outline{% endif %}" href="{% url 'careers:level_role_detail' card.role.slug path.level %}">
+                                    {% if path.is_selected %}Open your {{ path.label }} path{% else %}Open {{ path.label }} path{% endif %}
+                                </a>
+                            </div>
+                        {% endfor %}
+                    </article>
                 {% endfor %}
             </div>
         {% else %}

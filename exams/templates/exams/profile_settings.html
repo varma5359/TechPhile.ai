@@ -3,7 +3,60 @@
 
 {% block content %}
 <style>
-    /* Alignment fixes without changing structure */
+    .profile-settings-page { max-width: 1120px; margin: 0 auto; }
+    .profile-settings-page .card-body { padding: clamp(1rem, 2.5vw, 2rem); }
+    .profile-settings-page .tab-content { min-width: 0; }
+    .profile-settings-page .nav-tabs { gap: .25rem; overflow-x: auto; flex-wrap: nowrap; }
+    .profile-settings-page .nav-tabs .nav-link { white-space: nowrap; }
+    .profile-settings-page .form-text { max-width: 62ch; }
+    .profile-settings-page .form-check { min-height: 2.75rem; }
+    .profile-settings-page .theme-options { display: grid; grid-template-columns: repeat(auto-fit, minmax(155px, 1fr)); gap: .65rem; }
+    .profile-settings-page .theme-choice {
+        display: flex; align-items: flex-start; gap: .65rem; min-height: 5rem;
+        margin: 0; padding: .75rem; border: 1px solid #dce3ef;
+        border-radius: .75rem; background: #fff; cursor: pointer;
+        transition: border-color .16s ease, background-color .16s ease, box-shadow .16s ease;
+    }
+    .profile-settings-page .theme-choice:hover { border-color: #7894f7; }
+    .profile-settings-page .theme-choice:focus-within { outline: 3px solid rgba(67,97,238,.2); outline-offset: 2px; }
+    .profile-settings-page .theme-choice.is-selected {
+        border-color: #4361ee; background: #f0f3ff;
+        box-shadow: 0 0 0 2px rgba(67, 97, 238, .12);
+    }
+    .profile-settings-page .theme-choice .form-check-input { float: none; margin: .2rem 0 0; }
+    .profile-settings-page .theme-choice .form-check-label { display: block; flex: 1; cursor: pointer; }
+    .profile-settings-page .theme-choice-title { display: flex; align-items: center; gap: .45rem; font-weight: 600; }
+    .profile-settings-page .theme-choice-description { display: block; margin-top: .25rem; color: #69778d; font-size: .75rem; }
+    .profile-settings-page .theme-swatch { width: 1rem; height: 1rem; border: 1px solid rgba(20,35,55,.18); border-radius: 50%; }
+    .profile-settings-page .theme-choice-light .theme-swatch { background: linear-gradient(135deg,#fff 50%,#dce7ff 50%); }
+    .profile-settings-page .theme-choice-dark .theme-swatch { background: linear-gradient(135deg,#101a30,#53627a); }
+    .profile-settings-page .theme-choice-system .theme-swatch { background: linear-gradient(135deg,#fff 50%,#172033 50%); }
+    .profile-settings-page .theme-choice-ocean .theme-swatch { background: linear-gradient(135deg,#087ba1,#39c8d2); }
+    .profile-settings-page .theme-choice-aurora .theme-swatch { background: linear-gradient(135deg,#754bb5,#65d7c6); }
+    .profile-settings-page .theme-choice-sunset .theme-swatch { background: linear-gradient(135deg,#f3b36f,#df684a); }
+    .profile-settings-page .theme-choice-forest .theme-swatch { background: linear-gradient(135deg,#336448,#8bd3a0); }
+    .profile-settings-page .theme-choice-sky .theme-swatch { background: linear-gradient(135deg,#eaf7ff,#2584d8); }
+    .profile-settings-page .theme-choice-midnight .theme-swatch { background: linear-gradient(135deg,#302c69,#9a8cff); }
+    .profile-settings-page .theme-choice-rose .theme-swatch { background: linear-gradient(135deg,#fff0f4,#c64f74); }
+    .profile-settings-page .theme-choice-lavender .theme-swatch { background: linear-gradient(135deg,#f4edff,#8058cf); }
+    .profile-settings-page .theme-choice-mint .theme-swatch { background: linear-gradient(135deg,#e8f8ef,#25895f); }
+    .profile-settings-page .theme-choice-slate .theme-swatch { background: linear-gradient(135deg,#283d52,#63b3d9); }
+    .profile-settings-page .theme-choice-sand .theme-swatch { background: linear-gradient(135deg,#fff6df,#a87537); }
+    .profile-settings-page .theme-choice-plum .theme-swatch { background: linear-gradient(135deg,#552c60,#e59ad2); }
+    .profile-settings-page .form-control:focus, .profile-settings-page .form-select:focus,
+    .profile-settings-page .nav-link:focus-visible { box-shadow: 0 0 0 .2rem rgba(67,97,238,.2); }
+    @media (max-width: 575.98px) {
+        .profile-settings-page.container-fluid { padding-left: .75rem !important; padding-right: .75rem !important; }
+        .profile-settings-page .card-header { padding: 1rem; }
+        .profile-settings-page .profile-photo-container { align-items: flex-start !important; }
+        .profile-settings-page .profile-photo-container img { width: 64px; height: 64px; object-fit: cover; }
+        .profile-settings-page .table { min-width: 420px; }
+        .profile-settings-page .theme-options { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+    @media (max-width: 380px) {
+        .profile-settings-page .theme-options { grid-template-columns: minmax(0, 1fr); }
+    }
+    /* Form control sizing */
     .form-floating > .form-control {
         height: calc(3.5rem + 2px);
         padding: 1rem 0.75rem;
@@ -50,7 +103,7 @@
 
 
 
-<div class="container-fluid px-4">
+<div class="container-fluid px-4 profile-settings-page">
     <div class="card shadow-sm border-0 mb-4">
         <div class="card-header bg-white">
             <h5 class="mb-0"><i class="fas fa-user-cog me-2 text-white"></i>Profile Settings</h5>
@@ -59,7 +112,7 @@
             {% if messages %}
             <div class="mb-4">
                 {% for message in messages %}
-                <div class="alert alert-{{ message.tags }} alert-dismissible fade show">
+                <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="status">
                     {{ message }}
                     <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                 </div>
@@ -67,58 +120,64 @@
             </div>
             {% endif %}
 
-            <ul class="nav nav-tabs mb-4" id="profileTabs" role="tablist" >
+            <ul class="nav nav-tabs mb-4" id="profileTabs" role="tablist" aria-label="Profile settings sections">
                 <li class="nav-item" role="presentation"> {# Removed inline style here #}
-                    <button class="nav-link {% if active_tab == 'basic' %}active{% endif %}" id="basic-tab" data-bs-toggle="tab" data-bs-target="#basic" type="button">
+                    <button class="nav-link {% if active_tab == 'basic' %}active{% endif %}" id="basic-tab" role="tab" aria-controls="basic" aria-selected="{% if active_tab == 'basic' %}true{% else %}false{% endif %}" data-bs-toggle="tab" data-bs-target="#basic" type="button">
                         <i class="fas fa-id-card me-1"></i> Basic Info
                     </button>
                 </li>
                 <li class="nav-item" role="presentation">
-                    <button class="nav-link {% if active_tab == 'security' %}active{% endif %}" id="security-tab" data-bs-toggle="tab" data-bs-target="#security" type="button">
+                    <button class="nav-link {% if active_tab == 'security' %}active{% endif %}" id="security-tab" role="tab" aria-controls="security" aria-selected="{% if active_tab == 'security' %}true{% else %}false{% endif %}" data-bs-toggle="tab" data-bs-target="#security" type="button">
                         <i class="fas fa-shield-alt me-1"></i> Security
                     </button>
                 </li>
                 <li class="nav-item" role="presentation">
-                    <button class="nav-link {% if active_tab == 'notifications' %}active{% endif %}" id="notifications-tab" data-bs-toggle="tab" data-bs-target="#notifications" type="button">
+                    <button class="nav-link {% if active_tab == 'notifications' %}active{% endif %}" id="notifications-tab" role="tab" aria-controls="notifications" aria-selected="{% if active_tab == 'notifications' %}true{% else %}false{% endif %}" data-bs-toggle="tab" data-bs-target="#notifications" type="button">
                         <i class="fas fa-bell me-1"></i> Notifications
                     </button>
                 </li>
                 <li class="nav-item" role="presentation">
-                    <button class="nav-link {% if active_tab == 'preferences' %}active{% endif %}" id="preferences-tab" data-bs-toggle="tab" data-bs-target="#preferences" type="button">
+                    <button class="nav-link {% if active_tab == 'preferences' %}active{% endif %}" id="preferences-tab" role="tab" aria-controls="preferences" aria-selected="{% if active_tab == 'preferences' %}true{% else %}false{% endif %}" data-bs-toggle="tab" data-bs-target="#preferences" type="button">
                         <i class="fas fa-sliders-h me-1"></i> Preferences
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link {% if active_tab == 'career' %}active{% endif %}" id="career-tab" role="tab" aria-controls="career" aria-selected="{% if active_tab == 'career' %}true{% else %}false{% endif %}" data-bs-toggle="tab" data-bs-target="#career" type="button">
+                        <i class="fas fa-route me-1"></i> Career Learning
                     </button>
                 </li>
             </ul>
 
             <div class="tab-content">
-                  <div class="tab-pane fade {% if active_tab == 'basic' %}show active{% endif %}" id="basic">
+                  <div class="tab-pane fade {% if active_tab == 'basic' %}show active{% endif %}" id="basic" role="tabpanel" aria-labelledby="basic-tab" tabindex="0">
                       <form method="post" action="{% url 'exams:update_profile' %}" enctype="multipart/form-data">
                           {% csrf_token %}
                           <div class="row g-3">
                               <div class="col-md-6">
                                   <div class="form-floating mb-3">
                                       <input type="text" class="form-control" id="id_first_name" name="first_name" 
-                                              value="{{ user.first_name }}" placeholder="First Name" required>
+                                              value="{{ profile_form.first_name.value|default:'' }}" placeholder="First Name" maxlength="30" autocomplete="given-name" required>
                                       <label for="id_first_name">First Name</label>
                                   </div>
                               </div>
                               <div class="col-md-6">
                                   <div class="form-floating mb-3">
                                       <input type="text" class="form-control" id="id_last_name" name="last_name" 
-                                              value="{{ user.last_name }}" placeholder="Last Name" required>
+                                              value="{{ profile_form.last_name.value|default:'' }}" placeholder="Last Name" maxlength="30" autocomplete="family-name" required>
                                       <label for="id_last_name">Last Name</label>
                                   </div>
                               </div>
                               <div class="col-md-6">
-                                  <div class="form-floating mb-3">
-                                      <input type="email" class="form-control" value="{{ user.email }}" disabled>
-                                      <label>Email <small class="text-muted">(Contact admin to change)</small></label>
+                                  <div class="mb-3">
+                                      <label class="form-label" for="profile-email">Email</label>
+                                      <input type="email" class="form-control" id="profile-email" value="{{ user.email }}" readonly aria-describedby="email-help">
+                                      <div id="email-help" class="form-text">Email changes are handled by an administrator.</div>
                                   </div>
                               </div>
                               <div class="col-md-6">
                                   <div class="form-floating mb-3">
-                                      <input type="tel" class="form-control" id="id_phone" name="phone" 
-                                              value="{{ user.profile.phone|default:'' }}" placeholder="Phone Number">
+                                      <input type="tel" class="form-control" id="id_phone" name="phone"
+                                              value="{{ profile_form.phone.value|default:'' }}" placeholder="+91XXXXXXXXXX" maxlength="20" autocomplete="tel">
                                       <label for="id_phone">Phone Number</label>
                                   </div>
                               </div>
@@ -134,7 +193,7 @@
                                               {% endif %}
                                           </div>
                                           <div class="flex-grow-1">
-                                              <input type="file" class="form-control" id="id_photo" name="photo" accept="image/*">
+                                              <input type="file" class="form-control" id="id_photo" name="photo" accept=".jpg,.jpeg,.png,image/jpeg,image/png">
                                               <small class="text-muted">JPG or PNG, max 2MB</small>
                                           </div>
                                       </div>
@@ -153,7 +212,37 @@
                   </div>
 
 
-                <div class="tab-pane fade {% if active_tab == 'security' %}show active{% endif %}" id="security">
+                <div class="tab-pane fade {% if active_tab == 'career' %}show active{% endif %}" id="career" role="tabpanel" aria-labelledby="career-tab" tabindex="0">
+                    <div class="mb-4">
+                        <h6 class="mb-2"><i class="fas fa-graduation-cap me-2"></i>Personalized career plan</h6>
+                        <p class="text-muted">Choose a role and experience range. We recommend a learning path from your experience; you can select either path at any time.</p>
+                    </div>
+                    <form method="post" action="{% url 'exams:update_career_preferences' %}">
+                        {% csrf_token %}
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label" for="{{ career_preferences_form.career_role.id_for_label }}">Career role</label>
+                                {{ career_preferences_form.career_role }}
+                                {% if career_preferences_form.career_role.errors %}<div class="text-danger small">{{ career_preferences_form.career_role.errors }}</div>{% endif %}
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label" for="{{ career_preferences_form.experience_band.id_for_label }}">Professional experience</label>
+                                {{ career_preferences_form.experience_band }}
+                                {% if career_preferences_form.experience_band.errors %}<div class="text-danger small">{{ career_preferences_form.experience_band.errors }}</div>{% endif %}
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label" for="{{ career_preferences_form.learning_path.id_for_label }}">Learning path</label>
+                                {{ career_preferences_form.learning_path }}
+                                <div class="form-text">Leave this blank to follow the <strong>{{ recommended_path_label }}</strong> recommendation for your experience range. You can override it whenever you want.</div>
+                                {% if career_preferences_form.learning_path.errors %}<div class="text-danger small">{{ career_preferences_form.learning_path.errors }}</div>{% endif %}
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-primary px-4 mt-3">Save Career Plan</button>
+                        <a href="{% url 'careers:role_list' %}" class="btn btn-outline-primary mt-3">View career plans</a>
+                    </form>
+                </div>
+
+                <div class="tab-pane fade {% if active_tab == 'security' %}show active{% endif %}" id="security" role="tabpanel" aria-labelledby="security-tab" tabindex="0">
                     <div class="mb-4">
                         <h6 class="mb-3"><i class="fas fa-key me-2"></i>Password</h6>
                         <form method="post" action="{% url 'exams:change_password' %}">
@@ -189,84 +278,81 @@
                     
                     <div>
                         <h6 class="mb-3"><i class="fas fa-lock me-2"></i>Active Sessions</h6>
+                        <p class="text-muted small">You can sign out other active sessions. This session cannot be ended here.</p>
                         <div class="table-responsive">
                             <table class="table table-sm">
                                 <thead>
                                     <tr>
-                                        <th>Device</th>
-                                        <th>Location</th>
-                                        <th>Last Active</th>
+                                        <th>Session</th>
+                                        <th>Expires</th>
                                         <th>Action</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {% for session in active_sessions %}
                                     <tr>
-                                        <td>{{ session.user_agent|truncatechars:30 }}</td>
-                                        <td>{{ session.ip_address }}</td>
-                                        <td>{{ session.last_activity|timesince }} ago</td>
+                                        <td>{% if session.is_current %}This device (current){% else %}Other signed-in device{% endif %}</td>
+                                        <td>{{ session.expires_at|date:"M j, Y H:i" }}</td>
                                         <td>
                                             {% if not session.is_current %}
-                                            <form method="post" action="{% url 'terminate_session' session.pk %}">
+                                            <form method="post" action="{% url 'exams:terminate_session' session.id %}">
                                                 {% csrf_token %}
-                                                <button type="submit" class="btn btn-link text-danger p-0">Logout</button>
+                                                <button type="submit" class="btn btn-link text-danger p-0">Sign out</button>
                                             </form>
                                             {% endif %}
                                         </td>
                                     </tr>
                                     {% endfor %}
+                                    {% if not active_sessions %}<tr><td colspan="3" class="text-muted py-3">No active sessions found.</td></tr>{% endif %}
                                 </tbody>
                             </table>
                         </div>
                     </div>
                 </div>
 
-                <div class="tab-pane fade {% if active_tab == 'notifications' %}show active{% endif %}" id="notifications">
+                <div class="tab-pane fade {% if active_tab == 'notifications' %}show active{% endif %}" id="notifications" role="tabpanel" aria-labelledby="notifications-tab" tabindex="0">
                     <form method="post" action="{% url 'exams:update_notifications' %}">
                         {% csrf_token %}
                         <h6 class="mb-3"><i class="fas fa-envelope me-2"></i>Email Notifications</h6>
                         <div class="form-check form-switch mb-3 d-flex align-items-center">
-                            <input class="form-check-input me-2" type="checkbox" id="examNotifications" name="exam_notifications" 
-                                    {% if user.profile.exam_notifications %}checked{% endif %}>
-                            <label class="form-check-label" for="examNotifications">Exam results and updates</label>
+                            {{ notification_form.exam_notifications }}
+                            <label class="form-check-label" for="{{ notification_form.exam_notifications.id_for_label }}">Exam results and updates</label>
                         </div>
                         <div class="form-check form-switch mb-3 d-flex align-items-center">
-                            <input class="form-check-input me-2" type="checkbox" id="interviewNotifications" name="interview_notifications" 
-                                    {% if user.profile.interview_notifications %}checked{% endif %}>
-                            <label class="form-check-label" for="interviewNotifications">Interview schedules and feedback</label>
+                            {{ notification_form.interview_notifications }}
+                            <label class="form-check-label" for="{{ notification_form.interview_notifications.id_for_label }}">Interview schedules and feedback</label>
                         </div>
                         <div class="form-check form-switch mb-3 d-flex align-items-center">
-                            <input class="form-check-input me-2" type="checkbox" id="promotionalEmails" name="promotional_emails" 
-                                    {% if user.profile.promotional_emails %}checked{% endif %}>
-                            <label class="form-check-label" for="promotionalEmails">Promotional offers</label>
+                            {{ notification_form.promotional_emails }}
+                            <label class="form-check-label" for="{{ notification_form.promotional_emails.id_for_label }}">Promotional offers</label>
                         </div>
                         
                         <hr class="my-4">
                         
                         <h6 class="mb-3"><i class="fas fa-mobile-alt me-2"></i>Push Notifications</h6>
                         <div class="form-check form-switch mb-3 d-flex align-items-center">
-                            <input class="form-check-input me-2" type="checkbox" id="upcomingReminders" name="push_reminders" 
-                                    {% if user.profile.push_reminders %}checked{% endif %}>
-                            <label class="form-check-label" for="upcomingReminders">Upcoming exam/interview reminders</label>
+                            {{ notification_form.push_reminders }}
+                            <label class="form-check-label" for="{{ notification_form.push_reminders.id_for_label }}">Upcoming exam/interview reminders</label>
                         </div>
                         <div class="form-check form-switch mb-3 d-flex align-items-center">
-                            <input class="form-check-input me-2" type="checkbox" id="importantAlerts" name="important_alerts" 
-                                    {% if user.profile.important_alerts %}checked{% endif %}>
-                            <label class="form-check-label" for="importantAlerts">Important alerts</label>
+                            {{ notification_form.important_alerts }}
+                            <label class="form-check-label" for="{{ notification_form.important_alerts.id_for_label }}">Important alerts</label>
                         </div>
                         
-                        <button type="submit" class="btn btn-primary px-4 mt-2">Save Preferences</button>
+                        <p class="form-text">These choices are saved to your profile. Automated email and push delivery is not connected to them yet.</p>
+                        <button type="submit" class="btn btn-primary px-4 mt-2">Save notification settings</button>
                     </form>
                 </div>
 
-                <div class="tab-pane fade {% if active_tab == 'preferences' %}show active{% endif %}" id="preferences">
+                <div class="tab-pane fade {% if active_tab == 'preferences' %}show active{% endif %}" id="preferences" role="tabpanel" aria-labelledby="preferences-tab" tabindex="0">
                     <form method="post" action="{% url 'exams:update_preferences' %}">
                         {% csrf_token %}
                         <div class="row g-3">
                             <div class="col-md-6">
                                 <div class="mb-3">
-                                    <label class="form-label">Time Zone</label>
+                                    <label class="form-label" for="{{ preferences_form.timezone.id_for_label }}">Time zone</label>
                                     {{ preferences_form.timezone }}
+                                    <div class="form-text">Site dates and times use this time zone after you save.</div>
                                     {% if preferences_form.timezone.errors %}
                                         <div class="text-danger">{{ preferences_form.timezone.errors }}</div>
                                     {% endif %}
@@ -274,30 +360,47 @@
                             </div>
                             <div class="col-md-6">
                                 <div class="mb-3">
-                                    <label class="form-label">Theme Preference</label>
-                                    <div class="d-flex gap-3">
+                                    <fieldset class="border-0 p-0 m-0">
+                                    <legend class="form-label fs-6">Theme preference</legend>
+                                    <div class="theme-options" role="radiogroup" aria-label="Theme preference">
                                         {% for radio in preferences_form.theme %}
-                                            <div class="form-check">
+                                            <div class="form-check theme-choice theme-choice-{{ radio.choice_value }} {% if radio.choice_value == preferences_form.theme.value %}is-selected{% endif %}">
                                                 {{ radio.tag }}
                                                 <label class="form-check-label" for="{{ radio.id_for_label }}">
-                                                    <i class="fas {% if radio.choice_value == 'light' %}fa-sun{% else %}fa-moon{% endif %} me-1"></i> 
-                                                    {{ radio.choice_label }}
+                                                    <span class="theme-choice-title"><span class="theme-swatch" aria-hidden="true"></span>
+                                                        <i class="fas {% if radio.choice_value == 'system' %}fa-desktop{% elif radio.choice_value == 'light' or radio.choice_value == 'sunset' or radio.choice_value == 'sky' or radio.choice_value == 'rose' or radio.choice_value == 'lavender' or radio.choice_value == 'mint' or radio.choice_value == 'sand' %}fa-sun{% else %}fa-moon{% endif %}" aria-hidden="true"></i>
+                                                        {{ radio.choice_label }}
+                                                    </span>
+                                                    <small class="theme-choice-description">
+                                                        {% if radio.choice_value == 'light' %}Clear and bright{% elif radio.choice_value == 'dark' %}Low-glare focus{% elif radio.choice_value == 'system' %}Follow your device{% elif radio.choice_value == 'ocean' %}Calm blue and teal{% elif radio.choice_value == 'aurora' %}Violet with fresh teal{% elif radio.choice_value == 'sunset' %}Warm and soft{% elif radio.choice_value == 'forest' %}Quiet green tones{% elif radio.choice_value == 'sky' %}Open, cool blue{% elif radio.choice_value == 'midnight' %}Deep indigo focus{% elif radio.choice_value == 'rose' %}Soft rose accents{% elif radio.choice_value == 'lavender' %}Light violet calm{% elif radio.choice_value == 'mint' %}Fresh and gentle green{% elif radio.choice_value == 'slate' %}Cool graphite tones{% elif radio.choice_value == 'sand' %}Warm neutral paper{% elif radio.choice_value == 'plum' %}Rich plum and blush{% endif %}
+                                                    </small>
                                                 </label>
                                             </div>
                                         {% endfor %}
                                     </div>
+                                    </fieldset>
                                     {% if preferences_form.theme.errors %}
                                         <div class="text-danger">{{ preferences_form.theme.errors }}</div>
                                     {% endif %}
+                                    <div class="form-text">Choose a palette that feels comfortable for your study space. Preview it now or save it for future pages; System Default follows your device.</div>
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <div class="mb-3">
-                                    <label class="form-label">Dashboard View</label>
+                                    <label class="form-label" for="{{ preferences_form.dashboard_view.id_for_label }}">Dashboard view</label>
                                     {{ preferences_form.dashboard_view }}
                                     {% if preferences_form.dashboard_view.errors %}
                                         <div class="text-danger">{{ preferences_form.dashboard_view.errors }}</div>
                                     {% endif %}
+                                    <div class="form-text">Compact shows less at once; Detailed expands the recent activity and roadmap.</div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label" for="{{ preferences_form.language.id_for_label }}">Language</label>
+                                    {{ preferences_form.language }}
+                                    <div class="form-text">Your language choice is saved. Interface translation is not enabled yet.</div>
+                                    {% if preferences_form.language.errors %}<div class="text-danger">{{ preferences_form.language.errors }}</div>{% endif %}
                                 </div>
                             </div>
                         </div>
@@ -309,28 +412,43 @@
     </div>
 </div>
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-    // Listen for theme radio changes
-    document.querySelectorAll('input[name="theme"]').forEach(function(radio) {
-        radio.addEventListener('change', function() {
-            // Set data-theme attribute on <html> or <body>
-            document.documentElement.setAttribute('data-theme', this.value);
-            // Optionally, save to localStorage for persistence
-            localStorage.setItem('theme', this.value);
-        });
-    });
-
-    // On page load, apply theme from localStorage or Django session
-    var savedTheme = localStorage.getItem('theme');
-    if (savedTheme) {
-        document.documentElement.setAttribute('data-theme', savedTheme);
-        // Optionally, check the correct radio button
-        var radio = document.querySelector('input[name="theme"][value="' + savedTheme + '"]');
-        if (radio) radio.checked = true;
-    }
-});
 // Activate the correct tab based on URL hash or active_tab
 document.addEventListener('DOMContentLoaded', function() {
+    const themeChoices = document.querySelectorAll('input[name="theme"]');
+    const systemTheme = window.matchMedia('(prefers-color-scheme: dark)');
+
+    function previewTheme(value) {
+        document.documentElement.dataset.activeTheme = value === 'system'
+            ? (systemTheme.matches ? 'dark' : 'light')
+            : value;
+        themeChoices.forEach(function(choice) {
+            const card = choice.closest('.theme-choice');
+            if (card) card.classList.toggle('is-selected', choice.checked);
+        });
+    }
+
+    themeChoices.forEach(function(choice) {
+        choice.addEventListener('change', function() { previewTheme(this.value); });
+        const card = choice.closest('.theme-choice');
+        if (card) {
+            card.addEventListener('click', function(event) {
+                if (event.target.closest('label') || event.target === choice) return;
+                choice.checked = true;
+                choice.dispatchEvent(new Event('change', { bubbles: true }));
+            });
+        }
+    });
+    if (themeChoices.length) {
+        const selectedTheme = document.querySelector('input[name="theme"]:checked');
+        if (selectedTheme) previewTheme(selectedTheme.value);
+        if (systemTheme.addEventListener) {
+            systemTheme.addEventListener('change', function() {
+                const currentChoice = document.querySelector('input[name="theme"]:checked');
+                if (currentChoice && currentChoice.value === 'system') previewTheme('system');
+            });
+        }
+    }
+
     // If coming from a redirect with ?tab= parameter
     const urlParams = new URLSearchParams(window.location.search);
     const activeTab = urlParams.get('tab');
@@ -350,7 +468,5 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 });
-    document.documentElement.setAttribute('data-theme', '{{ request.session.theme|default:"light" }}');
-
 </script>
 {% endblock %}

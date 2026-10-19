@@ -260,13 +260,13 @@
     <!-- Hero Section -->
     <div class="text-center mb-5 glass-header p-4 p-lg-5">
         <h1 class="display-5 fw-bold mb-3 gradient-text">Ultimate Study Guide</h1>
-        <p class="lead col-lg-8 mx-auto">Your complete roadmap to mastering the exam concepts and excelling in technical interviews</p>
+        <p class="lead col-lg-8 mx-auto">A focused guide to reviewing exam topics and practicing technical concepts</p>
         <div class="d-flex justify-content-center gap-3 mt-4">
             <a href="#syllabus" class="btn btn-primary px-4">
                 <i class="fas fa-book-open me-2"></i> Syllabus Breakdown
             </a>
-            <a href="#interview-prep" class="btn btn-outline-primary px-4">
-                <i class="fas fa-user-tie me-2"></i> Interview Prep
+            <a href="#problem-solving" class="btn btn-outline-primary px-4">
+                <i class="fas fa-user-tie me-2"></i> Problem-solving tips
             </a>
             <a href="#resources" class="btn btn-outline-primary px-4">
                 <i class="fas fa-bookmark me-2"></i> Resources
@@ -286,7 +286,7 @@
                         <span class="text-gradient">Exam Overview</span>
                     </h2>
                     <div class="p-4 rounded-3 bg-light bg-opacity-10 h-100">
-                        <p>The {{ exam.title }} exam validates your technical knowledge and problem-solving abilities in real-world scenarios. This certification is recognized by top tech companies and serves as excellent preparation for technical interviews.</p>
+                        <p>Use this guide to review key concepts and approach technical questions methodically.</p>
                         
                         <div class="alert alert-primary mt-4">
                             <h4 class="h6 mb-2"><i class="fas fa-lightbulb me-2"></i> Key Features:</h4>
@@ -535,174 +535,18 @@
         </div>
     </div>
 
-    <!-- Interview Preparation -->
-    <div id="interview-prep" class="card glass-card border-0 shadow-sm mb-5">
+    <!-- Problem-solving tips -->
+    <section id="problem-solving" class="card glass-card border-0 shadow-sm mb-5">
         <div class="card-body p-4 p-lg-5">
-            <h2 class="h3 mb-4 d-flex align-items-center">
-                <span class="icon-circle-gradient me-3">
-                    <i class="fas fa-user-tie"></i>
-                </span>
-                <span class="text-gradient">Technical Interview Preparation</span>
-            </h2>
-            
-            <div class="alert alert-warning bg-gradient-warning-light">
-                <i class="fas fa-exclamation-triangle me-2"></i>
-                <strong>Important:</strong> The {{ exam.title }} exam prepares you for real technical interviews. Use these strategies to convert knowledge into interview success.
-            </div>
-            
-            <div class="row g-4">
-                <!-- Interview Types -->
-                <div class="col-lg-6">
-                    <div class="p-4 rounded-3 bg-light bg-opacity-10 h-100">
-                        <h3 class="h5 mb-3 d-flex align-items-center">
-                            <i class="fas fa-list-ol text-primary me-2"></i>
-                            Interview Types
-                        </h3>
-                        <div class="accordion accordion-flush" id="interviewTypes">
-                            <div class="accordion-item border-0 mb-2">
-                                <h4 class="accordion-header">
-                                    <button class="accordion-button collapsed shadow-none py-2" type="button" data-bs-toggle="collapse" data-bs-target="#type1">
-                                        <i class="fas fa-code me-2 text-info"></i>
-                                        Coding Interview
-                                    </button>
-                                </h4>
-                                <div id="type1" class="accordion-collapse collapse" data-bs-parent="#interviewTypes">
-                                    <div class="accordion-body px-0 py-2 small">
-                                        <ul>
-                                            <li class="mb-1">Solve problems on a whiteboard or coding platform</li>
-                                            <li class="mb-1">Explain your thought process clearly</li>
-                                            <li class="mb-1">Practice on LeetCode, HackerRank</li>
-                                            <li class="mb-0">Focus on time and space complexity</li>
-                                        </ul>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="accordion-item border-0 mb-2">
-                                <h4 class="accordion-header">
-                                    <button class="accordion-button collapsed shadow-none py-2" type="button" data-bs-toggle="collapse" data-bs-target="#type2">
-                                        <i class="fas fa-comments me-2 text-success"></i>
-                                        System Design
-                                    </button>
-                                </h4>
-                                <div id="type2" class="accordion-collapse collapse" data-bs-parent="#interviewTypes">
-                                    <div class="accordion-body px-0 py-2 small">
-                                        <ul>
-                                            <li class="mb-1">Design large-scale systems</li>
-                                            <li class="mb-1">Discuss trade-offs between approaches</li>
-                                            <li class="mb-1">Practice common questions (URL shortener, chat system)</li>
-                                            <li class="mb-0">Focus on scalability and reliability</li>
-                                        </ul>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="accordion-item border-0">
-                                <h4 class="accordion-header">
-                                    <button class="accordion-button collapsed shadow-none py-2" type="button" data-bs-toggle="collapse" data-bs-target="#type3">
-                                        <i class="fas fa-brain me-2 text-danger"></i>
-                                        Behavioral Interview
-                                    </button>
-                                </h4>
-                                <div id="type3" class="accordion-collapse collapse" data-bs-parent="#interviewTypes">
-                                    <div class="accordion-body px-0 py-2 small">
-                                        <ul>
-                                            <li class="mb-1">Use STAR method (Situation, Task, Action, Result)</li>
-                                            <li class="mb-1">Prepare 5-7 stories from your experience</li>
-                                            <li class="mb-1">Practice common questions (conflict resolution, challenges)</li>
-                                            <li class="mb-0">Be concise and specific</li>
-                                        </ul>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Interview Strategies -->
-                <div class="col-lg-6">
-                    <div class="p-4 rounded-3 bg-light bg-opacity-10 h-100">
-                        <h3 class="h5 mb-3 d-flex align-items-center">
-                            <i class="fas fa-chess me-2 text-primary"></i>
-                            Winning Strategies
-                        </h3>
-                        <div class="row g-2">
-                            <div class="col-md-6">
-                                <div class="p-3 border rounded h-100">
-                                    <h4 class="h6 mb-2"><i class="fas fa-comment-alt me-2 text-info"></i> Communication</h4>
-                                    <p class="small mb-0">Think aloud while solving problems. Interviewers want to understand your thought process.</p>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="p-3 border rounded h-100">
-                                    <h4 class="h6 mb-2"><i class="fas fa-clock me-2 text-warning"></i> Time Management</h4>
-                                    <p class="small mb-0">Allocate time wisely. Spend 5 minutes planning before coding.</p>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="p-3 border rounded h-100">
-                                    <h4 class="h6 mb-2"><i class="fas fa-question me-2 text-success"></i> Clarify Doubts</h4>
-                                    <p class="small mb-0">Ask clarifying questions before solving. Assumptions can lead to mistakes.</p>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="p-3 border rounded h-100">
-                                    <h4 class="h6 mb-2"><i class="fas fa-bug me-2 text-danger"></i> Edge Cases</h4>
-                                    <p class="small mb-0">Always consider edge cases and discuss them with the interviewer.</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Mock Interviews -->
-                <div class="col-12">
-                    <div class="p-4 rounded-3 bg-light bg-opacity-10">
-                        <h3 class="h5 mb-3 d-flex align-items-center">
-                            <i class="fas fa-video me-2 text-primary"></i>
-                            Mock Interviews
-                        </h3>
-                        <div class="row g-4">
-                            <div class="col-md-4">
-                                <div class="card border-0 shadow-sm h-100">
-                                    <div class="card-body text-center p-4">
-                                        <div class="icon-wrapper bg-primary bg-opacity-10 text-primary rounded-circle mx-auto mb-3">
-                                            <i class="fas fa-user-friends"></i>
-                                        </div>
-                                        <h4 class="h5 mb-2">Peer Practice</h4>
-                                        <p class="text-muted small mb-3">Pair up with fellow students and take turns interviewing each other</p>
-                                        <a href="#" class="btn btn-sm btn-outline-primary">Find Study Partners</a>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-md-4">
-                                <div class="card border-0 shadow-sm h-100">
-                                    <div class="card-body text-center p-4">
-                                        <div class="icon-wrapper bg-success bg-opacity-10 text-success rounded-circle mx-auto mb-3">
-                                            <i class="fas fa-laptop-code"></i>
-                                        </div>
-                                        <h4 class="h5 mb-2">Platform Practice</h4>
-                                        <p class="text-muted small mb-3">Use platforms like Pramp for free mock interviews</p>
-                                        {% if features.coding %}<a href="{% url 'home_page_coding'%}" class="btn btn-sm btn-outline-success">Try Pramp</a>{% endif %}
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-md-4">
-                                <div class="card border-0 shadow-sm h-100">
-                                    <div class="card-body text-center p-4">
-                                        <div class="icon-wrapper bg-info bg-opacity-10 text-info rounded-circle mx-auto mb-3">
-                                            <i class="fas fa-chalkboard-teacher"></i>
-                                        </div>
-                                        <h4 class="h5 mb-2">Expert Mock</h4>
-                                        <p class="text-muted small mb-3">Schedule mock interviews with industry professionals</p>
-                                        {% if features.mock_interviews %}<a href="{% url 'exams:mock_interview_form' %}" class="btn btn-sm btn-outline-info">Book Session</a>{% endif %}
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+            <h2 class="h3 mb-3">A practical approach to technical questions</h2>
+            <p class="text-muted">Use these general study habits while reviewing the concepts in this guide.</p>
+            <div class="row g-3">
+                <div class="col-md-4"><div class="p-3 border rounded h-100"><h3 class="h6">Clarify the task</h3><p class="small mb-0">Identify what is being asked and note any assumptions before choosing an approach.</p></div></div>
+                <div class="col-md-4"><div class="p-3 border rounded h-100"><h3 class="h6">Work through an example</h3><p class="small mb-0">Try a small input by hand, then compare your reasoning with the relevant concepts.</p></div></div>
+                <div class="col-md-4"><div class="p-3 border rounded h-100"><h3 class="h6">Check edge cases</h3><p class="small mb-0">Review boundary values and verify that each step follows from the stated requirements.</p></div></div>
             </div>
         </div>
-    </div>
+    </section>
 
     <!-- Additional Resources -->
     <div id="resources" class="card glass-card border-0 shadow-sm mb-5">

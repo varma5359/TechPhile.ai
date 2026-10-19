@@ -6,7 +6,7 @@
         {% include 'careers/_shared.html' %}
         <div class="cp-breadcrumb">
             <a href="{% url 'careers:role_list' %}">Career Preparation</a> /
-            <a href="{{ role.get_absolute_url }}">{{ role.title }}</a> / {{ milestone.title }} result
+            <a href="{% url 'careers:level_role_detail' role.slug level %}">{{ role.title }}</a> / {{ level|title }} path / {{ milestone.title }} result
         </div>
         <h1>{{ milestone.title }} &ndash; results</h1>
 
@@ -14,10 +14,13 @@
             <div class="cp-score">{{ attempt.score_percent|floatformat:0 }}%</div>
             <p class="mb-1">{{ attempt.correct_marks }} of {{ attempt.total_marks }} marks &middot;
                 submitted {{ attempt.submitted_at|date:"j M Y, H:i" }}</p>
-            {% if solid %}
-                <span class="cp-badge completed">Milestone passed ({{ role.pass_percent }}% or above)</span>
+            <p class="mb-2"><strong>Best score:</strong> {{ best_score|floatformat:0 }}% &middot; <strong>Pass threshold:</strong> {{ pass_percent }}%</p>
+            {% if passed %}
+                <span class="cp-badge completed">Milestone passed ({{ pass_percent }}% or above)</span>
+                <p class="text-success mt-2 mb-0"><strong>Congratulations!</strong> You achieved at least {{ pass_percent }}%. The next five-day block is unlocked.</p>
             {% else %}
-                <span class="cp-badge revision_recommended">Revision recommended (below {{ role.pass_percent }}%)</span>
+                <span class="cp-badge revision_recommended">Below pass threshold ({{ pass_percent }}% required)</span>
+                <p class="text-danger mt-2 mb-0">The next five-day block remains locked. Review the recommended revision topics below and retake the milestone exam.</p>
             {% endif %}
         </div>
 
@@ -27,7 +30,7 @@
                     <h2>Strengths</h2>
                     {% if strengths %}
                         <div class="cp-chips">{% for s in strengths %}<span class="cp-chip strong">{{ s.skill }} &middot; {{ s.correct }}/{{ s.total }}</span>{% endfor %}</div>
-                    {% else %}<p class="cp-muted mb-0">No skill reached {{ role.pass_percent }}% on this attempt.</p>{% endif %}
+                    {% else %}<p class="cp-muted mb-0">No skill reached {{ pass_percent }}% on this attempt.</p>{% endif %}
                 </div>
             </div>
             <div class="col-md-6">
@@ -45,7 +48,7 @@
             {% if revision_days %}
                 <ul class="cp-list">
                     {% for d in revision_days %}
-                        <li><a href="{{ d.get_absolute_url }}">Day {{ d.day_number }}: {{ d.title }}</a></li>
+                        <li><a href="{% url 'careers:level_day_detail' role.slug level d.day_number %}">Day {{ d.day_number }}: {{ d.title }}</a></li>
                     {% endfor %}
                 </ul>
             {% elif weak %}
@@ -54,7 +57,7 @@
                 <p class="mb-0">Nothing to revise from this attempt.</p>
             {% endif %}
             {% if next_milestone %}
-                <p class="mt-2 mb-0">Next: <a href="{{ next_milestone.get_absolute_url }}">{{ next_milestone.title }}</a> (days {{ next_milestone.start_day }}-{{ next_milestone.end_day }}).</p>
+                <p class="mt-2 mb-0">Next: <a href="{% url 'careers:level_milestone_detail' role.slug level next_milestone.number %}">{{ next_milestone.title }}</a> (days {{ next_milestone.start_day }}-{{ next_milestone.end_day }}).</p>
             {% endif %}
             <p class="cp-muted small mt-2 mb-0">Recommendations are rule based on your submitted answers.</p>
         </div>
@@ -69,14 +72,17 @@
                     {% for h in history %}
                         <li>{{ h.submitted_at|date:"j M Y, H:i" }} &ndash; {{ h.score_percent|floatformat:0 }}%
                             {% if h.pk == attempt.pk %}<em>(this attempt)</em>{% else %}
-                                <a href="{% url 'careers:milestone_result' role.slug milestone.number h.pk %}">view</a>{% endif %}</li>
+                                <a href="{% url 'careers:level_milestone_result' role.slug level milestone.number h.pk %}">view</a>{% endif %}</li>
                     {% endfor %}
                 </ul>
             </div>
         {% endif %}
 
-        <a class="cp-btn" href="{{ role.get_absolute_url }}">Back to plan</a>
-        <a class="cp-btn outline ml-2" href="{{ milestone.get_absolute_url }}">Retake</a>
+        <a class="cp-btn" href="{% url 'careers:level_role_detail' role.slug level %}">Back to plan</a>
+        <a class="cp-btn outline ml-2" href="{% url 'careers:level_milestone_detail' role.slug level milestone.number %}">Retake Milestone Exam</a>
+        {% if passed and next_block_day %}
+            <a class="cp-btn ml-2" href="{% url 'careers:level_day_detail' role.slug level next_block_day.day_number %}">Continue to Day {{ next_block_day.day_number }} &rarr;</a>
+        {% endif %}
     </div>
 </div>
 {% endblock %}

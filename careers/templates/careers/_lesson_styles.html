@@ -1,11 +1,11 @@
 <style>
-    .lx { max-width: 860px; margin: 0 auto; color: #2b2f3a; line-height: 1.7; font-size: 1.02rem; }
+    .lx { width: 100%; max-width: 1240px; margin: 0; color: var(--tp-ink-soft); line-height: 1.7; font-size: 1.02rem; }
     .lx h2 { font-size: 1.45rem; margin: 2.2rem 0 .8rem; padding-bottom: .35rem; border-bottom: 2px solid #e3e6ef; }
     .lx h3 { font-size: 1.15rem; margin: 1.4rem 0 .5rem; }
-    .lx p { margin-bottom: .9rem; }
+    .lx p { max-width: 78ch; margin-bottom: .9rem; }
     .lx code { background: #eef1ff; color: #2b3fa8; padding: 1px 6px; border-radius: 4px; font-size: .92em; }
     .lx-header { padding: 4px 0 18px; border-bottom: 1px solid #e3e6ef; margin-bottom: 8px; }
-    .lx-header h1 { font-size: 2rem; margin: 6px 0 10px; text-shadow: none; }
+    .lx-header h1 { display: block; position: relative; color: var(--tp-ink); font-size: 2rem; line-height: 1.25; text-align: left; margin: 6px 0 10px; text-shadow: none; animation: none; }
     .lx-meta { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
     .lx-meta span { background: #eef1ff; color: #2b3fa8; border-radius: 14px; padding: 3px 12px; font-size: .85rem; font-weight: 600; }
     .lx-intro { font-size: 1.1rem; color: #424a5c; margin-bottom: 14px; }
@@ -66,13 +66,14 @@
     .lx-rule { background: #1a1a2e; color: #fff; border-radius: 10px; padding: 12px 16px; font-weight: 700; text-align: center; margin-top: 14px; }
     .lx-qhead { margin: 2.4rem 0 1rem; }
     .lx-qhead h2 { margin-top: 0; }
-    .lx-question { border: 1px solid #dde1ee; border-radius: 12px; padding: 18px 20px; margin-bottom: 20px; background: #fff; }
+    .lx-question { border: 1px solid var(--tp-border); border-radius: 12px; padding: 14px 16px; margin-bottom: 16px; background: var(--tp-surface); }
     .lx-qnum { background: #4361ee; color: #fff; border-radius: 6px; padding: 2px 10px; font-size: .8rem; font-weight: 700; margin-right: 8px; }
-    .lx-option { display: flex; gap: 10px; align-items: flex-start; border: 2px solid #dde1ee; border-radius: 10px; padding: 11px 14px; margin-bottom: 10px; cursor: pointer; }
+    .lx-option { display: flex; gap: 10px; align-items: flex-start; border: 2px solid var(--tp-border); border-radius: 10px; padding: 11px 14px; margin-bottom: 10px; cursor: pointer; }
     .lx-option:hover { background: #f4f6ff; }
+    .lx-option:focus-within { outline: 3px solid rgba(67, 97, 238, .35); outline-offset: 2px; }
     .lx-option input { margin-top: 6px; }
     .lx-option:focus-within { outline: 2px solid #4361ee; outline-offset: 1px; }
-    .lx-option.selected, .lx-option:has(input:checked) { border-color: #4361ee; background: #eef1ff; }
+    .lx-option.selected, .lx-option:has(input:checked) { border-color: var(--tp-primary); background: var(--tp-primary-soft); }
     .lx-nav { display: flex; flex-wrap: wrap; gap: 10px; justify-content: space-between; align-items: center;
         border-top: 1px solid #e3e6ef; margin-top: 28px; padding-top: 16px; }
     .lx-fb { border-radius: 8px; padding: 8px 12px; margin-top: 6px; font-size: .93rem; }

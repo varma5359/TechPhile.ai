@@ -25,7 +25,7 @@ from django.utils.html import escape
 from django.utils.safestring import mark_safe
 
 ALLOWED_TAGS = {
-    'p', 'br', 'hr', 'h2', 'h3', 'h4', 'ul', 'ol', 'li', 'strong', 'em', 'code', 'pre', 'blockquote',
+    'p', 'br', 'hr', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'ul', 'ol', 'li', 'strong', 'em', 'code', 'pre', 'blockquote',
     'table', 'thead', 'tbody', 'tr', 'th', 'td', 'a', 'div', 'span',
 }
 ALLOWED_ATTRIBUTES = {

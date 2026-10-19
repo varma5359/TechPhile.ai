@@ -422,16 +422,16 @@
                 <div class="text-center">
                     <h6 class="text-muted mb-3">Share via</h6>
                     <div class="d-flex justify-content-center">
-                        <a href="#" class="btn btn-outline-primary btn-icon rounded-circle mx-2">
+                        <a href="https://www.facebook.com/sharer/sharer.php?u={{ request.build_absolute_uri|urlencode }}" target="_blank" rel="noopener noreferrer" aria-label="Share result on Facebook" class="btn btn-outline-primary btn-icon rounded-circle mx-2">
                             <i class="fab fa-facebook-f"></i>
                         </a>
-                        <a href="#" class="btn btn-outline-info btn-icon rounded-circle mx-2">
+                        <a href="https://twitter.com/intent/tweet?url={{ request.build_absolute_uri|urlencode }}&amp;text={{ attempt.exam.title|urlencode }}" target="_blank" rel="noopener noreferrer" aria-label="Share result on X" class="btn btn-outline-info btn-icon rounded-circle mx-2">
                             <i class="fab fa-twitter"></i>
                         </a>
-                        <a href="#" class="btn btn-outline-danger btn-icon rounded-circle mx-2">
+                        <a href="https://www.linkedin.com/sharing/share-offsite/?url={{ request.build_absolute_uri|urlencode }}" target="_blank" rel="noopener noreferrer" aria-label="Share result on LinkedIn" class="btn btn-outline-danger btn-icon rounded-circle mx-2">
                             <i class="fab fa-linkedin-in"></i>
                         </a>
-                        <a href="#" class="btn btn-outline-dark btn-icon rounded-circle mx-2">
+                        <a href="mailto:?subject={{ attempt.exam.title|urlencode }}&amp;body={{ request.build_absolute_uri|urlencode }}" aria-label="Share result by email" class="btn btn-outline-dark btn-icon rounded-circle mx-2">
                             <i class="fas fa-envelope"></i>
                         </a>
                     </div>

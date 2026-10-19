@@ -54,12 +54,14 @@ from django.shortcuts import render, get_object_or_404, redirect
 from .models import Applicant  # âœ… Using Applicant as your Interview model
 from django.urls import reverse
 from django.views.decorators.cache import never_cache
+from django.views.decorators.http import require_POST
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, redirect
 from django.contrib.auth import update_session_auth_hash
 from .forms import (
     ProfileUpdateForm,
+    CareerLearningPreferencesForm,
     CustomPasswordChangeForm,
     NotificationSettingsForm,
     PreferencesForm
@@ -268,97 +270,63 @@ def exam_result(request, attempt_id):
 
 @login_required
 def student_dashboard(request):
-    from .models import ExamAttempt, Exam, Profile
+    from .models import ExamAttempt
     user = request.user
-    
-    profile, _ = Profile.objects.get_or_create(user=user)
-    dashboard_view = profile.dashboard_view
-    
-    # Exam Stats
-    all_attempts = ExamAttempt.objects.filter(user=user).order_by('-completed_at')
-    category_stats = all_attempts.values('exam__category__name').annotate(
+    profile = getattr(request, 'profile_preferences', None)
+    dashboard_view = getattr(profile, 'dashboard_view', 'default')
+    attempt_limit = {'compact': 3, 'detailed': 20}.get(dashboard_view, 6)
+    all_attempts = ExamAttempt.objects.filter(user=user).select_related(
+        'exam', 'exam__category').order_by('-started_at')
+    scored_attempts = all_attempts.filter(
+        completed_at__isnull=False, score__isnull=False).order_by('-completed_at')
+    category_stats = list(scored_attempts.values('exam__category__name').annotate(
         total=Count('id'),
         avg_score=Avg('score')
-    ).order_by('exam__category__name') 
-    
-    # Get latest attempt for stats
-    latest_attempt = all_attempts.first()
-    
-     # Calculate highest score and exam
-    highest_score_attempt = all_attempts.order_by('-score').first()
-    highest_score = highest_score_attempt.score if highest_score_attempt else 0
-    highest_score_exam = highest_score_attempt.exam.title if highest_score_attempt else "N/A"
+    ).order_by('-avg_score', 'exam__category__name')[:6])
+    highest_score_attempt = scored_attempts.order_by('-score', '-completed_at').first()
+    highest_score = highest_score_attempt.score if highest_score_attempt else None
+    highest_score_exam = highest_score_attempt.exam.title if highest_score_attempt else None
+    last_five_average = scored_attempts[:5].aggregate(avg=Avg('score'))['avg']
 
-    
-    # Calculate improvement (last month vs previous month)
-    today = datetime.now()
-    last_month_start = today - timedelta(days=30)
-    two_months_ago = today - timedelta(days=60)
-    
-    last_month_avg = all_attempts.filter(
-        completed_at__gte=last_month_start
-    ).aggregate(avg=Avg('score'))['avg'] or 0
-    
-    previous_month_avg = all_attempts.filter(
-        completed_at__gte=two_months_ago,
-        completed_at__lt=last_month_start
-    ).aggregate(avg=Avg('score'))['avg'] or 0
-    
-    improvement = last_month_avg - previous_month_avg
+    chart_width, chart_bottom, chart_height = 720, 184, 142
+    recent_scores = list(scored_attempts[:6])
+    recent_scores.reverse()
+    count = len(recent_scores)
+    plot_left, plot_width = 58, 640
+    slot_width = plot_width / max(count, 1)
+    exam_chart = []
+    for index, attempt in enumerate(recent_scores):
+        score = max(0, min(float(attempt.score), 100))
+        height = round(chart_height * score / 100, 1)
+        exam_chart.append({
+            'attempt': attempt,
+            'score': score,
+            'x': round(plot_left + slot_width * index + (slot_width - min(48, slot_width * .58)) / 2, 1),
+            'width': round(min(48, slot_width * .58), 1),
+            'y': round(chart_bottom - height, 1),
+            'height': height,
+            'center': round(plot_left + slot_width * (index + .5), 1),
+            'index': index + 1,
+        })
+    exam_chart_ticks = [
+        {'value': value, 'y': chart_bottom - chart_height * value / 100}
+        for value in (0, 25, 50, 75, 100)
+    ]
 
-    # Interview improvement calculation
-    last_month_interview_avg = Applicant.objects.filter(
-        user=user,
-        interview_date__gte=last_month_start
-    ).aggregate(avg=Avg('rating'))['avg'] or 0
-    
-    previous_month_interview_avg = Applicant.objects.filter(
-        user=user,
-        interview_date__gte=two_months_ago,
-        interview_date__lt=last_month_start
-    ).aggregate(avg=Avg('rating'))['avg'] or 0
-    
-    interview_improvement = last_month_interview_avg - previous_month_interview_avg
-    # Get only the 4 most recent attempts for display
-    recent_attempts = all_attempts[:4]
-    total_attempts_count = all_attempts.count()
-    
-    # Interview Stats
-    all_interviews = Applicant.objects.filter(user=user).order_by('-interview_date')
-    recent_interviews = all_interviews[:4]
-    total_interviews_count = all_interviews.count()
-    
-    interview_skills = Applicant.objects.filter(user=user, status='completed') \
-        .values('skills') \
-        .annotate(
-            avg_rating=Avg('rating'),
-            total=Count('id')
-        )
-    
     return render(request, 'exams/student_dashboard.html', {
-        'total_exams': total_attempts_count,
-        'avg_score': all_attempts.aggregate(avg=Avg('score'))['avg'] or 0,
-        'latest_attempt': latest_attempt,
-        'attempts': recent_attempts,  # Only show 4 most recent
-        'remaining_attempts': all_attempts[4:],  # remaning attempts for "Show More"
-        'total_attempts_count': total_attempts_count,
+        'total_attempts': all_attempts.count(),
+        'completed_attempts': scored_attempts.count(),
+        'in_progress_attempts': all_attempts.filter(completed_at__isnull=True).count(),
+        'avg_score': scored_attempts.aggregate(avg=Avg('score'))['avg'],
+        'last_five_average': last_five_average,
+        'attempts': all_attempts[:attempt_limit],
+        'dashboard_view': dashboard_view,
         'category_stats': category_stats,
-        'profile': profile,
-        'form': InterviewStatusForm(),
-        'total_interviews': total_interviews_count,
-        'completed_interviews': all_interviews.filter(status='completed').count(),
-        'interview_types': all_interviews.values('interview_type').distinct().count(),
-        'avg_interview_rating': all_interviews.aggregate(avg=Avg('rating'))['avg'] or 0,
-        'interview_skills': interview_skills,
-        'interview_history': recent_interviews,  # Only show 4 most recent
-        'remaining_interviews': all_interviews[4:],  # remaining interviews for "Show More"
-        'total_interviews_count': total_interviews_count,
         'highest_score': highest_score,
         'highest_score_exam': highest_score_exam,
-        'improvement': improvement,
-        'interview_improvement': interview_improvement,
-        'dashboard_view': dashboard_view,
-
+        'exam_chart': exam_chart,
+        'exam_chart_ticks': exam_chart_ticks,
+        'exam_chart_width': chart_width,
     })
 
 
@@ -1017,114 +985,126 @@ from .forms import (
     PreferencesForm
 )
 from .models import Profile
-from .utils import get_active_sessions  # If you have this utility
+from .utils import get_active_sessions, terminate_active_session
 
 @login_required
 def profile_settings(request):
-    active_tab = request.GET.get('tab', 'basic')
+    requested_tab = request.GET.get('tab', 'basic')
+    active_tab = requested_tab if requested_tab in {
+        'basic', 'security', 'notifications', 'preferences', 'career'
+    } else 'basic'
     user_profile = request.user.profile
     # Initialize forms with instance
     profile_form = ProfileUpdateForm(instance=user_profile)
     password_form = CustomPasswordChangeForm(request.user)
     notification_form = NotificationSettingsForm(instance=user_profile)
     preferences_form = PreferencesForm(instance=user_profile)
+    career_preferences_form = CareerLearningPreferencesForm(instance=user_profile)
+    from careers.choices import LEVEL_CHOICES
+    from careers.selection import recommend_learning_path
+    recommended_path = recommend_learning_path(user_profile.experience_band)
+    recommended_path_label = dict(LEVEL_CHOICES).get(recommended_path, 'Fresher')
     context = {
         'active_tab': active_tab,
         'profile_form': profile_form,
         'password_form': password_form,
         'notification_form': notification_form,
         'preferences_form': preferences_form,
-        'active_sessions': get_active_sessions(request.user) if 'get_active_sessions' in globals() else None
+        'career_preferences_form': career_preferences_form,
+        'recommended_path_label': recommended_path_label,
+        'active_sessions': get_active_sessions(request.user, request.session.session_key)
     }
     return render(request, 'exams/profile_settings.html', context)
 
 @login_required
+@require_POST
 def update_profile(request):
-    if request.method == 'POST':
-        form = ProfileUpdateForm(request.POST, request.FILES, instance=request.user.profile)
-        if form.is_valid():
-            form.save()
-            messages.success(request, 'Profile updated successfully!')
-            url = reverse('exams:profile_settings') + '?tab=basic'
-            return redirect(url)
-        else:
-            for field, errors in form.errors.items():
-                for error in errors:
-                    messages.error(request, f"{field}: {error}")
-    return redirect('exams:profile_settings')
+    form = ProfileUpdateForm(request.POST, request.FILES, instance=request.user.profile)
+    if form.is_valid():
+        form.save()
+        messages.success(request, 'Profile updated successfully.')
+    else:
+        for field, errors in form.errors.items():
+            for error in errors:
+                messages.error(request, f"{field}: {error}")
+    return redirect(f"{reverse('exams:profile_settings')}?tab=basic")
 
-from django.contrib.auth.decorators import login_required
-from django.shortcuts import redirect
-import os
 
 @login_required
+@require_POST
+def update_career_preferences(request):
+    """Save a learner's explicit role, experience, and learning-path choices."""
+    form = CareerLearningPreferencesForm(request.POST, instance=request.user.profile)
+    if form.is_valid():
+        form.save()
+        messages.success(request, 'Career learning preferences saved.')
+    else:
+        for field, errors in form.errors.items():
+            for error in errors:
+                messages.error(request, f'{field}: {error}')
+    return redirect(f"{reverse('exams:profile_settings')}?tab=career")
+
+@login_required
+@require_POST
 def delete_profile_photo(request):
-    if request.method == 'POST':
-        profile = request.user.profile
-        if profile.photo:
-            # Delete photo file from storage
-            photo_path = profile.photo.path
-            profile.photo.delete()  # deletes DB entry
-            if os.path.exists(photo_path):
-                os.remove(photo_path)  # deletes actual file
-        return redirect('exams:update_profile')  # or the profile page URL
+    profile = request.user.profile
+    if profile.photo:
+        profile.photo.delete(save=False)
+        profile.save(update_fields=['photo'])
+        messages.success(request, 'Profile photo removed.')
+    return redirect(f"{reverse('exams:profile_settings')}?tab=basic")
 
 
 @login_required
+@require_POST
 def change_password(request):
-    if request.method == 'POST':
-        form = CustomPasswordChangeForm(request.user, request.POST)
-        if form.is_valid():
-            user = form.save()
-            update_session_auth_hash(request, user)
-            messages.success(request, 'Password changed successfully!')
-            return redirect(f"{reverse('exams:profile_settings')}?tab=security")
-        else:
-            for field, errors in form.errors.items():
-                for error in errors:
-                    messages.error(request, f"{field}: {error}")
+    form = CustomPasswordChangeForm(request.user, request.POST)
+    if form.is_valid():
+        user = form.save()
+        update_session_auth_hash(request, user)
+        messages.success(request, 'Password changed successfully!')
+    else:
+        for field, errors in form.errors.items():
+            for error in errors:
+                messages.error(request, f"{field}: {error}")
     return redirect(f"{reverse('exams:profile_settings')}?tab=security")
 
 @login_required
+@require_POST
 def update_notifications(request):
-    if request.method == 'POST':
-        form = NotificationSettingsForm(request.POST, instance=request.user.profile)
-        if form.is_valid():
-            form.save()
-            messages.success(request, 'Notification preferences updated!')
-    url = reverse('exams:profile_settings') + '?tab=preferences'
-    return redirect(url)
+    form = NotificationSettingsForm(request.POST, instance=request.user.profile)
+    if form.is_valid():
+        form.save()
+        messages.success(request, 'Notification preferences saved.')
+    else:
+        for field, errors in form.errors.items():
+            for error in errors:
+                messages.error(request, f"{field}: {error}")
+    return redirect(f"{reverse('exams:profile_settings')}?tab=notifications")
 
 
 @login_required
+@require_POST
 def update_preferences(request):
-    if request.method == 'POST':
-        form = PreferencesForm(request.POST, instance=request.user.profile)
-        if form.is_valid():
-            profile = form.save()
-            # Optionally update session for theme/language
-            request.session['theme'] = profile.apply_theme()
-            request.session['django_language'] = profile.language
-            messages.success(request, 'Preferences updated successfully!')
-            url = reverse('exams:profile_settings') + '?tab=preferences'
-            return redirect(url)
-        else:
-            for field, errors in form.errors.items():
-                for error in errors:
-                    messages.error(request, f"{field}: {error}")
-    return redirect('exams:profile_settings')
+    form = PreferencesForm(request.POST, instance=request.user.profile)
+    if form.is_valid():
+        form.save()
+        messages.success(request, 'Preferences saved.')
+    else:
+        for field, errors in form.errors.items():
+            for error in errors:
+                messages.error(request, f"{field}: {error}")
+    return redirect(f"{reverse('exams:profile_settings')}?tab=preferences")
 
 
 @login_required
+@require_POST
 def terminate_session(request, session_id):
-    # Implement your session termination logic here
-    messages.success(request, 'Session terminated successfully')
-    return redirect('profile_settings') + '?tab=security'
-def get_active_sessions(user):
-    """Helper function to get active sessions for the user"""
-    # Implement your session query logic here
-    # This is a placeholder - you'll need to implement based on your session backend
-    return []
+    if terminate_active_session(request.user, session_id, request.session.session_key):
+        messages.success(request, 'The selected session was signed out.')
+    else:
+        messages.error(request, 'That session is unavailable or cannot be signed out.')
+    return redirect(f"{reverse('exams:profile_settings')}?tab=security")
 def edit_interview(request, pk):
     interview = get_object_or_404(Applicant, pk=pk)
     if request.method == 'POST':

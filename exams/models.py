@@ -270,6 +270,7 @@ from django.dispatch import receiver
 from django.contrib.auth import get_user_model
 from django.urls import reverse
 import pytz
+from careers.choices import EXPERIENCE_CHOICES, LEVEL_CHOICES
 
 User = get_user_model()
 
@@ -295,6 +296,17 @@ class Profile(models.Model):
     ]
 
     user = models.OneToOneField(User, on_delete=models.CASCADE)
+    career_role = models.ForeignKey(
+        'careers.CareerRole', on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='learner_profiles',
+    )
+    experience_band = models.CharField(
+        max_length=20, choices=EXPERIENCE_CHOICES, blank=True, default='',
+    )
+    learning_path = models.CharField(
+        max_length=20, choices=LEVEL_CHOICES, blank=True, default='',
+        help_text='Leave blank to use the experience-based recommendation until a path is selected.',
+    )
     photo = models.ImageField(upload_to=user_directory_path, blank=True, null=True)
     phone = models.CharField(max_length=20, blank=True, null=True)
 

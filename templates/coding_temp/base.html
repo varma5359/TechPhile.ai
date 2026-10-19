@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}TechPhile.ai Coding{% endblock %}</title>
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
 
 
     
@@ -34,7 +34,9 @@
     {% load static %}
 
     <link rel="stylesheet" href="{% static 'css/style.css' %}">
-    <link rel="icon" href="{% static 'favicon.ico' %}" type="image/x-icon">
+    <link rel="stylesheet" href="{% static 'css/profile-preferences.css' %}">
+    <link rel="stylesheet" href="{% static 'css/design-system.css' %}">
+    <link rel="icon" href="{% static 'images/favicon.png' %}" type="image/png">
     
     <style>
         body {
@@ -69,33 +71,32 @@
         }
     </style>
 </head>
-<body class="bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
+<body class="coding-practice-shell bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100" data-theme="{{ request.profile_preferences.theme|default:'dark' }}">
     <!-- Enhanced Navigation -->
-    <nav class="navbar shadow-lg border-b border-gray-200 dark:border-gray-700 sticky top-0 z-50">
+    <nav class="navbar tp-nav shadow-lg border-b border-gray-200 dark:border-gray-700 sticky top-0 z-50">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between items-center h-16">
                 <!-- Logo with bolder font -->
                 <div class="flex items-center">
-                    <a href="{% url 'home' %}" class="text-2xl font-bold text-blue-600 dark:text-blue-400 flex items-center">
-                        <i class="fas fa-code mr-2"></i>
-                        <span class="font-bold">TechPhile.ai</span>
+                    <a href="{% url 'home' %}" class="coding-brand" aria-label="TechPhile.ai home">
+                        <img src="{% static 'images/logo-nav.png' %}" alt="TechPhile.ai">
                     </a>
                 </div>
                 
                 <!-- Desktop Menu with bolder links -->
                 <div class="hidden md:flex items-center space-x-8">
-                    <a href="{% url 'home' %}" class="nav-link text-gray-800 dark:text-gray-200 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+                    <a href="{% url 'home' %}" class="nav-link {% if request.path == '/' %}active{% endif %} text-gray-800 dark:text-gray-200 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
                         Home
                     </a>
-                    <a href="{% url 'problem_list' %}" class="nav-link text-gray-800 dark:text-gray-200 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+                    <a href="{% url 'problem_list' %}" class="nav-link {% if request.resolver_match.url_name == 'problem_list' or request.resolver_match.url_name == 'problem_detail' %}active{% endif %} text-gray-800 dark:text-gray-200 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
                         Problems
                     </a>
-                    <a href="{% url 'leaderboard' %}" class="nav-link text-gray-800 dark:text-gray-200 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+                    <a href="{% url 'leaderboard' %}" class="nav-link {% if request.resolver_match.url_name == 'leaderboard' %}active{% endif %} text-gray-800 dark:text-gray-200 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
                         Leaderboard
                     </a>
                     
                     {% if user.is_authenticated %}
-                        <a href="{% url 'dashboard' %}" class="nav-link text-gray-800 dark:text-gray-200 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+                        <a href="{% url 'dashboard' %}" class="nav-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %} text-gray-800 dark:text-gray-200 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
                             Dashboard
                         </a>
                         <a href="{% url 'logout' %}" class="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors font-bold">
@@ -113,8 +114,8 @@
                 
                 <!-- Mobile menu button -->
                 <div class="md:hidden flex items-center">
-                    <button id="mobile-menu-button" class="text-gray-800 dark:text-gray-200 p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700">
-                        <i class="fas fa-bars text-xl"></i>
+                    <button id="mobile-menu-button" type="button" aria-controls="mobile-menu" aria-expanded="false" aria-label="Open navigation menu" class="text-gray-800 dark:text-gray-200 p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700">
+                        <i class="fas fa-bars text-xl" aria-hidden="true"></i>
                     </button>
                 </div>
             </div>
@@ -123,17 +124,17 @@
         <!-- Mobile Menu with bolder items -->
         <div id="mobile-menu" class="hidden md:hidden bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700">
             <div class="px-2 pt-2 pb-4 space-y-2 sm:px-3">
-                <a href="{% url 'home' %}" class="block px-3 py-3 text-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md font-semibold">
+                <a href="{% url 'home' %}" class="block px-3 py-3 {% if request.path == '/' %}active{% endif %} text-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md font-semibold">
                     <i class="fas fa-home mr-2"></i> Home
                 </a>
-                <a href="{% url 'problem_list' %}" class="block px-3 py-3 text-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md font-semibold">
+                <a href="{% url 'problem_list' %}" class="block px-3 py-3 {% if request.resolver_match.url_name == 'problem_list' or request.resolver_match.url_name == 'problem_detail' %}active{% endif %} text-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md font-semibold">
                     <i class="fas fa-code mr-2"></i> Problems
                 </a>
-                <a href="{% url 'leaderboard' %}" class="block px-3 py-3 text-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md font-semibold">
+                <a href="{% url 'leaderboard' %}" class="block px-3 py-3 {% if request.resolver_match.url_name == 'leaderboard' %}active{% endif %} text-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md font-semibold">
                     <i class="fas fa-trophy mr-2"></i> Leaderboard
                 </a>
                 {% if user.is_authenticated %}
-                    <a href="{% url 'dashboard' %}" class="block px-3 py-3 text-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md font-semibold">
+                    <a href="{% url 'dashboard' %}" class="block px-3 py-3 {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %} text-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md font-semibold">
                         <i class="fas fa-chart-line mr-2"></i> Dashboard
                     </a>
                     <a href="{% url 'logout' %}" class="block px-3 py-3 text-red-600 hover:bg-red-100 dark:hover:bg-red-900 rounded-md font-semibold">
@@ -169,13 +170,7 @@
     </main>
 
     <!-- Footer -->
-    <footer class="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 mt-16">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-            <div class="text-center text-gray-600 dark:text-gray-400 font-medium">
-                <p>&copy; 2024 TechPhile.ai Coding. All rights reserved.</p>
-            </div>
-        </div>
-    </footer>
+    {% include 'includes/site_footer.html' %}
 
     <script>
         // Enhanced mobile menu toggle with animation
@@ -192,9 +187,13 @@
                     if (mobileMenu.classList.contains('hidden')) {
                         icon.classList.remove('fa-times');
                         icon.classList.add('fa-bars');
+                        menuButton.setAttribute('aria-expanded', 'false');
+                        menuButton.setAttribute('aria-label', 'Open navigation menu');
                     } else {
                         icon.classList.remove('fa-bars');
                         icon.classList.add('fa-times');
+                        menuButton.setAttribute('aria-expanded', 'true');
+                        menuButton.setAttribute('aria-label', 'Close navigation menu');
                     }
                 });
                 
@@ -205,10 +204,22 @@
                         const icon = menuButton.querySelector('i');
                         icon.classList.remove('fa-times');
                         icon.classList.add('fa-bars');
+                        menuButton.setAttribute('aria-expanded', 'false');
+                        menuButton.setAttribute('aria-label', 'Open navigation menu');
+                    }
+                });
+
+                menuButton.addEventListener('keydown', function(e) {
+                    if (e.key === 'Escape' && !mobileMenu.classList.contains('hidden')) {
+                        mobileMenu.classList.add('hidden');
+                        menuButton.setAttribute('aria-expanded', 'false');
+                        menuButton.setAttribute('aria-label', 'Open navigation menu');
+                        menuButton.querySelector('i').classList.replace('fa-times', 'fa-bars');
                     }
                 });
             }
         });
     </script>
+    <script src="{% static 'js/profile-preferences.js' %}"></script>
 </body>
 </html>

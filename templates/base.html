@@ -7,15 +7,13 @@
     <meta charset="utf-8"/>
     <meta http-equiv="X-UA-Compatible" content="IE=edge"/>
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no"/>
-    <title>TechPhile.ai | Mock Interviews, Coding Challenges & Exam Practice</title>
+    <title>{% block title %}TechPhile.ai | Career Learning & Exam Practice{% endblock %}</title>
     
 
 
 <!-- Favicon -->
 
-<link rel="shortcut icon" href="{% static 'images/favicon.ico' %}" type="image/x-icon">
-<link rel="icon" href="{% static 'images/favicon.ico' %}" type="image/x-icon">
-<link rel="icon" type="image/png" href="{% static 'images/favicon.png' %}">    
+<link rel="icon" type="image/png" href="{% static 'images/favicon.png' %}">
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
@@ -34,9 +32,9 @@
 
     <!-- Custom Styles for this Template -->
     <link href="{% static 'css/style.css' %}" rel="stylesheet"/>
+    <link href="{% static 'css/profile-preferences.css' %}" rel="stylesheet"/>
     <!-- Responsive Style -->
     <!-- <link href="{% static 'css/responsive.css' %}" rel="stylesheet"/> -->
-     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     
     <style>
         :root {
@@ -341,210 +339,43 @@
             color: #666;
         }
 
-        /* Footer Section */
+        /* Shared site footer */
+        .footer-modern {
+            position: relative;
+            z-index: 1;
+            margin: 0 !important;
+            padding: 1.9rem 0 0;
+            background: #101d35;
+            color: #d6deea;
+        }
 
-/* Base Styles */
-footer {
-    position: relative;
-    z-index: 1;
-}
-
-.footer_section {
-    background: var(--dark-color);
-    color: white;
-    padding: 60px 0 20px;
-    position: relative;
-    width: 100%;
-}
-
-.footer_section .container {
-    width: 100%;
-}
-
-.footer_section::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100px;
-    background: url("{% static 'images/wave.svg' %}") center/cover no-repeat;
-    transform: translateY(-99px);
-}
-
-.footer-content {
-    padding-bottom: 30px;
-}
-
-.footer-logo {
-    margin-bottom: 20px;
-    max-width: 180px;
-}
-
-.footer-links h5 {
-    color: white;
-    margin-bottom: 20px;
-    position: relative;
-    padding-bottom: 10px;
-}
-
-.footer-links h5::after {
-    content: '';
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    width: 40px;
-    height: 2px;
-    background: var(--accent-color);
-}
-
-.footer-links ul {
-    list-style: none;
-    padding: 0;
-}
-
-.footer-links li {
-    margin-bottom: 10px;
-}
-
-.footer-links a {
-    color: #bbb;
-    transition: var(--transition-all);
-    text-decoration: none;
-    position: relative;
-    padding-left: 15px;
-}
-
-.footer-links a::before {
-    content: '→';
-    position: absolute;
-    left: 0;
-    top: 50%;
-    transform: translateY(-50%);
-    color: var(--accent-color);
-    opacity: 0;
-    transition: var(--transition-all);
-}
-
-.footer-links a:hover {
-    color: white;
-    padding-left: 25px;
-}
-
-.footer-links a:hover::before {
-    opacity: 1;
-    left: 5px;
-}
-
-.social-links a {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 40px;
-    height: 40px;
-    background: rgba(255, 255, 255, 0.1);
-    border-radius: 50%;
-    color: white;
-    margin-right: 10px;
-    transition: var(--transition-all);
-}
-
-.social-links a:hover {
-    background: var(--primary-color);
-    transform: translateY(-5px);
-}
-
-.footer-bottom {
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
-    padding-top: 20px;
-    text-align: center;
-}
-
-.footer-bottom p {
-    margin-bottom: 0;
-    color: #aaa;
-    font-size: 14px;
-}
-
-/* Tablet (max-width: 991px) */
-@media (max-width: 991px) {
-    .footer-logo {
-        max-width: 150px;
-        margin-bottom: 15px;
-    }
-
-    .footer-description {
-        text-align: left;
-        font-size: 14px;
-    }
-
-    .footer-links h5 {
-        font-size: 20px;
-    }
-
-    .footer-links a {
-        font-size:20px;
-    }
-
-    .social-links a {
-        width: 36px;
-        height: 36px;
-        margin-right: 8px;
-    }
-
-    .footer-content .col-lg-4,
-    .footer-content .col-lg-3,
-    .footer-content .col-lg-2 {
-        margin-bottom: 30px;
-    }
-}
-
-/* Mobile (max-width: 576px) */
-@media (max-width: 576px) {
-    .footer-section {
-        padding: 40px 0 15px;
-    }
-
-    .footer-logo {
-        max-width: 120px;
-        margin-bottom: 10px;
-    }
-
-    .footer-links h5 {
-        font-size: 20px;
-    }
-
-    .footer-links a {
-        font-size: 20px;
-    }
-
-    .social-links a {
-        width: 30px;
-        height: 30px;
-        margin-right: 6px;
-    }
-
-    .footer-content {
-        text-align: center; /* Center text on small screens */
-    }
-
-    .footer-links {
-        margin-bottom: 20px;
-    }
-}
-
-/* Large Desktop (min-width: 992px) */
-@media (min-width: 992px) {
-    .footer-content .col-lg-4,
-    .footer-content .col-lg-3,
-    .footer-content .col-lg-2 {
-        margin-bottom: 0; /* Remove bottom margin on large screens */
-    }
-
-    .footer-description {
-        font-size: 16px;
-    }
-}
+        .footer-modern .container { max-width: 1140px; }
+        .footer-grid { display: grid; grid-template-columns: minmax(240px, 1.35fr) minmax(180px, .8fr) minmax(260px, 1fr); align-items: start; gap: 2rem; padding-bottom: 1.5rem; }
+        .footer-brand-mark { display: block; width: 200px; max-width: 100%; height: 72px; margin: 0 0 .35rem; overflow: hidden; }
+        .footer-brand-logo { display: block; width: 200px; max-width: none; height: auto; margin: 0; transform: translateY(-25px); }
+        .footer-description { max-width: 360px; margin: 0; color: #aebbd0; font-size: .95rem; line-height: 1.55; }
+        .footer-heading { margin: .1rem 0 .75rem; color: #fff; font-size: .82rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; }
+        .footer-contact-list, .footer-service-list { margin: 0; padding: 0; list-style: none; }
+        .footer-contact-list li, .footer-service-list li { margin: 0 0 .55rem; line-height: 1.5; }
+        .footer-modern a { color: #c5d0df; text-decoration: none; transition: color .18s ease; }
+        .footer-modern a:hover, .footer-modern a:focus { color: #fff; text-decoration: underline; text-underline-offset: 3px; }
+        .footer-modern .footer-contact-list i { width: 1.2rem; margin-right: .45rem; color: #71c5d6; text-align: center; }
+        .footer-service-list a { display: inline-block; padding: .12rem 0; }
+        .footer-bottom { border-top: 1px solid rgba(214, 222, 234, .16); padding: .8rem 0 0; }
+        .footer-bottom p { margin: 0; color: #9eacc1; font-size: .85rem; }
+        @media (max-width: 991.98px) {
+            .footer-modern { padding-top: 1.6rem; }
+            .footer-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.25rem 1.5rem; padding-bottom: 1.25rem; }
+            .footer-brand { grid-column: 1 / -1; }
+            .footer-description { max-width: 520px; }
+        }
+        @media (max-width: 479.98px) {
+            .footer-modern .container { padding-left: 1.25rem; padding-right: 1.25rem; }
+            .footer-grid { grid-template-columns: minmax(0, 1fr); gap: 1.1rem; }
+            .footer-brand { grid-column: auto; }
+            .footer-brand-mark { width: 180px; height: 65px; }
+            .footer-brand-logo { width: 180px; transform: translateY(-22px); }
+        }
 
         /* Loading Spinner */
         #loading-spinner {
@@ -807,9 +638,10 @@ footer {
 
 
     </style>
+    <link href="{% static 'css/design-system.css' %}" rel="stylesheet"/>
 </head>
 
-<body class="sub_page">
+<body class="sub_page site-shell" data-theme="{{ request.profile_preferences.theme|default:'dark' }}">
 
     <!-- Loading Spinner -->
     <div id="loading-spinner">
@@ -822,10 +654,9 @@ footer {
         <header class="header_section">
             <div class="container">
                 <nav class="navbar navbar-expand-lg navbar-dark">
-                    <a class="navbar-brand position-relative" href="{% url 'home' %}" style="z-index: 10;">
-    <img src="/static/images/logo-nav.png" alt="Logo" 
-         style="height: 120px; position: absolute; top: -40px; left: 0;">
-</a>
+                    <a class="navbar-brand site-brand" href="{% url 'home' %}" aria-label="TechPhile.ai home">
+                        <img src="{% static 'images/logo-nav.png' %}" alt="TechPhile.ai">
+                    </a>
 
                     <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
                         <span class="navbar-toggler-icon"></span>
@@ -851,28 +682,31 @@ footer {
     </li>
     {% endif %}
 
+    {% url 'careers:dashboard' as careers_dashboard_url %}
     <!-- Career Prep -->
     <li class="nav-item">
         <a class="nav-link {% if '/careers/' in request.path %}active{% endif %}" href="{% url 'careers:role_list' %}">
             <i class="fas fa-route mr-1"></i> Career Prep
         </a>
     </li>
+    {% if user.is_authenticated and careers_dashboard_url %}
+    <li class="nav-item">
+        <a class="nav-link {% if request.resolver_match.namespace == 'careers' and request.resolver_match.url_name == 'dashboard' %}active{% endif %}" href="{{ careers_dashboard_url }}">
+            <i class="fas fa-chart-pie mr-1"></i> Career Dashboard
+        </a>
+    </li>
+    {% endif %}
 
                       <!-- Dropdown: Assessments -->
                       <li class="nav-item dropdown">
-                          <a class="nav-link dropdown-toggle" href="#" id="assessmentsDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                          <button class="nav-link dropdown-toggle border-0 bg-transparent {% if request.resolver_match.namespace == 'exams' %}active{% endif %}" type="button" id="assessmentsDropdown" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                               <i class="fas fa-tasks mr-1"></i> Assessments
-                          </a>
+                          </button>
                           <div class="dropdown-menu dropdown-menu-custom" aria-labelledby="assessmentsDropdown">
                               <h6 class="dropdown-header">Exam Preparation</h6>
                               <a class="dropdown-item" href="{% url 'exams:exam_list' %}">
                                   <i class="fas fa-file-alt mr-2"></i> Mock Exams
                               </a>
-                              {% if features.mock_interviews %}
-                              <a class="dropdown-item" href="{% url 'exams:mock_interview_form' %}">
-                                  <i class="fas fa-comments mr-2"></i> Mock Interviews
-                              </a>
-                              {% endif %}
                               <div class="dropdown-divider"></div>
                               <h6 class="dropdown-header">Company Info</h6>
                               <a class="dropdown-item" href="{% url 'about' %}">
@@ -891,13 +725,13 @@ footer {
 <!-- Dropdown: User -->
 <!-- Dropdown: User -->
 <li class="nav-item dropdown">
-    <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" id="userDropdown" role="button" 
-       data-bs-toggle="dropdown" aria-expanded="false">
+    <button class="nav-link dropdown-toggle d-flex align-items-center border-0 bg-transparent" type="button" id="userDropdown"
+       data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" aria-label="Open account menu">
         {% if user.is_authenticated %}
             {% if user.profile.photo %}
-                <img src="{{ user.profile.photo.url }}" class="rounded-circle me-2" width="40" height="40" alt="User Avatar">
+                <img src="{{ user.profile.photo.url }}" class="rounded-circle mr-2" width="40" height="40" alt="User Avatar">
             {% else %}
-                <div class="avatar-circle me-2" style="width: 40px; height: 40px; border-radius: 50%; 
+                <div class="avatar-circle mr-2" style="width: 40px; height: 40px; border-radius: 50%; 
                      display: flex; align-items: center; justify-content: center; 
                      background-color: #4361ee; color: #fff; font-size: 20px;">
                     {{ user.username|first|upper }}
@@ -907,15 +741,20 @@ footer {
         {% else %}
             <i class="fas fa-user-circle mr-1"></i> User
         {% endif %}
-    </a>
-    <div class="dropdown-menu dropdown-menu-end dropdown-menu-custom" aria-labelledby="userDropdown">
+    </button>
+    <div class="dropdown-menu dropdown-menu-right dropdown-menu-custom" aria-labelledby="userDropdown">
         {% if user.is_authenticated %}
             <a class="dropdown-item" href="{% url 'exams:profile_settings' %}">
                 <i class="fas fa-user mr-2"></i> Profile
             </a>
             <a class="dropdown-item" href="{% url 'exams:student_dashboard' %}">
-                <i class="fas fa-tachometer-alt mr-2"></i> Dashboard
+                <i class="fas fa-chart-bar mr-2"></i> Exam Dashboard
             </a>
+            {% if careers_dashboard_url %}
+            <a class="dropdown-item" href="{{ careers_dashboard_url }}">
+                <i class="fas fa-route mr-2"></i> Career Prep Dashboard
+            </a>
+            {% endif %}
             <div class="dropdown-divider"></div>
             <a class="dropdown-item" href="{% url 'logout' %}">
                 <i class="fas fa-sign-out-alt mr-2"></i> Logout
@@ -950,148 +789,12 @@ footer {
     </div>
     {% endblock %}
 
-    <!-- Footer Section -->
-<footer class="footer-modern text-white py-5" style="margin-bottom: -40px;">
-    <div class="container">
-        <div class="row g-4">
-            <!-- Logo Column -->
-            <div class="col-lg-3 col-md-6">
-                <a href="{% url 'home' %}" class="d-inline-block mb-3">
-                    <img src="{% static 'images/logo1.png' %}" alt="TechPhile.ai Logo" class="img-fluid" style="max-width: 200px;">
-                </a>
-            </div>
-
-            <!-- Company Overview Column -->
-            <div class="col-lg-3 col-md-6">
-                <h3 class="mb-3">Company Overview</h3>
-                <p>With a commitment to excellence and customer satisfaction, we strive to deliver premium quality and innovative solutions tailored to meet your needs.</p>
-            </div>
-
-            <!-- Contact Column -->
-            <div class="col-lg-3 col-md-6">
-                <h3 class="mb-3">Contact</h3>
-                <ul class="list-unstyled">
-                    <li class="mb-2">
-                        <i class="fas fa-map-marker-alt me-2 text-info"></i>
-                        TechPhile.ai, Bengaluru, India
-                    </li>
-                    <li class="mb-2">
-                        <i class="fas fa-phone-alt me-2 text-success"></i>
-                        <a href="tel:+916304673717" class="text-white">+91 9492065765</a>
-                    </li>
-
-
-                    <li class="mb-2">
-                        <i class="fas fa-envelope me-2 text-warning"></i>
-                        <a href="mailto:techphile@techphile.in" class="text-white">support@techphile.in</a>
-                    </li>
-                </ul>
-            </div>
-
-            <!-- Services Column -->
-            <div class="col-lg-3 col-md-6">
-                <h3 class="mb-3">Services</h3>
-                <ul class="list-unstyled">
-                    <li class="mb-2">
-                        <i class="fas fa-check-circle me-2 text-primary"></i>
-                        <a href="{% url 'services' %}" class="text-white">Technical Skills Assessment</a>
-                    </li>
-                    <li class="mb-2">
-                        <i class="fas fa-check-circle me-2 text-primary"></i>
-                        <a href="{% url 'services' %}" class="text-white">Communication Skills Enhancement</a>
-                    </li>
-                    <li class="mb-2">
-                        <i class="fas fa-check-circle me-2 text-primary"></i>
-                        <a href="{% url 'services' %}" class="text-white">Behavioral Interview Preparation</a>
-                    </li>
-                    <li class="mb-2">
-                        <i class="fas fa-check-circle me-2 text-primary"></i>
-                        <a href="{% url 'services' %}" class="text-white">Analyse And Impravise Technical
-                                 Skills Based On Expert's Suggetions as Previous Mock Interview</a>
-                    </li>
-                </ul>
-            </div>
-        </div>
-
-        <hr class="my-4 bg-light">
-
-        <!-- Copyright -->
-        <div class="row align-items-center">
-            <div class="col-md-8 text-center text-md-start mb-3 mb-md-0">
-                <p class="mb-0">© 2025 All Rights Reserved. Made by <span class="text-warning fw-bold">TechPhile.ai</span></p>
-            </div>
-<!-- Social Media Buttons - Updated Version -->
-<div class="col-md-4 text-center text-md-end" style="font-size: 24px;"> <!-- Reduced font size for better proportion -->
-    <ul class="list-inline mb-0">
-        <!-- WhatsApp Button -->
-        <li class="list-inline-item">
-            <a href="https://wa.me/916304673717" target="_blank" rel="noopener noreferrer" 
-               class="social-icon whatsapp-icon rounded-circle">
-                <i class="fab fa-whatsapp"></i>
-            </a>
-        </li>
-        
-        <!-- Telegram Button -->
-        <li class="list-inline-item ms-2"> <!-- Added ms-2 for margin between icons -->
-            <a href="https://t.me/TechPhile150" target="_blank" rel="noopener noreferrer" 
-               class="social-icon telegram-icon rounded-circle">
-                <i class="fab fa-telegram-plane"></i>
-            </a>
-        </li>
-        
-        <!-- Instagram Button -->
-        <li class="list-inline-item ms-2"> <!-- Added ms-2 for margin between icons -->
-            <a href="https://www.instagram.com/techphile.ai" target="_blank" rel="noopener noreferrer" 
-               class="social-icon instagram-icon rounded-circle">
-                <i class="fab fa-instagram"></i>
-            </a>
-        </li>
-    </ul>
-</div>
-      <style>
-        /* Social Icons Styling */
-.social-icon {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 40px;
-    height: 40px;
-    color: white;
-    text-decoration: none;
-    transition: all 0.3s ease;
-}
-
-.whatsapp-icon {
-    background-color: #25D366; /* WhatsApp green */
-}
-
-.telegram-icon {
-    background-color: #0088cc; /* Telegram blue */
-}
-
-.instagram-icon {
-    background: linear-gradient(45deg, #405DE6, #5851DB, #833AB4, #C13584, #E1306C, #FD1D1D);
-}
-
-.social-icon:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
-    color: white;
-}
-
-/* Fix for Font Awesome icons */
-.fab {
-    line-height: 1;
-}
-      </style>      
-            
-        </div>
-    </div>
-</footer>
+    <!-- Shared site footer -->
+    {% include 'includes/site_footer.html' %}
 
 
     <!-- Back to Top Button -->
-    <a href="#" class="back-to-top"><i class="fas fa-arrow-up"></i></a>
+    <button type="button" class="back-to-top" aria-label="Back to top"><i class="fas fa-arrow-up" aria-hidden="true"></i></button>
 
     <!-- Scripts -->
     <!-- <script src="{% static 'js/jquery-3.4.1.min.js' %}"></script>
@@ -1103,6 +806,7 @@ footer {
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{% static 'js/profile-preferences.js' %}"></script>
 
 <!-- Other scripts -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/OwlCarousel2/2.3.4/owl.carousel.min.js"></script>

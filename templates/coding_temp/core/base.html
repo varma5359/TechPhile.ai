@@ -1,15 +1,18 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>{% block title %}Techphile AI - Learn AI & Machine Learning Through Coding{% endblock %}</title>
+  <link rel="icon" type="image/png" href="{% static 'images/favicon.png' %}" />
   <meta name="description" content="{% block description %}Master AI and Machine Learning through hands-on coding challenges. Practice with real datasets and interactive Python coding environment.{% endblock %}" />
 
   <!-- Bootstrap CSS -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
   <!-- Font Awesome -->
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" />
+  <link href="{% static 'css/profile-preferences.css' %}" rel="stylesheet" />
 
   <style>
     :root {
@@ -32,13 +35,7 @@
       color: var(--primary-color) !important;
       
     }
-a.nav-link {
-      color:black !important;
-      font-weight: 500;
-    }
-    .navbar-nav .nav-link:hover {
-      color: var(--primary-color) !important;
-    }
+    .navbar-nav .nav-link { font-weight: 600; }
     .hero-section {
       background: linear-gradient(135deg, var(--primary-color), #3b82f6);
       color: white;
@@ -149,14 +146,15 @@ a.nav-link {
     
   </style>
 
+  <link href="{% static 'css/design-system.css' %}" rel="stylesheet" />
   {% block extra_css %}{% endblock %}
 </head>
-<body>
+<body class="core-learning-shell" data-theme="{{ request.profile_preferences.theme|default:'dark' }}">
   <!-- Navigation -->
-  <nav class="navbar navbar-expand-lg navbar-light bg-white sticky-top shadow-sm">
+  <nav class="navbar navbar-expand-lg navbar-dark tp-nav sticky-top shadow-sm">
     <div class="container">
-      <a class="navbar-brand" href="{% url 'core:explore-courses' %}">
-        <i class="fas fa-brain me-2"></i>Techphile AI
+      <a class="navbar-brand core-brand" href="{% url 'core:explore-courses' %}" aria-label="TechPhile.ai courses">
+        <img src="{% static 'images/logo-nav.png' %}" alt="TechPhile.ai" />
       </a>
 
       <button
@@ -174,27 +172,27 @@ a.nav-link {
       <div class="collapse navbar-collapse" id="navbarNav">
         <ul class="navbar-nav me-auto" >
           <li class="nav-item">
-               <a class="nav-link" href="{% url 'home' %}">
+               <a class="nav-link {% if request.path == '/' %}active{% endif %}" href="{% url 'home' %}">
                  <i class="fas fa-home me-1"></i>Home
                </a>
              </li>
              <li class="nav-item">
-               <a class="nav-link" href="{% url 'home_page_coding' %}">
+               <a class="nav-link {% if 'coding' in request.path %}active{% endif %}" href="{% url 'home_page_coding' %}">
                  <i class="fas fa-code me-1"></i>Coding
                </a>
              </li>
              <li class="nav-item">
-               <a class="nav-link" href="{% url 'core:creativity_intelligence' %}">
+               <a class="nav-link {% if request.resolver_match.url_name == 'creativity_intelligence' or request.resolver_match.url_name == 'topic_detail' or request.resolver_match.url_name == 'problem_detail' %}active{% endif %}" href="{% url 'core:creativity_intelligence' %}">
                  <i class="fas fa-lightbulb me-1"></i>Creativity & Intelligence
                </a>
              </li>
              <li class="nav-item">
-               <a class="nav-link" href="{% url 'core:leaderboard' %}">
+               <a class="nav-link {% if request.resolver_match.url_name == 'leaderboard' %}active{% endif %}" href="{% url 'core:leaderboard' %}">
                  <i class="fas fa-chart-line me-1"></i>Leaderboard
                </a>
              </li>
              <li class="nav-item">
-               <a class="nav-link" href="{% url 'core:datasets' %}">
+               <a class="nav-link {% if request.resolver_match.url_name == 'datasets' %}active{% endif %}" href="{% url 'core:datasets' %}">
                  <i class="fas fa-database me-1"></i>Datasets
                </a>
              </li>
@@ -204,19 +202,19 @@ a.nav-link {
         <ul class="navbar-nav">
           {% if user.is_authenticated %}
           <li class="nav-item dropdown">
-            <a
+            <button
               class="nav-link dropdown-toggle"
-              href="#"
+              type="button"
               id="navbarDropdown"
-              role="button"
               data-bs-toggle="dropdown"
               aria-expanded="false"
+              aria-label="Open account menu"
             >
               <i class="fas fa-user me-1"></i>{{ user.username }}
               {% if user_score %}
               <span class="badge bg-primary ms-1">{{ user_score }} pts</span>
               {% endif %}
-            </a>
+            </button>
             <ul class="dropdown-menu">
               
               <li><hr class="dropdown-divider" /></li>
@@ -251,16 +249,11 @@ a.nav-link {
   </main>
 
     <!-- Footer -->
-    <footer class="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 mt-16">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-            <div class="text-center text-gray-600 dark:text-gray-400 font-medium">
-                <p>&copy; 2024 TechPhile.ai Coding. All rights reserved.</p>
-            </div>
-        </div>
-    </footer>
+    {% include 'includes/site_footer.html' %}
 
   <!-- Bootstrap JS Bundle with Popper (must be at bottom) -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="{% static 'js/profile-preferences.js' %}"></script>
 
   {% block extra_js %}
   <!-- Monaco (optional) -->

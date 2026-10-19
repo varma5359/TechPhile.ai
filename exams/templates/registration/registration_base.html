@@ -7,10 +7,10 @@
 <head>
     <meta charset="utf-8"/>
     <meta http-equiv="X-UA-Compatible" content="IE=edge"/>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">    <title>TechPhile.ai Mock Interviews</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">    <title>{% block title %}TechPhile.ai | Learning and Practice{% endblock %}</title>
     
     <!-- Favicon -->
-    <link rel="icon" href="{% static 'images/logo-nav.png' %}" type="image/x-icon">
+    <link rel="icon" href="{% static 'images/favicon.png' %}" type="image/png">
     
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -794,9 +794,10 @@ footer {
     }
 
     </style>
+    <link href="{% static 'css/design-system.css' %}" rel="stylesheet"/>
 </head>
 
-<body class="sub_page">
+<body class="sub_page registration-shell" data-theme="{{ request.profile_preferences.theme|default:'dark' }}">
 
     <!-- Loading Spinner -->
     <div id="loading-spinner">
@@ -809,16 +810,15 @@ footer {
         <header class="header_section">
             <div class="container">
                 <nav class="navbar navbar-expand-lg navbar-dark">
-                    <a class="navbar-brand" href="{% url 'home' %}">
-                        <img src="/static/images/logo-nav.png" alt="Logo" style="max-width: fit-content;">
-                        <span class="d-none d-lg-inline">Mock Interview</span>
+                    <a class="navbar-brand site-brand" href="{% url 'home' %}" aria-label="TechPhile.ai home">
+                        <img src="{% static 'images/logo-nav.png' %}" alt="TechPhile.ai">
                     </a>
-                    <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+                    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
                         <span class="navbar-toggler-icon"></span>
                     </button>
                     
                     <div class="collapse navbar-collapse" id="navbarSupportedContent">
-                        <ul class="navbar-nav ml-auto">
+        <ul class="navbar-nav ms-auto">
     <!-- Home -->
     <li class="nav-item">
         <a class="nav-link {% if request.path == '/' %}active{% endif %}" href="{% url 'home' %}">
@@ -835,19 +835,14 @@ footer {
 
                       <!-- Dropdown: Assessments -->
                       <li class="nav-item dropdown">
-                          <a class="nav-link dropdown-toggle" href="#" id="assessmentsDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                      <button class="nav-link dropdown-toggle border-0 bg-transparent {% if request.resolver_match.namespace == 'exams' %}active{% endif %}" type="button" id="assessmentsDropdown" data-bs-toggle="dropdown" aria-expanded="false">
                               <i class="fas fa-tasks mr-1"></i> Assessments
-                          </a>
+                          </button>
                           <div class="dropdown-menu dropdown-menu-custom" aria-labelledby="assessmentsDropdown">
                               <h6 class="dropdown-header">Exam Preparation</h6>
                               <a class="dropdown-item" href="{% url 'exams:exam_list' %}">
                                   <i class="fas fa-file-alt mr-2"></i> Mock Exams
                               </a>
-                              {% if features.mock_interviews %}
-                              <a class="dropdown-item" href="{% url 'exams:mock_interview_form' %}">
-                                  <i class="fas fa-comments mr-2"></i> Mock Interviews
-                              </a>
-                              {% endif %}
                               <div class="dropdown-divider"></div>
                               <h6 class="dropdown-header">Company Info</h6>
                               <a class="dropdown-item" href="{% url 'about' %}">
@@ -864,16 +859,16 @@ footer {
                       
                       <!-- Dropdown: User -->
                       <li class="nav-item dropdown">
-                          <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                          <button class="nav-link dropdown-toggle border-0 bg-transparent" type="button" id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Open account menu">
                               <i class="fas fa-user-circle mr-1"></i> User
-                          </a>
-                          <div class="dropdown-menu dropdown-menu-custom dropdown-menu-right" aria-labelledby="userDropdown">
+                          </button>
+                          <div class="dropdown-menu dropdown-menu-custom dropdown-menu-end" aria-labelledby="userDropdown">
                               {% if user.is_authenticated %}
-                                  <a class="dropdown-item" href="#">
+                                  <a class="dropdown-item" href="{% url 'exams:profile_settings' %}">
                                       <i class="fas fa-user mr-2"></i> Profile
                                   </a>
-                                  <a class="dropdown-item" href="#">
-                                      <i class="fas fa-tachometer-alt mr-2"></i> Dashboard
+                                  <a class="dropdown-item" href="{% url 'exams:student_dashboard' %}">
+                                      <i class="fas fa-tachometer-alt mr-2"></i> Exam Dashboard
                                   </a>
                                   <div class="dropdown-divider"></div>
                                   <a class="dropdown-item" href="{% url 'logout' %}">
@@ -908,11 +903,13 @@ footer {
     </div>
     {% endblock %}
 
+    {% include 'includes/site_footer.html' %}
+
 
 
 
     <!-- Back to Top Button -->
-    <a href="#" class="back-to-top"><i class="fas fa-arrow-up"></i></a>
+    <button type="button" class="back-to-top" aria-label="Back to top"><i class="fas fa-arrow-up" aria-hidden="true"></i></button>
 
     <!-- Scripts -->
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>

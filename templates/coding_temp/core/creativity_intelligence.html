@@ -23,7 +23,7 @@
                             <i class="fas fa-rocket me-2"></i>Explore Challenges
                         </a>
                         {% if not user.is_authenticated %}
-                        <a href="#" class="btn techphile-secondary-btn">
+                        <a href="{% url 'signup' %}" class="btn techphile-secondary-btn">
                             <i class="fas fa-user-plus me-2"></i>Join Free
                         </a>
                         {% endif %}
@@ -101,7 +101,7 @@
                         <i class="fas fa-robot techphile-empty-icon"></i>
                         <h3>Coming Soon!</h3>
                         <p>We're preparing exciting AI/ML content for you.</p>
-                        <a href="#" class="btn techphile-primary-btn">Notify Me</a>
+                        <p class="text-muted mb-0">More learning topics will appear here as they are published.</p>
                     </div>
                 </div>
                 {% endfor %}
@@ -210,8 +210,8 @@
                             </div>
                         </div>
                     </div>
-                    <a href="#" class="btn techphile-primary-btn mt-3">
-                        View Full Curriculum <i class="fas fa-arrow-right ms-2"></i>
+                    <a href="#topics" class="btn techphile-primary-btn mt-3">
+                        Explore AI topics <i class="fas fa-arrow-right ms-2"></i>
                     </a>
                 </div>
                <div class="col-lg-7 text-center">
@@ -232,7 +232,7 @@
                 <p class="techphile-cta-subtitle">Join our community of AI enthusiasts and professionals</p>
                 <div class="techphile-cta-buttons">
                     {% if not user.is_authenticated %}
-                    <a href="#" class="btn techphile-primary-btn">
+                    <a href="{% url 'signup' %}" class="btn techphile-primary-btn">
                         <i class="fas fa-user-plus me-2"></i>Sign Up Free
                     </a>
                     {% endif %}

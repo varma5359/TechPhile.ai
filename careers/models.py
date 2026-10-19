@@ -12,6 +12,11 @@ from django.urls import reverse
 from django.utils.text import slugify
 
 DAYS_PER_MILESTONE = 5
+MILESTONE_PASS_PERCENT = 75
+from .choices import (
+    CONTENT_EXPERIENCE_CHOICES, EXPERIENCE_GENERAL,
+    LEVEL_BEGINNER, LEVEL_EXPERIENCED, LEVEL_CHOICES,
+)
 
 
 def split_lines(text):
@@ -97,6 +102,11 @@ class LearningDay(models.Model):
     """One day of a role's ordered learning plan."""
 
     role = models.ForeignKey(CareerRole, on_delete=models.CASCADE, related_name='days')
+    level = models.CharField(max_length=20, choices=LEVEL_CHOICES, default=LEVEL_BEGINNER)
+    experience_band = models.CharField(
+        max_length=20, choices=CONTENT_EXPERIENCE_CHOICES, default=EXPERIENCE_GENERAL,
+        help_text='General content is used only when no exact-band content exists for this day.',
+    )
     day_number = models.PositiveIntegerField(validators=[MinValueValidator(1)])
     title = models.CharField(max_length=200)
     objectives = models.TextField(blank=True, help_text='Learning objectives, one per line.')
@@ -113,16 +123,22 @@ class LearningDay(models.Model):
     is_published = models.BooleanField(default=True)
 
     class Meta:
-        ordering = ['role', 'day_number']
+        ordering = ['role', 'level', 'experience_band', 'day_number']
         constraints = [
-            models.UniqueConstraint(fields=['role', 'day_number'], name='unique_day_per_role'),
+            models.UniqueConstraint(
+                fields=['role', 'level', 'experience_band', 'day_number'],
+                name='unique_day_role_path_experience_number',
+            ),
         ]
 
     def __str__(self):
-        return f'{self.role.title} - Day {self.day_number}: {self.title}'
+        return (f'{self.role.title} - {self.get_level_display()} '
+                f'({self.get_experience_band_display()}) Day {self.day_number}: {self.title}')
 
     def get_absolute_url(self):
-        return reverse('careers:day_detail', args=[self.role.slug, self.day_number])
+        if self.level == LEVEL_BEGINNER:
+            return reverse('careers:day_detail', args=[self.role.slug, self.day_number])
+        return reverse('careers:level_day_detail', args=[self.role.slug, self.level, self.day_number])
 
     @property
     def objective_list(self):
@@ -249,6 +265,8 @@ class DayProgress(models.Model):
     best_score = models.FloatField(null=True, blank=True)
     last_score = models.FloatField(null=True, blank=True)
     attempts_count = models.PositiveIntegerField(default=0)
+    notes_completed = models.BooleanField(default=False)
+    notes_completed_at = models.DateTimeField(null=True, blank=True)
     started_at = models.DateTimeField(auto_now_add=True)
     last_attempt_at = models.DateTimeField(null=True, blank=True)
 
@@ -265,6 +283,11 @@ class DayProgress(models.Model):
     def is_submitted(self):
         return self.status in self.SUBMITTED_STATUSES
 
+    @property
+    def is_completed(self):
+        """A day is complete when notes are marked complete and questions are submitted."""
+        return bool(self.notes_completed and self.is_submitted)
+
 
 class MilestoneExam(models.Model):
     """A five-day milestone assessment for a role.
@@ -274,6 +297,11 @@ class MilestoneExam(models.Model):
     """
 
     role = models.ForeignKey(CareerRole, on_delete=models.CASCADE, related_name='milestones')
+    level = models.CharField(max_length=20, choices=LEVEL_CHOICES, default=LEVEL_BEGINNER)
+    experience_band = models.CharField(
+        max_length=20, choices=CONTENT_EXPERIENCE_CHOICES, default=EXPERIENCE_GENERAL,
+        help_text='General milestone content is the fallback when no exact-band milestone exists.',
+    )
     number = models.PositiveIntegerField(validators=[MinValueValidator(1)])
     title = models.CharField(max_length=200, blank=True)
     start_day = models.PositiveIntegerField(validators=[MinValueValidator(1)])
@@ -285,13 +313,18 @@ class MilestoneExam(models.Model):
     is_published = models.BooleanField(default=False)
 
     class Meta:
-        ordering = ['role', 'number']
+        ordering = ['role', 'level', 'experience_band', 'number']
         constraints = [
-            models.UniqueConstraint(fields=['role', 'number'], name='unique_milestone_per_role'),
+            models.UniqueConstraint(
+                fields=['role', 'level', 'experience_band', 'number'],
+                name='unique_milestone_role_path_experience_number',
+            ),
         ]
 
     def __str__(self):
-        return f'{self.role.title} - Milestone {self.number} (days {self.start_day}-{self.end_day})'
+        return (f'{self.role.title} - {self.get_level_display()} '
+                f'({self.get_experience_band_display()}) Milestone {self.number} '
+                f'(days {self.start_day}-{self.end_day})')
 
     def clean(self):
         if self.start_day and self.end_day and self.end_day < self.start_day:
@@ -303,26 +336,73 @@ class MilestoneExam(models.Model):
         super().save(*args, **kwargs)
 
     def get_absolute_url(self):
-        return reverse('careers:milestone_detail', args=[self.role.slug, self.number])
+        if self.level == LEVEL_BEGINNER:
+            return reverse('careers:milestone_detail', args=[self.role.slug, self.number])
+        return reverse('careers:level_milestone_detail', args=[self.role.slug, self.level, self.number])
 
-    def covered_days(self):
-        return self.role.days.filter(
-            is_published=True, day_number__gte=self.start_day, day_number__lte=self.end_day)
+    @property
+    def pass_percent(self):
+        return MILESTONE_PASS_PERCENT
 
-    def get_questions(self):
+    def best_score_for_user(self, user):
+        scores = self.attempts.filter(user=user).values_list('score_percent', flat=True)
+        return max(scores) if scores else None
+
+    def is_passed_by_user(self, user):
+        best = self.best_score_for_user(user)
+        return best is not None and best >= MILESTONE_PASS_PERCENT
+
+    def covered_days(self, experience_band=None):
+        target = experience_band or self.experience_band
+        bands = [EXPERIENCE_GENERAL] if target == EXPERIENCE_GENERAL else [target, EXPERIENCE_GENERAL]
+        days = list(self.role.days.filter(
+            level=self.level, experience_band__in=bands, is_published=True,
+            day_number__gte=self.start_day, day_number__lte=self.end_day,
+        ).order_by('day_number'))
+        selected = {}
+        for day in sorted(days, key=lambda item: item.experience_band != target):
+            selected.setdefault(day.day_number, day)
+        return [selected[number] for number in sorted(selected)]
+
+    def get_questions(self, experience_band=None):
         """Explicitly assigned questions, else the published pool for the day range."""
+        target = experience_band or self.experience_band
+        bands = {EXPERIENCE_GENERAL} if target == EXPERIENCE_GENERAL else {target, EXPERIENCE_GENERAL}
+        assigned_query = self.assigned_questions.select_related(
+            'question__day', 'question__skill').prefetch_related('question__options')
         assigned = [
-            mq.question for mq in self.assigned_questions.select_related(
-                'question__day', 'question__skill').prefetch_related('question__options')
-            if mq.question.is_published
+            mq.question for mq in assigned_query
+            if mq.question.is_published and mq.question.day.is_published
+            and mq.question.day.role_id == self.role_id
+            and mq.question.day.level == self.level
+            and mq.question.day.experience_band in bands
+            and self.start_day <= mq.question.day.day_number <= self.end_day
         ]
         if assigned:
-            return assigned
+            return self._prefer_exact_questions_per_day(assigned, target)
         pool = ScenarioQuestion.objects.filter(
-            is_published=True, day__role=self.role, day__is_published=True,
+            is_published=True, day__role=self.role, day__level=self.level, day__is_published=True,
             day__day_number__gte=self.start_day, day__day_number__lte=self.end_day,
-        ).select_related('day', 'skill').prefetch_related('options')
-        return list(pool[:self.question_count])
+            day__experience_band__in=bands,
+        ).select_related('day', 'skill').prefetch_related('options').order_by('day__day_number', 'pk')
+        selected = self._prefer_exact_questions_per_day(list(pool), target)
+        return selected[:self.question_count]
+
+    @staticmethod
+    def _prefer_exact_questions_per_day(questions, target):
+        """Prefer exact-band questions per day, falling back for uncovered days."""
+        if target == EXPERIENCE_GENERAL:
+            return questions
+        grouped = {}
+        for question in questions:
+            grouped.setdefault(question.day.day_number, {'exact': [], 'general': []})[
+                'exact' if question.day.experience_band == target else 'general'
+            ].append(question)
+        result = []
+        for day_number in sorted(grouped):
+            bucket = grouped[day_number]
+            result.extend(bucket['exact'] or bucket['general'])
+        return result
 
 
 class MilestoneQuestion(models.Model):
@@ -339,8 +419,17 @@ class MilestoneQuestion(models.Model):
         ]
 
     def clean(self):
-        if self.milestone_id and self.question_id and self.question.day.role_id != self.milestone.role_id:
-            raise ValidationError('The question belongs to a different role.')
+        if self.milestone_id and self.question_id:
+            if self.question.day.role_id != self.milestone.role_id:
+                raise ValidationError('The question belongs to a different role.')
+            if self.question.day.level != self.milestone.level:
+                raise ValidationError('The question belongs to a different learning level.')
+            if not self.milestone.start_day <= self.question.day.day_number <= self.milestone.end_day:
+                raise ValidationError('The question is outside this milestone day range.')
+            if self.question.day.experience_band not in {
+                self.milestone.experience_band, EXPERIENCE_GENERAL,
+            }:
+                raise ValidationError('The question targets a different experience band.')
 
 
 class MilestoneAttempt(models.Model):

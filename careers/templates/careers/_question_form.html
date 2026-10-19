@@ -12,7 +12,8 @@
         {% for option in q.options.all %}
             <label class="cp-option">
                 <input type="radio" name="q_{{ q.pk }}" value="{{ option.pk }}"
-                       {% if q.selected_id == option.pk|stringformat:"s" %}checked{% endif %}>
+                       {% if q.selected_id == option.pk|stringformat:"s" %}checked{% endif %}
+                       {% if not notes_completed %}disabled{% endif %}>
                 <span>{{ option.text }}</span>
             </label>
         {% endfor %}

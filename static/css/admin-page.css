@@ -1,0 +1,38 @@
+.assign-interviewer-page { max-width: 1180px; margin: 0 auto; padding: clamp(1.25rem, 3vw, 2.5rem); color: var(--tp-ink); }
+.ai-page-heading { margin-bottom: 1.5rem; }
+.ai-back-link { display: inline-flex; align-items: center; gap: .5rem; margin-bottom: 1.2rem; font-weight: 600; text-decoration: none; }
+.ai-eyebrow { display: block; color: var(--tp-primary); font-size: .75rem; font-weight: 750; letter-spacing: .1em; text-transform: uppercase; }
+.ai-page-heading h1 { margin: .35rem 0 .5rem; font-size: clamp(1.8rem, 3vw, 2.4rem); }
+.ai-page-heading p, .ai-assignment-panel > p { margin: 0; color: var(--tp-muted); }
+.ai-assignment-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(320px, .9fr); gap: 1.25rem; align-items: start; }
+.ai-panel { min-width: 0; padding: clamp(1.2rem, 2.5vw, 1.8rem); border: 1px solid var(--tp-border); border-radius: var(--tp-radius-lg); background: var(--tp-surface); box-shadow: var(--tp-shadow-sm); }
+.ai-panel h2 { margin: 0 0 1rem; font-size: 1.15rem; }
+.ai-details-list { margin: 0; }
+.ai-details-list > div { display: grid; grid-template-columns: minmax(110px, .7fr) minmax(0, 1.3fr); gap: .8rem; padding: .75rem 0; border-bottom: 1px solid var(--tp-border); }
+.ai-details-list > div:last-child { border-bottom: 0; }
+.ai-details-list dt { color: var(--tp-muted); font-size: .88rem; font-weight: 600; }
+.ai-details-list dd { min-width: 0; margin: 0; overflow-wrap: anywhere; color: var(--tp-ink); }
+.ai-skills { margin-top: 1.15rem; }
+.ai-skills h3 { margin: 0 0 .6rem; font-size: .92rem; }
+.ai-skills span { display: inline-flex; margin: 0 .35rem .4rem 0; padding: .32rem .7rem; border-radius: 999px; color: var(--tp-primary); background: var(--tp-primary-soft); font-size: .8rem; font-weight: 600; }
+.ai-skills p { margin: 0; color: var(--tp-muted); font-size: .9rem; }
+.ai-assignment-panel > p { margin: -.45rem 0 1.4rem; font-size: .9rem; }
+.ai-form-field label { display: block; margin-bottom: .45rem; color: var(--tp-ink-soft); font-weight: 650; }
+.ai-form-field select { display: block; width: 100%; min-height: 46px; padding: .65rem .8rem; border: 1px solid var(--tp-border-strong); border-radius: var(--tp-radius-sm); color: var(--tp-ink); background-color: var(--tp-surface); }
+.ai-form-field select:focus { border-color: var(--tp-primary); outline: 0; box-shadow: var(--tp-shadow-focus); }
+.ai-field-error { margin-top: .4rem; color: var(--tp-danger); font-size: .85rem; }
+.ai-empty-state { display: flex; gap: .6rem; margin-top: .8rem; padding: .8rem; border-radius: var(--tp-radius-sm); color: var(--tp-warning); background: var(--tp-warning-soft); font-size: .85rem; }
+.ai-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: .65rem; margin-top: 1.6rem; padding-top: 1.1rem; border-top: 1px solid var(--tp-border); }
+.ai-button { display: inline-flex; min-height: 42px; align-items: center; justify-content: center; gap: .5rem; padding: .6rem 1rem; border: 1px solid transparent; border-radius: var(--tp-radius-sm); font: inherit; font-size: .9rem; font-weight: 650; text-decoration: none; cursor: pointer; }
+.ai-button.primary { color: #102033; background: var(--tp-primary); }
+.ai-button.primary:hover { color: #102033; background: var(--tp-primary-hover); }
+.ai-button.secondary { color: var(--tp-ink-soft); background: var(--tp-surface); border-color: var(--tp-border-strong); }
+.ai-button.secondary:hover { color: var(--tp-ink); background: var(--tp-surface-muted); }
+@media (max-width: 760px) {
+    .assign-interviewer-page { padding: 1rem; }
+    .ai-assignment-grid { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 420px) {
+    .ai-actions { display: grid; grid-template-columns: minmax(0, 1fr); }
+    .ai-button { width: 100%; }
+}

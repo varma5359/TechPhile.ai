@@ -28,31 +28,69 @@ class UserAnswerForm(forms.ModelForm):
 
 from django import forms
 from .models import Profile
+from careers.models import CareerRole
 
-class ProfilePhotoForm(forms.ModelForm):
+
+class CareerLearningPreferencesForm(forms.ModelForm):
+    """Validated learner choices, kept separate from account/profile basics."""
+
     class Meta:
         model = Profile
-        fields = ['photo']
+        fields = ['career_role', 'experience_band', 'learning_path']
         widgets = {
-            'photo': forms.FileInput(attrs={'class': 'form-control'})
+            'career_role': forms.Select(attrs={'class': 'form-select'}),
+            'experience_band': forms.Select(attrs={'class': 'form-select'}),
+            'learning_path': forms.Select(attrs={'class': 'form-select'}),
         }
 
-
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['career_role'].queryset = CareerRole.objects.filter(is_published=True)
+        self.fields['career_role'].required = False
+        self.fields['experience_band'].required = False
+        self.fields['learning_path'].required = False
 
 from django import forms
 from django.contrib.auth.forms import PasswordChangeForm
+import re
 from .models import Profile
+
+
+MAX_PROFILE_PHOTO_BYTES = 2 * 1024 * 1024
+
+
+class ProfilePhotoField(forms.ImageField):
+    """Accept only actual JPEG/PNG images within the settings page limit."""
+
+    def to_python(self, data):
+        if data and getattr(data, 'size', 0) > MAX_PROFILE_PHOTO_BYTES:
+            raise forms.ValidationError('Profile photos must be 2 MB or smaller.')
+        image = super().to_python(data)
+        if image:
+            image_format = getattr(getattr(image, 'image', None), 'format', None)
+            if image_format not in {'JPEG', 'PNG'}:
+                raise forms.ValidationError('Upload a valid JPG or PNG image.')
+        return image
 
 class ProfileUpdateForm(forms.ModelForm):
     first_name = forms.CharField(max_length=30, required=False)
     last_name = forms.CharField(max_length=30, required=False)
+    photo = ProfilePhotoField(
+        required=False,
+        widget=forms.FileInput(attrs={
+            'accept': '.jpg,.jpeg,.png,image/jpeg,image/png',
+            'class': 'form-control',
+        }),
+    )
     
     class Meta:
         model = Profile
         fields = ['photo', 'phone', 'first_name', 'last_name']
         widgets = {
-            'photo': forms.FileInput(attrs={'accept': 'image/*'}),
-            'phone': forms.TextInput(attrs={'placeholder': '+91XXXXXXXXXX'})
+            'phone': forms.TextInput(attrs={
+                'placeholder': '+91XXXXXXXXXX', 'class': 'form-control',
+                'autocomplete': 'tel',
+            }),
         }
     
     def __init__(self, *args, **kwargs):
@@ -60,6 +98,17 @@ class ProfileUpdateForm(forms.ModelForm):
         if self.instance.user:
             self.fields['first_name'].initial = self.instance.user.first_name
             self.fields['last_name'].initial = self.instance.user.last_name
+
+    def clean_phone(self):
+        phone = (self.cleaned_data.get('phone') or '').strip()
+        if not phone:
+            return ''
+        if not re.fullmatch(r'\+?[0-9().\s-]+', phone):
+            raise forms.ValidationError('Use digits and standard phone separators only.')
+        digit_count = sum(character.isdigit() for character in phone)
+        if not 7 <= digit_count <= 15:
+            raise forms.ValidationError('Enter a phone number with 7 to 15 digits.')
+        return phone
     
     def save(self, commit=True):
         profile = super().save(commit=False)
@@ -70,6 +119,15 @@ class ProfileUpdateForm(forms.ModelForm):
             user.last_name = self.cleaned_data['last_name']
             user.save()
         return profile
+
+
+class ProfilePhotoForm(forms.ModelForm):
+    photo = ProfilePhotoField(required=False)
+
+    class Meta:
+        model = Profile
+        fields = ['photo']
+        widgets = {'photo': forms.FileInput(attrs={'class': 'form-control'})}
 
 class CustomPasswordChangeForm(PasswordChangeForm):
     old_password = forms.CharField(
@@ -99,22 +157,43 @@ class NotificationSettingsForm(forms.ModelForm):
             'important_alerts'
         ]
         widgets = {
-            'exam_notifications': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
-            'interview_notifications': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
-            'promotional_emails': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
-            'push_reminders': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
-            'important_alerts': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'exam_notifications': forms.CheckboxInput(attrs={'class': 'form-check-input me-2'}),
+            'interview_notifications': forms.CheckboxInput(attrs={'class': 'form-check-input me-2'}),
+            'promotional_emails': forms.CheckboxInput(attrs={'class': 'form-check-input me-2'}),
+            'push_reminders': forms.CheckboxInput(attrs={'class': 'form-check-input me-2'}),
+            'important_alerts': forms.CheckboxInput(attrs={'class': 'form-check-input me-2'}),
         }
 
 from django import forms
 from .models import Profile
 
 class PreferencesForm(forms.ModelForm):
+    THEME_CHOICES = (
+        ('light', 'Light'),
+        ('dark', 'Dark'),
+        ('system', 'System Default'),
+        ('ocean', 'Ocean'),
+        ('aurora', 'Aurora'),
+        ('sunset', 'Sunset'),
+        ('forest', 'Forest'),
+        ('sky', 'Sky'),
+        ('midnight', 'Midnight'),
+        ('rose', 'Rose'),
+        ('lavender', 'Lavender'),
+        ('mint', 'Mint'),
+        ('slate', 'Slate'),
+        ('sand', 'Sand'),
+        ('plum', 'Plum'),
+    )
+    theme = forms.ChoiceField(
+        choices=THEME_CHOICES,
+        widget=forms.RadioSelect(attrs={'class': 'form-check-input'}),
+    )
+
     class Meta:
         model = Profile
         fields = ['theme', 'language', 'dashboard_view', 'timezone']
         widgets = {
-            'theme': forms.RadioSelect(attrs={'class': 'form-check-input'}),
             'language': forms.Select(attrs={'class': 'form-select'}),
             'dashboard_view': forms.Select(attrs={'class': 'form-select'}),
             'timezone': forms.Select(attrs={'class': 'form-select'}),

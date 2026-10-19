@@ -1,22 +1,36 @@
 {% extends 'base.html' %}
 
 {% block contents %}
-<div class="container cp-page">
+<div class="container cp-page cp-role-detail-page">
     <div class="main-content">
         {% include 'careers/_shared.html' %}
-        <div class="cp-breadcrumb"><a href="{% url 'careers:role_list' %}">Career Preparation</a> / {{ role.title }}</div>
-        <h1>{{ role.title }}</h1>
-        <p>{{ role.summary|linebreaksbr }}</p>
+        <header class="cp-path-head">
+            <div class="cp-breadcrumb"><a href="{% url 'careers:role_list' %}">Career Preparation</a> <span aria-hidden="true">/</span> {{ role.title }}</div>
+            <span class="cp-badge in_progress mb-2">{{ level_label }} learning path</span>
+            <h1>{{ role.title }}</h1>
+            <p class="cp-muted">A focused {{ role.duration_days }}-day plan for {{ experience_label|lower }} learners. Build confidence through practical study, scenario questions, and milestone check-ins.</p>
+            {% if experience_band %}
+                <p class="cp-muted small mb-3">Lessons are tailored to your experience where available, with general material filling any gaps.</p>
+            {% else %}
+                <p class="cp-muted small mb-3">Set your experience range in learning preferences to tailor lessons where role-specific content is available.</p>
+            {% endif %}
+            <div class="cp-chips cp-path-selector">
+            <a class="cp-btn {% if level == 'beginner' %}{% else %}outline{% endif %}" href="{% url 'careers:level_role_detail' role.slug 'beginner' %}">Fresher</a>
+            <a class="cp-btn {% if level == 'experienced' %}{% else %}outline{% endif %}" href="{% url 'careers:level_role_detail' role.slug 'experienced' %}">Experienced</a>
+            <a class="cp-btn outline" href="{% url 'exams:profile_settings' %}?tab=career">Edit learning preferences</a>
+            </div>
+        </header>
+        <p class="cp-role-detail-summary">{{ role.summary|linebreaksbr }}</p>
 
         <div class="cp-stats">
-            <div class="cp-stat"><span class="cp-muted">Planned duration</span><strong>{{ role.duration_days }} days</strong></div>
-            <div class="cp-stat"><span class="cp-muted">Days submitted</span><strong>{{ summary.submitted_days }} / {{ summary.total_days }}</strong></div>
+            <div class="cp-stat"><span class="cp-muted"><i class="fas fa-calendar-alt mr-1" aria-hidden="true"></i>Planned duration</span><strong>{{ role.duration_days }} days</strong></div>
+            <div class="cp-stat"><span class="cp-muted"><i class="fas fa-check-circle mr-1" aria-hidden="true"></i>Days submitted</span><strong>{{ summary.submitted_days }} / {{ summary.total_days }}</strong></div>
             <div class="cp-stat">
-                <span class="cp-muted">Average score</span>
+                <span class="cp-muted"><i class="fas fa-chart-line mr-1" aria-hidden="true"></i>Average score</span>
                 <strong>{% if summary.average_score is not None %}{{ summary.average_score }}%{% else %}&ndash;{% endif %}</strong>
             </div>
             <div class="cp-stat">
-                <span class="cp-muted">Current level</span>
+                <span class="cp-muted"><i class="fas fa-signal mr-1" aria-hidden="true"></i>Current level</span>
                 <strong style="font-size:1.05rem">{% if summary.readiness %}{{ summary.readiness }}{% else %}Not assessed yet{% endif %}</strong>
             </div>
         </div>
@@ -27,17 +41,17 @@
             {% if summary.average_score is not None %}Level is based on your average best score across submitted days.{% endif %}
         </p>
 
-        <div class="cp-panel">
+        <div class="cp-panel cp-next-step">
             <h2>Your next step</h2>
             {% if recommendation.milestone_due %}
                 <p>You have finished a full five-day block. Take
                     <strong>{{ recommendation.milestone_due.milestone.title }}</strong>
                     (days {{ recommendation.milestone_due.milestone.start_day }}-{{ recommendation.milestone_due.milestone.end_day }}).</p>
-                <a class="cp-btn" href="{{ recommendation.milestone_due.milestone.get_absolute_url }}">Start milestone exam</a>
+                <a class="cp-btn" href="{% url 'careers:level_milestone_detail' role.slug level recommendation.milestone_due.milestone.number %}">Start milestone exam</a>
             {% elif recommendation.next_day %}
                 <p>{% if summary.submitted_days %}Continue with{% else %}Begin with{% endif %}
                     <strong>Day {{ recommendation.next_day.day_number }}: {{ recommendation.next_day.title }}</strong>.</p>
-                <a class="cp-btn" href="{{ recommendation.next_day.get_absolute_url }}">
+                <a class="cp-btn" href="{% url 'careers:level_day_detail' role.slug level recommendation.next_day.day_number %}">
                     {% if summary.submitted_days %}Continue preparation{% else %}Begin preparation{% endif %}
                 </a>
             {% elif summary.total_days %}
@@ -49,7 +63,7 @@
                 <p class="mt-3 mb-1"><strong>Revision recommended:</strong></p>
                 <ul class="cp-list">
                     {% for day in recommendation.revision_days %}
-                        <li><a href="{{ day.get_absolute_url }}">Day {{ day.day_number }}: {{ day.title }}</a></li>
+                        <li><a href="{% url 'careers:level_day_detail' role.slug level day.day_number %}">Day {{ day.day_number }}: {{ day.title }}</a></li>
                     {% endfor %}
                 </ul>
             {% endif %}
@@ -111,7 +125,7 @@
                     {% else %}
                         <span class="cp-badge {{ row.status }}">{{ row.status_label }}</span>
                         {% if row.has_questions %}
-                            <a class="cp-btn outline" href="{{ row.day.get_absolute_url }}">
+                            <a class="cp-btn outline" href="{% url 'careers:level_day_detail' role.slug level row.day.day_number %}">
                                 {% if row.progress and row.progress.is_submitted %}Review / retake{% else %}Open{% endif %}
                             </a>
                         {% else %}
@@ -122,12 +136,16 @@
                 {% for item in row.milestones %}
                         <div class="cp-milestone-row">
                             <strong><i class="fas fa-flag-checkered"></i> {{ item.milestone.title }}</strong>
-                            <span class="cp-muted small">(days {{ item.milestone.start_day }}-{{ item.milestone.end_day }}, separate from regular mock exams)</span>
+                            <span class="cp-muted small">(days {{ item.milestone.start_day }}-{{ item.milestone.end_day }}, pass mark {{ item.pass_percent }}%)</span>
                             {% if item.done %}
-                                <span class="cp-badge completed">Best {{ item.best_score|floatformat:0 }}%</span>
+                                {% if item.passed %}
+                                    <span class="cp-badge completed">Passed &middot; Best {{ item.best_score|floatformat:0 }}%</span>
+                                {% else %}
+                                    <span class="cp-badge revision_recommended">Best {{ item.best_score|floatformat:0 }}% ({{ item.pass_percent }}% required)</span>
+                                {% endif %}
                             {% endif %}
                             {% if item.available %}
-                                <a class="cp-btn outline ml-2" href="{{ item.milestone.get_absolute_url }}">
+                                <a class="cp-btn outline ml-2" href="{% url 'careers:level_milestone_detail' role.slug level item.milestone.number %}">
                                     {% if item.done %}Retake{% else %}Start{% endif %}
                                 </a>
                             {% else %}

@@ -38,6 +38,9 @@ urlpatterns = [
     path('settings/profile/update/', 
          login_required(views.update_profile), 
          name='update_profile'),
+    path('settings/profile/career-preferences/',
+         login_required(views.update_career_preferences),
+         name='update_career_preferences'),
     
     path('settings/security/change-password/', 
          login_required(views.change_password), 
@@ -51,7 +54,7 @@ urlpatterns = [
          login_required(views.update_preferences), 
          name='update_preferences'),
     
-    path('settings/sessions/<uuid:session_id>/terminate/', 
+    path('settings/sessions/<str:session_id>/terminate/',
          login_required(views.terminate_session), 
          name='terminate_session'),
 

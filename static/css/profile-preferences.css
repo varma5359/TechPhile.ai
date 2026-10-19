@@ -1,0 +1,327 @@
+/* Theme tokens shared by the site layouts and both learner dashboards. */
+html[data-active-theme="light"] {
+    color-scheme: light;
+    --prefs-bg: #f1f4fa;
+    --prefs-surface: #ffffff;
+    --prefs-field: #ffffff;
+    --prefs-ink: #192b49;
+    --prefs-muted: #66758d;
+    --prefs-line: #e5ebf4;
+    --prefs-accent: #4361ee;
+    --prefs-hero: linear-gradient(135deg, #28377a, #1a183f);
+}
+
+html[data-active-theme="dark"] {
+    color-scheme: dark;
+    --prefs-bg: #141d29;
+    --prefs-surface: #202b39;
+    --prefs-field: #1a2633;
+    --prefs-ink: #e9f0f8;
+    --prefs-muted: #9baabd;
+    --prefs-line: #354657;
+    --prefs-accent: #65a9ff;
+    --prefs-hero: linear-gradient(135deg, #1a2634, #202b39);
+}
+
+html[data-active-theme="ocean"] {
+    color-scheme: dark;
+    --prefs-bg: #071c2b;
+    --prefs-surface: #0f2d40;
+    --prefs-field: #0b2435;
+    --prefs-ink: #e0f7fb;
+    --prefs-muted: #96bbc6;
+    --prefs-line: #285064;
+    --prefs-accent: #39c8d2;
+    --prefs-hero: linear-gradient(135deg, #06334a, #071c2b);
+}
+
+html[data-active-theme="aurora"] {
+    color-scheme: dark;
+    --prefs-bg: #171329;
+    --prefs-surface: #27213e;
+    --prefs-field: #1e1933;
+    --prefs-ink: #f0eaff;
+    --prefs-muted: #bdb3d5;
+    --prefs-line: #494064;
+    --prefs-accent: #c4a5ff;
+    --prefs-hero: linear-gradient(135deg, #332255, #171329);
+}
+
+html[data-active-theme="sunset"] {
+    color-scheme: light;
+    --prefs-bg: #fff6ee;
+    --prefs-surface: #fffaf5;
+    --prefs-field: #ffffff;
+    --prefs-ink: #3b2932;
+    --prefs-muted: #846b70;
+    --prefs-line: #efd8ce;
+    --prefs-accent: #df684a;
+    --prefs-hero: linear-gradient(135deg, #8f5260, #47344f);
+}
+
+html[data-active-theme="forest"] {
+    color-scheme: dark;
+    --prefs-bg: #101f1a;
+    --prefs-surface: #1d3329;
+    --prefs-field: #14261d;
+    --prefs-ink: #e7f4e9;
+    --prefs-muted: #aac4b0;
+    --prefs-line: #395545;
+    --prefs-accent: #8bd3a0;
+    --prefs-hero: linear-gradient(135deg, #234d3b, #101f1a);
+}
+
+html[data-active-theme="sky"] {
+    color-scheme: light;
+    --prefs-bg: #eff8ff;
+    --prefs-surface: #ffffff;
+    --prefs-field: #ffffff;
+    --prefs-ink: #18334c;
+    --prefs-muted: #5c7489;
+    --prefs-line: #d8e8f5;
+    --prefs-accent: #2584d8;
+    --prefs-hero: linear-gradient(135deg, #1c558a, #122e56);
+}
+
+html[data-active-theme="midnight"] {
+    color-scheme: dark;
+    --prefs-bg: #0e1024;
+    --prefs-surface: #1a1d3a;
+    --prefs-field: #13162d;
+    --prefs-ink: #ecedff;
+    --prefs-muted: #a8add0;
+    --prefs-line: #363b68;
+    --prefs-accent: #9a8cff;
+    --prefs-hero: linear-gradient(135deg, #302c69, #101128);
+}
+
+html[data-active-theme="rose"] {
+    color-scheme: light;
+    --prefs-bg: #fff3f5;
+    --prefs-surface: #fffafb;
+    --prefs-field: #ffffff;
+    --prefs-ink: #452b37;
+    --prefs-muted: #886b78;
+    --prefs-line: #f0dce3;
+    --prefs-accent: #c64f74;
+    --prefs-hero: linear-gradient(135deg, #8e3555, #392a51);
+}
+
+html[data-active-theme="lavender"] {
+    color-scheme: light;
+    --prefs-bg: #f6f2ff;
+    --prefs-surface: #ffffff;
+    --prefs-field: #ffffff;
+    --prefs-ink: #322b48;
+    --prefs-muted: #786e92;
+    --prefs-line: #e5dbf5;
+    --prefs-accent: #8058cf;
+    --prefs-hero: linear-gradient(135deg, #5f4d9d, #312d62);
+}
+
+html[data-active-theme="mint"] {
+    color-scheme: light;
+    --prefs-bg: #effaf5;
+    --prefs-surface: #fbfffc;
+    --prefs-field: #ffffff;
+    --prefs-ink: #203c33;
+    --prefs-muted: #627e72;
+    --prefs-line: #d8eee3;
+    --prefs-accent: #25895f;
+    --prefs-hero: linear-gradient(135deg, #287b64, #164d50);
+}
+
+html[data-active-theme="slate"] {
+    color-scheme: dark;
+    --prefs-bg: #141b24;
+    --prefs-surface: #202c38;
+    --prefs-field: #19232d;
+    --prefs-ink: #edf3f8;
+    --prefs-muted: #aab8c4;
+    --prefs-line: #3b4b5a;
+    --prefs-accent: #63b3d9;
+    --prefs-hero: linear-gradient(135deg, #283d52, #121b29);
+}
+
+html[data-active-theme="sand"] {
+    color-scheme: light;
+    --prefs-bg: #fbf5e9;
+    --prefs-surface: #fffdf8;
+    --prefs-field: #ffffff;
+    --prefs-ink: #413729;
+    --prefs-muted: #827763;
+    --prefs-line: #ece1ca;
+    --prefs-accent: #a87537;
+    --prefs-hero: linear-gradient(135deg, #7a5843, #46394e);
+}
+
+html[data-active-theme="plum"] {
+    color-scheme: dark;
+    --prefs-bg: #1d1325;
+    --prefs-surface: #302039;
+    --prefs-field: #26182e;
+    --prefs-ink: #f4e9f7;
+    --prefs-muted: #c2abc9;
+    --prefs-line: #523f5b;
+    --prefs-accent: #e59ad2;
+    --prefs-hero: linear-gradient(135deg, #552c60, #21142c);
+}
+
+html[data-active-theme] body {
+    color: var(--prefs-ink);
+    background-color: var(--prefs-bg) !important;
+    transition: color .2s ease, background-color .2s ease;
+}
+
+html[data-active-theme] .hero_area {
+    background: var(--prefs-bg) !important;
+    animation: none !important;
+}
+
+html[data-active-theme] .learner-dashboard {
+    --ld-ink: var(--prefs-ink);
+    --ld-muted: var(--prefs-muted);
+    --ld-line: var(--prefs-line);
+    --ld-blue: var(--prefs-accent);
+    --ld-canvas: var(--prefs-bg);
+    color: var(--prefs-ink);
+    border: 0;
+    background: transparent;
+    transition: color .2s ease, background-color .2s ease, border-color .2s ease;
+}
+
+html[data-active-theme] .learner-dashboard .ld-stat,
+html[data-active-theme] .learner-dashboard .ld-panel {
+    border-color: var(--prefs-line);
+    background: var(--prefs-surface);
+    color: var(--prefs-ink);
+}
+
+html[data-active-theme] .learner-dashboard .ld-table td,
+html[data-active-theme] .learner-dashboard .ld-table th {
+    border-color: var(--prefs-line);
+    color: var(--prefs-muted);
+}
+
+html[data-active-theme] .learner-dashboard .ld-chart-legend li,
+html[data-active-theme] .learner-dashboard .ld-roadmap-item,
+html[data-active-theme] .learner-dashboard .ld-status {
+    border-color: var(--prefs-line);
+    background: var(--prefs-bg);
+    color: var(--prefs-ink);
+}
+
+html[data-active-theme] .learner-dashboard .ld-track,
+html[data-active-theme] .learner-dashboard .ld-progress-bar {
+    background: var(--prefs-line);
+}
+
+html[data-active-theme] .learner-dashboard .ld-score-chart-bar {
+    fill: var(--prefs-accent);
+}
+
+html[data-active-theme] .learner-dashboard .ld-page-head h1,
+html[data-active-theme] .learner-dashboard .ld-panel h2,
+html[data-active-theme] .learner-dashboard .ld-stat-value,
+html[data-active-theme] .learner-dashboard .ld-table-title,
+html[data-active-theme] .learner-dashboard .ld-roadmap-item strong,
+html[data-active-theme] .learner-dashboard .ld-status strong {
+    color: var(--prefs-ink);
+}
+
+html[data-active-theme] .main-content .profile-settings-page .card,
+html[data-active-theme] .main-content .profile-settings-page .card-header,
+html[data-active-theme] .main-content .profile-settings-page .card-body {
+    border-color: var(--prefs-line);
+    color: var(--prefs-ink);
+    background: var(--prefs-surface) !important;
+    transition: color .2s ease, background-color .2s ease, border-color .2s ease;
+}
+
+html[data-active-theme] .main-content .profile-settings-page .form-control,
+html[data-active-theme] .main-content .profile-settings-page .form-select {
+    border-color: var(--prefs-line);
+    color: var(--prefs-ink);
+    background-color: var(--prefs-field);
+}
+
+html[data-active-theme] .main-content .profile-settings-page .form-control::placeholder,
+html[data-active-theme] .main-content .profile-settings-page .text-muted,
+html[data-active-theme] .main-content .profile-settings-page .form-text {
+    color: var(--prefs-muted) !important;
+}
+
+html[data-active-theme] .main-content .profile-settings-page .theme-choice {
+    border-color: var(--prefs-line);
+    color: var(--prefs-ink);
+    background: var(--prefs-field);
+}
+
+html[data-active-theme] .main-content .profile-settings-page .theme-choice.is-selected {
+    border-color: var(--prefs-accent);
+    background: color-mix(in srgb, var(--prefs-accent) 12%, var(--prefs-field));
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--prefs-accent) 20%, transparent);
+}
+
+html[data-active-theme] .main-content .profile-settings-page .theme-choice-description {
+    color: var(--prefs-muted) !important;
+}
+
+html[data-active-theme] main,
+html[data-active-theme] .main-content {
+    color: var(--prefs-ink);
+}
+
+html[data-active-theme] main .card,
+html[data-active-theme] main .card-header,
+html[data-active-theme] main .card-body,
+html[data-active-theme] .main-content .card,
+html[data-active-theme] .main-content .card-header,
+html[data-active-theme] .main-content .card-body {
+    border-color: var(--prefs-line);
+    color: var(--prefs-ink);
+    background-color: var(--prefs-surface) !important;
+}
+
+html[data-active-theme] main .form-control,
+html[data-active-theme] main .form-select,
+html[data-active-theme] main textarea,
+html[data-active-theme] .main-content .form-control,
+html[data-active-theme] .main-content .form-select,
+html[data-active-theme] .main-content textarea {
+    border-color: var(--prefs-line);
+    color: var(--prefs-ink);
+    background-color: var(--prefs-field);
+}
+
+html[data-active-theme] main .text-muted,
+html[data-active-theme] .main-content .text-muted {
+    color: var(--prefs-muted) !important;
+}
+
+/* Compact and detailed density preferences apply to both learner dashboards. */
+.learner-dashboard[data-dashboard-view="compact"] .ld-dashboard-grid,
+.learner-dashboard[data-dashboard-view="compact"] .ld-content-grid {
+    gap: .5rem;
+    margin-bottom: .5rem;
+}
+
+.learner-dashboard[data-dashboard-view="compact"] .ld-feature,
+.learner-dashboard[data-dashboard-view="compact"] .ld-stat,
+.learner-dashboard[data-dashboard-view="compact"] .ld-panel {
+    padding: .7rem;
+}
+
+.learner-dashboard[data-dashboard-view="compact"] .ld-feature { min-height: 125px; }
+.learner-dashboard[data-dashboard-view="compact"] .ld-stat { min-height: 108px; }
+.learner-dashboard[data-dashboard-view="compact"] .ld-roadmap-item:nth-child(n+4) { display: none; }
+
+.learner-dashboard[data-dashboard-view="detailed"] .ld-roadmap {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+@media (max-width: 680px) {
+    .learner-dashboard[data-dashboard-view="detailed"] .ld-roadmap {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}

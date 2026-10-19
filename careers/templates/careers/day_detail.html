@@ -2,12 +2,12 @@
 {% load careers_extras %}
 
 {% block contents %}
-<div class="container cp-page">
+<div class="container cp-page cp-day-page">
     <div class="main-content">
         {% include 'careers/_shared.html' %}
         <div class="cp-breadcrumb">
             <a href="{% url 'careers:role_list' %}">Career Preparation</a> /
-            <a href="{{ role.get_absolute_url }}">{{ role.title }}</a> / Day {{ day.day_number }}
+            <a href="{% url 'careers:level_role_detail' role.slug level %}">{{ role.title }}</a> / {{ level|title }} path / Day {{ day.day_number }}
         </div>
 
         {% if lesson %}
@@ -17,12 +17,12 @@
                     <span class="lx-label">{{ role.title }} &middot; Day {{ day.day_number }}</span>
                     <h1>{{ day.title }}</h1>
                     <div class="lx-meta">
-                        {% if lesson.level %}<span>{{ lesson.level }}</span>{% endif %}
-                        {% if lesson.minutes %}<span>About {{ lesson.minutes }} min</span>{% endif %}
+                        {% if day.difficulty_level %}<span>{{ day.difficulty_level }}</span>{% endif %}
+                        {% if day.estimated_minutes %}<span>About {{ day.estimated_minutes }} min</span>{% endif %}
                         {% if questions %}<span>{{ questions|length }} practice question{{ questions|length|pluralize }}</span>{% endif %}
                         {% if progress %}<span>{{ progress.get_status_display }}</span>{% endif %}
                     </div>
-                    {% if lesson.intro %}<p class="lx-intro">{{ lesson.intro|inline }}</p>{% endif %}
+                    {% if day.lesson_intro %}<p class="lx-intro">{{ day.lesson_intro|inline }}</p>{% endif %}
                     <div class="lx-progress">
                         <span>Path progress: {{ role_summary.submitted_days }} of {{ role_summary.total_days }} days submitted</span>
                         <div class="cp-bar" role="progressbar" aria-valuenow="{{ role_summary.percent }}" aria-valuemin="0" aria-valuemax="100"><span style="width: {{ role_summary.percent }}%"></span></div>
@@ -30,6 +30,33 @@
                 </header>
 
                 {% include 'careers/_lesson.html' %}
+
+                <div class="cp-panel my-4 p-4" style="border: 2px solid {% if notes_completed %}#22c55e{% else %}#3b82f6{% endif %}; border-radius: 8px;">
+                    {% if notes_completed %}
+                        <div class="d-flex justify-content-between align-items-center flex-wrap">
+                            <div>
+                                <h3 class="h5 text-success mb-1" style="font-weight: 600;">&#10004; Lesson Notes Completed</h3>
+                                <p class="mb-0 cp-muted">You have completed reading the notes for Day {{ day.day_number }}. Questions are unlocked below.</p>
+                            </div>
+                            {% if progress.notes_completed_at %}
+                                <span class="cp-badge completed">{{ progress.notes_completed_at|date:"j M Y, H:i" }}</span>
+                            {% endif %}
+                        </div>
+                    {% else %}
+                        <div class="d-flex justify-content-between align-items-center flex-wrap">
+                            <div class="mb-2 mb-md-0">
+                                <h3 class="h5 text-primary mb-1" style="font-weight: 600;">Finished reading today's notes?</h3>
+                                <p class="mb-0 cp-muted">Mark notes complete to unlock the daily practice questions.</p>
+                            </div>
+                            <form method="post" action="{% url 'careers:level_complete_notes' role.slug level day.day_number %}">
+                                {% csrf_token %}
+                                <button type="submit" class="cp-btn" id="mark-notes-complete-btn" style="background-color: #2563eb; color: #fff; font-weight: 600;">
+                                    &#10004; Mark Notes Complete
+                                </button>
+                            </form>
+                        </div>
+                    {% endif %}
+                </div>
 
                 <div class="lx-qhead">
                     <h2 id="questions">Check your understanding</h2>
@@ -57,13 +84,21 @@
                                 {% for option in q.options.all %}
                                     <label class="lx-option">
                                         <input type="radio" name="q_{{ q.pk }}" value="{{ option.pk }}"
-                                               {% if q.selected_id == option.pk|stringformat:"s" %}checked{% endif %}>
+                                               {% if q.selected_id == option.pk|stringformat:"s" %}checked{% endif %}
+                                               {% if not notes_completed %}disabled{% endif %}>
                                         <span>{{ option.text }}</span>
                                     </label>
                                 {% endfor %}
                             </fieldset>
                         {% endfor %}
-                        <button type="submit" class="cp-btn">Submit answers</button>
+                        {% if notes_completed %}
+                            <button type="submit" class="cp-btn">Submit answers</button>
+                        {% else %}
+                            <div class="cp-panel cp-locked-note text-center p-3 my-2">
+                                <p class="mb-0 text-muted">&#128274; Read the lesson notes above and click <strong>Mark Notes Complete</strong> to unlock submission.</p>
+                            </div>
+                            <button type="submit" class="cp-btn" disabled style="opacity: 0.6; cursor: not-allowed;">Submit answers (Notes incomplete)</button>
+                        {% endif %}
                     </form>
                 {% else %}
                     <div class="cp-panel">Questions for this day have not been added yet.</div>
@@ -98,6 +133,33 @@
                 </div>
             {% endif %}
 
+            <div class="cp-panel my-4 p-4" style="border: 2px solid {% if notes_completed %}#22c55e{% else %}#3b82f6{% endif %}; border-radius: 8px;">
+                {% if notes_completed %}
+                    <div class="d-flex justify-content-between align-items-center flex-wrap">
+                        <div>
+                            <h3 class="h5 text-success mb-1" style="font-weight: 600;">&#10004; Lesson Notes Completed</h3>
+                            <p class="mb-0 cp-muted">You have completed reviewing the preparation material for Day {{ day.day_number }}. Questions are unlocked below.</p>
+                        </div>
+                        {% if progress.notes_completed_at %}
+                            <span class="cp-badge completed">{{ progress.notes_completed_at|date:"j M Y, H:i" }}</span>
+                        {% endif %}
+                    </div>
+                {% else %}
+                    <div class="d-flex justify-content-between align-items-center flex-wrap">
+                        <div class="mb-2 mb-md-0">
+                            <h3 class="h5 text-primary mb-1" style="font-weight: 600;">Finished reviewing today's topics?</h3>
+                            <p class="mb-0 cp-muted">Mark notes complete to unlock the daily practice questions.</p>
+                        </div>
+                            <form method="post" action="{% url 'careers:level_complete_notes' role.slug level day.day_number %}">
+                            {% csrf_token %}
+                            <button type="submit" class="cp-btn" id="mark-notes-complete-btn-plain" style="background-color: #2563eb; color: #fff; font-weight: 600;">
+                                &#10004; Mark Notes Complete
+                            </button>
+                        </form>
+                    </div>
+                {% endif %}
+            </div>
+
             {% if progress and progress.is_submitted %}
                 <div class="cp-alert info">
                     You have submitted this day {{ progress.attempts_count }} time{{ progress.attempts_count|pluralize }}.
@@ -109,8 +171,15 @@
                 <form method="post" novalidate>
                     {% csrf_token %}
                     {% include 'careers/_question_form.html' %}
-                    <button type="submit" class="cp-btn">Submit answers</button>
-                    <a class="cp-btn outline ml-2" href="{{ role.get_absolute_url }}">Back to plan</a>
+                    {% if notes_completed %}
+                        <button type="submit" class="cp-btn">Submit answers</button>
+                    {% else %}
+                        <div class="cp-panel cp-locked-note text-center p-3 my-2">
+                            <p class="mb-0 text-muted">&#128274; Review the learning objectives above and click <strong>Mark Notes Complete</strong> to unlock submission.</p>
+                        </div>
+                        <button type="submit" class="cp-btn" disabled style="opacity: 0.6; cursor: not-allowed;">Submit answers (Notes incomplete)</button>
+                    {% endif %}
+                    <a class="cp-btn outline ml-2" href="{% url 'careers:level_role_detail' role.slug level %}">Back to plan</a>
                 </form>
             {% else %}
                 <div class="cp-panel">Questions for this day have not been added yet.</div>

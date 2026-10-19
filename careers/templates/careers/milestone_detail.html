@@ -6,7 +6,7 @@
         {% include 'careers/_shared.html' %}
         <div class="cp-breadcrumb">
             <a href="{% url 'careers:role_list' %}">Career Preparation</a> /
-            <a href="{{ role.get_absolute_url }}">{{ role.title }}</a> / {{ milestone.title }}
+            <a href="{% url 'careers:level_role_detail' role.slug level %}">{{ role.title }}</a> / {{ level|title }} path / {{ milestone.title }}
         </div>
         <h1>{{ milestone.title }}</h1>
         <p class="cp-muted">
@@ -26,7 +26,7 @@
                 {% csrf_token %}
                 {% include 'careers/_question_form.html' %}
                 <button type="submit" class="cp-btn">Submit milestone exam</button>
-                <a class="cp-btn outline ml-2" href="{{ role.get_absolute_url }}">Back to plan</a>
+                <a class="cp-btn outline ml-2" href="{% url 'careers:level_role_detail' role.slug level %}">Back to plan</a>
             </form>
         {% else %}
             <div class="cp-panel">Questions for this milestone have not been added yet.</div>

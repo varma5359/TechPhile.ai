@@ -6,7 +6,7 @@
         {% include 'careers/_shared.html' %}
         <div class="cp-breadcrumb">
             <a href="{% url 'careers:role_list' %}">Career Preparation</a> /
-            <a href="{{ role.get_absolute_url }}">{{ role.title }}</a> / Day {{ day.day_number }} result
+            <a href="{% url 'careers:level_role_detail' role.slug level %}">{{ role.title }}</a> / {{ level|title }} path / Day {{ day.day_number }} result
         </div>
         <h1>Day {{ day.day_number }}: {{ day.title }}</h1>
 
@@ -44,18 +44,18 @@
             <h2>Recommended next steps</h2>
             <ul class="cp-list">
                 {% if recommendation.milestone_due %}
-                    <li><a href="{{ recommendation.milestone_due.milestone.get_absolute_url }}">Take {{ recommendation.milestone_due.milestone.title }}</a>
+                    <li><a href="{% url 'careers:level_milestone_detail' role.slug level recommendation.milestone_due.milestone.number %}">Take {{ recommendation.milestone_due.milestone.title }}</a>
                         &ndash; you have finished its whole block.</li>
                 {% endif %}
                 {% if recommendation.next_day %}
-                    <li>Continue with <a href="{{ recommendation.next_day.get_absolute_url }}">Day {{ recommendation.next_day.day_number }}: {{ recommendation.next_day.title }}</a>.</li>
+                    <li>Continue with <a href="{% url 'careers:level_day_detail' role.slug level recommendation.next_day.day_number %}">Day {{ recommendation.next_day.day_number }}: {{ recommendation.next_day.title }}</a>.</li>
                 {% endif %}
                 {% if not solid %}
-                    <li>Review the explanations below and <a href="{{ day.get_absolute_url }}">retake this day</a>.</li>
+                    <li>Review the explanations below and <a href="{% url 'careers:level_day_detail' role.slug level day.day_number %}">retake this day</a>.</li>
                 {% endif %}
                 {% for item in recommendation.weak_skills %}
                     <li>Revisit <strong>{{ item.skill }}</strong> ({{ item.percent }}% so far){% if item.days %}:
-                        {% for d in item.days %}<a href="{{ d.get_absolute_url }}">Day {{ d.day_number }}</a>{% if not forloop.last %}, {% endif %}{% endfor %}{% endif %}.</li>
+                        {% for d in item.days %}<a href="{% url 'careers:level_day_detail' role.slug level d.day_number %}">Day {{ d.day_number }}</a>{% if not forloop.last %}, {% endif %}{% endfor %}{% endif %}.</li>
                 {% endfor %}
                 {% if not recommendation.next_day and not recommendation.milestone_due %}
                     <li>You have submitted every published day. Check back for new content.</li>
@@ -74,13 +74,13 @@
                     {% for h in history %}
                         <li>{{ h.submitted_at|date:"j M Y, H:i" }} &ndash; {{ h.score_percent|floatformat:0 }}%
                             {% if h.pk == attempt.pk %}<em>(this attempt)</em>{% else %}
-                                <a href="{% url 'careers:day_result' role.slug day.day_number h.pk %}">view</a>{% endif %}</li>
+                                <a href="{% url 'careers:level_day_result' role.slug level day.day_number h.pk %}">view</a>{% endif %}</li>
                     {% endfor %}
                 </ul>
             </div>
         {% endif %}
 
-        <a class="cp-btn" href="{{ role.get_absolute_url }}">Back to plan</a>
+        <a class="cp-btn" href="{% url 'careers:level_role_detail' role.slug level %}">Back to plan</a>
     </div>
 </div>
 {% endblock %}
