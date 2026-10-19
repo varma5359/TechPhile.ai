@@ -827,7 +827,7 @@ footer {
          style="height: 120px; position: absolute; top: -40px; left: 0;">
 </a>
 
-                    <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+                    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
                         <span class="navbar-toggler-icon"></span>
                     </button>
                     
@@ -860,7 +860,7 @@ footer {
 
                       <!-- Dropdown: Assessments -->
                       <li class="nav-item dropdown">
-                          <a class="nav-link dropdown-toggle" href="#" id="assessmentsDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                          <a class="nav-link dropdown-toggle" href="#" id="assessmentsDropdown" role="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                               <i class="fas fa-tasks mr-1"></i> Assessments
                           </a>
                           <div class="dropdown-menu dropdown-menu-custom" aria-labelledby="assessmentsDropdown">
@@ -1102,7 +1102,6 @@ footer {
     <!-- REQUIRED SCRIPTS FOR DROPDOWN -->
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/js/bootstrap.bundle.min.js"></script>
 
 <!-- Other scripts -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/OwlCarousel2/2.3.4/owl.carousel.min.js"></script>
@@ -1183,8 +1182,7 @@ footer {
         
         $(document).ready(function() {
     // Initialize all dropdowns
-    $('.dropdown-toggle').dropdown();
-    
+
     // Loading Spinner
     setTimeout(function() {
         $('#loading-spinner').fadeOut();
