@@ -1,5 +1,5 @@
 {% for a in answers %}
-    <div class="cp-question">
+    <div class="cp-question cw-question">
         <div class="d-flex justify-content-between flex-wrap mb-2">
             <strong>Question {{ forloop.counter }}</strong>
             {% if a.is_correct %}<span class="cp-badge completed">Correct</span>{% else %}<span class="cp-badge revision_recommended">Incorrect</span>{% endif %}

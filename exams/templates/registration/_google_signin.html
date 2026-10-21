@@ -1,0 +1,61 @@
+{% if google_oauth_client_id %}
+<div class="auth-google-area">
+    <div id="google-signin-button" aria-label="Continue with Google"></div>
+    <p class="auth-google-status" id="google-signin-status" role="status" aria-live="polite"></p>
+</div>
+<form class="auth-google-csrf" aria-hidden="true">{% csrf_token %}</form>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<script>
+(function () {
+    function initGoogleSignIn() {
+        if (!window.google || !google.accounts || !google.accounts.id) {
+            window.setTimeout(initGoogleSignIn, 100);
+            return;
+        }
+        google.accounts.id.initialize({
+            client_id: "{{ google_oauth_client_id|escapejs }}",
+            callback: function (response) {
+                var status = document.getElementById('google-signin-status');
+                var tokenInput = document.querySelector('.auth-google-csrf input[name="csrfmiddlewaretoken"]');
+                status.textContent = 'Signing you in…';
+                var body = new URLSearchParams({
+                    credential: response.credential,
+                    next: "{{ next|default:''|escapejs }}"
+                });
+                fetch("{% url 'google_sign_in' %}", {
+                    method: 'POST',
+                    credentials: 'same-origin',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8',
+                        'X-CSRFToken': tokenInput ? tokenInput.value : ''
+                    },
+                    body: body.toString()
+                }).then(function (result) {
+                    return result.json().then(function (data) {
+                        if (!result.ok) throw new Error(data.error || 'Google sign-in failed.');
+                        window.location.assign(data.redirect_url);
+                    });
+                }).catch(function (error) {
+                    status.textContent = error.message || 'Google sign-in failed. Please try again.';
+                });
+            }
+        });
+        google.accounts.id.renderButton(document.getElementById('google-signin-button'), {
+            type: 'standard',
+            theme: 'outline',
+            size: 'large',
+            shape: 'rectangular',
+            text: 'continue_with',
+            width: Math.min(360, document.querySelector('.auth-google-card').clientWidth - 48)
+        });
+        google.accounts.id.prompt();
+    }
+    initGoogleSignIn();
+}());
+</script>
+{% else %}
+<div class="auth-google-unavailable" role="status">
+    <i class="fas fa-circle-info" aria-hidden="true"></i>
+    <span>Google sign-in is not configured yet. Contact the site administrator at <a href="mailto:ravisoftech150@gmail.com">ravisoftech150@gmail.com</a>.</span>
+</div>
+{% endif %}

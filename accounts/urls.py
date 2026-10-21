@@ -10,6 +10,7 @@ from .views import CustomPasswordResetView, TermsOfServiceView, PrivacyPolicyVie
 urlpatterns = [
     path('signup/', views.signup_view, name='signup'),
     path('login/', views.login_view, name='login'),
+    path('google/sign-in/', views.google_sign_in, name='google_sign_in'),
     path('logout/', views.logout_view, name='logout'),
     path('verify-email/<uidb64>/<token>/', views.verify_email, name='verify_email'),
 

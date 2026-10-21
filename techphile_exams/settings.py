@@ -157,6 +157,7 @@ FEATURE_FLAGS = {
 }
 LOGIN_REDIRECT_URL = 'exams:student_dashboard'
 LOGOUT_REDIRECT_URL = 'home'
+GOOGLE_OAUTH_CLIENT_ID = config('GOOGLE_OAUTH_CLIENT_ID', default='')
 
 # Email Configuration
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
@@ -166,7 +167,7 @@ EMAIL_USE_TLS = True
 EMAIL_HOST_USER = config('EMAIL_HOST_USER', default='techphile.ai@gmail.com')
 EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='')
 DEFAULT_FROM_EMAIL = 'techphile@techphile.in'
-CONTACT_EMAIL = 'ravisoftech150@gmail.com'
+CONTACT_EMAIL = 'techphile@techphile.in'
 LOGIN_EMAIL = 'Activate@techphile.in'
 
 # Site ID

@@ -1,21 +1,21 @@
 {% for q in questions %}
-    <div class="cp-question">
-        <div class="d-flex justify-content-between flex-wrap mb-2">
-            <strong>Question {{ forloop.counter }}</strong>
+    <fieldset class="cp-question cw-question">
+        <legend class="d-flex justify-content-between flex-wrap mb-2">
+            <span class="fw-semibold">Question {{ forloop.counter }}</span>
             <span class="cp-muted small">
                 {{ q.get_difficulty_display }}{% if q.skill %} &middot; {{ q.skill.name }}{% endif %}
                 &middot; {{ q.marks }} mark{{ q.marks|pluralize }}
             </span>
-        </div>
+        </legend>
         {% if q.scenario %}<div class="cp-scenario">{{ q.scenario|linebreaksbr }}</div>{% endif %}
         <p><strong>{{ q.text|linebreaksbr }}</strong></p>
         {% for option in q.options.all %}
             <label class="cp-option">
                 <input type="radio" name="q_{{ q.pk }}" value="{{ option.pk }}"
                        {% if q.selected_id == option.pk|stringformat:"s" %}checked{% endif %}
-                       {% if not notes_completed %}disabled{% endif %}>
+                       {% if notes_completed == False %}aria-disabled="true" data-notes-locked="true"{% endif %}>
                 <span>{{ option.text }}</span>
             </label>
         {% endfor %}
-    </div>
+    </fieldset>
 {% endfor %}

@@ -14,6 +14,7 @@ from .choices import EXPERIENCE_CHOICES, LEVEL_CHOICES
 from .models import (CareerRole, DayAttempt, DayProgress, MilestoneAttempt,
                      LEVEL_BEGINNER)
 from .selection import effective_learning_path, select_learning_days, select_milestones
+from exams.forms import CareerLearningPreferencesForm
 
 
 def _published_role(slug):
@@ -63,11 +64,40 @@ def dashboard(request):
     from exams.models import Profile
 
     profile, _ = Profile.objects.get_or_create(user=request.user)
+    path_form = CareerLearningPreferencesForm(
+        request.POST if request.method == 'POST' else None, instance=profile)
+    # The profile settings form keeps these choices optional, but a learner
+    # entering Career prep for the first time must choose a complete path.
+    for field_name in ('career_role', 'experience_band', 'learning_path'):
+        path_form.fields[field_name].required = True
+    path_form.fields['career_role'].empty_label = 'Please select a career role'
+    for field_name, prompt in (
+        ('experience_band', 'Please select your experience'),
+        ('learning_path', 'Please select a learning path'),
+    ):
+        choices = path_form.fields[field_name].choices
+        path_form.fields[field_name].choices = [('', prompt)] + [
+            (value, label) for value, label in choices if value
+        ]
+    if (request.method == 'GET' and profile.experience_band == 'fresher'
+            and not profile.learning_path):
+        path_form.initial['learning_path'] = 'beginner'
+
+    if request.method == 'POST':
+        if path_form.is_valid():
+            selected_profile = path_form.save()
+            return redirect('careers:level_role_detail',
+                            slug=selected_profile.career_role.slug,
+                            level=selected_profile.learning_path)
+
     role = profile.career_role
-    if not role or not role.is_published:
+    has_complete_selection = bool(
+        role and role.is_published and profile.experience_band and profile.learning_path)
+    if not has_complete_selection or (request.method == 'POST' and path_form.errors):
         return render(request, 'careers/dashboard.html', {
             'available_roles': CareerRole.objects.filter(is_published=True),
             'dashboard_view': profile.dashboard_view,
+            'path_form': path_form,
         })
 
     level = effective_learning_path(profile.experience_band, profile.learning_path)
@@ -155,6 +185,13 @@ def role_detail(request, slug, level=None):
     role = _published_role(slug)
     level, experience_band = _learner_selection(request, level)
     rows = services.plan_overview(request.user, role, level, experience_band)
+    latest_attempts = {}
+    for attempt in DayAttempt.objects.filter(
+            user=request.user, day_id__in=[row['day'].pk for row in rows]
+    ).order_by('-submitted_at'):
+        latest_attempts.setdefault(attempt.day_id, attempt)
+    for row in rows:
+        row['latest_attempt'] = latest_attempts.get(row['day'].pk)
     recommendation = services.recommend(request.user, role, rows, level, experience_band)
     # Show each milestone after the last published day at or before its end day,
     # so it stays visible even when the exact end day is unpublished.

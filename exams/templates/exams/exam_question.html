@@ -1,423 +1,46 @@
 {% extends 'exams/exam_base.html' %}
-
+{% load static %}
+{% block title %}Question {{ current_position }} | {{ exam.title }}{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/app-redesign.css' %}">{% endblock %}
 {% block content %}
-<div class="exam-question-container">
-    <!-- Question Navigation Panel -->
-    <div class="question-nav-panel shadow">
-        {% for i in total_question_range %}
-            {% if i == current_question %}
-                <a class="question-nav-btn active" href="{% url 'exams:exam_question' exam.slug level set_number i %}">{{ i }}</a>
-            {% else %}
-                <a class="question-nav-btn" href="{% url 'exams:exam_question' exam.slug level set_number i %}">{{ i }}</a>
-            {% endif %}
-        {% endfor %}
-    </div>
-
-    <!-- Question Card -->
-    <div class="question-card shadow">
-        <div class="question-header">
-            <div class="question-header-content">
-                <h3>Question {{ current_question }} <span class="of-total">/ {{ total_questions }}</span></h3>
-                <div class="progress-bar-outer">
-                    <div class="progress-bar-inner" style="width: {% widthratio current_question total_questions 100 %}%"></div>
-                </div>
-            </div>
-        </div>
-        <div class="question-body">
-            <h4 class="question-text">{{ question.question_text }}</h4>
-            <form method="post">
-                {% csrf_token %}
-                {% if form.errors %}
-                    <div class="alert alert-danger mb-3">
-                        <i class="fas fa-exclamation-circle me-2"></i>
-                        Please select an answer before proceeding
-                    </div>
-                {% endif %}
-                <div class="answer-options">
-                    {% for radio in form.selected_answer %}
-                    <label class="answer-option">
-                        {{ radio.tag }}
-                        <span class="option-label">{{ radio.choice_label }}</span>
-                    </label>
-                    {% endfor %}
-                </div>
-                <div class="question-actions">
-                    {% if current_question > 1 %}
-                    <a href="{% url 'exams:exam_question' exam.slug level set_number current_question|add:'-1' %}" class="btn btn-outline-secondary">
-                        <i class="fas fa-arrow-left me-1"></i> Previous
-                    </a>
-                    {% else %}
-                    <span></span>
-                    {% endif %}
-                    <button type="submit" class="btn btn-gradient">
-                        {% if current_question == total_questions %}
-                            <i class="fas fa-check-circle me-1"></i> Finish Exam
-                        {% else %}
-                            Next <i class="fas fa-arrow-right ms-1"></i>
-                        {% endif %}
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
+<div class="exam-workspace exam-question-workspace">
+  <nav class="ew-breadcrumb" aria-label="Breadcrumb"><a href="{% url 'exams:exam_list' %}">Exam practice</a><span aria-hidden="true">/</span><a href="{% url 'exams:exam_detail' exam.slug %}">{{ exam.title }}</a><span aria-hidden="true">/</span><span>Set {{ set_number }}</span></nav>
+  <header class="eq-page-head"><div><p class="ew-eyebrow">{{ level|title }} level · Set {{ set_number }}</p><h1>{{ exam.title }}</h1><p>Save an answer to move through the set. On the final question, you can submit with unanswered questions.</p></div><div class="eq-question-count"><strong>{{ current_position }}</strong><span>of {{ total_questions }}</span><small>current question</small></div></header>
+  <div class="eq-progress-meta"><span>Questions answered</span><span>{{ answered_count }} of {{ total_questions }}</span></div><div class="eq-progress-track" role="progressbar" aria-label="Questions answered" aria-valuenow="{{ answered_count }}" aria-valuemin="0" aria-valuemax="{{ total_questions }}"><span style="width:{% widthratio answered_count total_questions 100 %}%"></span></div>
+  <div class="eq-work-layout">
+    <section class="eq-question-card" aria-labelledby="eq-question-title">
+      <div class="eq-card-top"><span class="eq-index-chip">Question {{ current_position }}</span><span>{{ total_questions }} question{{ total_questions|pluralize }} in this set</span></div>
+      <form method="post" id="examAnswerForm">{% csrf_token %}<input type="hidden" name="confirm_submit" id="confirmSubmit" value="0">{% if form.errors %}<div class="eq-form-alert" role="alert">Please select an answer before continuing.</div>{% endif %}<fieldset class="eq-answer-fieldset"><legend id="eq-question-title">{{ question.question_text }}</legend><p class="eq-instruction">Choose one answer</p><div class="eq-answer-list">{% for radio in form.selected_answer %}<label class="eq-answer-option">{{ radio.tag }}<span class="eq-answer-mark" aria-hidden="true"></span><span class="eq-answer-text">{{ radio.choice_label }}</span></label>{% endfor %}</div></fieldset>
+        <div class="eq-question-actions">{% if previous_question %}<a class="edu-btn edu-btn-outline" href="{% url 'exams:exam_question' exam.slug level set_number previous_question.order %}"><i class="fas fa-arrow-left" aria-hidden="true"></i> Previous</a>{% else %}<a class="eq-back-link" href="{% url 'exams:exam_detail' exam.slug %}">Back to sets</a>{% endif %}<button class="edu-btn edu-btn-primary" id="saveAnswerButton" type="submit" formnovalidate{% if current_position == total_questions %} data-final-question="true"{% endif %}>Save answer <i class="fas fa-arrow-right" aria-hidden="true"></i></button></div>
+      </form>
+    </section>
+    <aside class="eq-question-nav"><div class="eq-nav-heading"><div><p class="ew-eyebrow">SET NAVIGATION</p><h2>Questions</h2></div><span>{{ answered_count }}/{{ total_questions }}</span></div><p>Select any question to review or change your answer.</p>
+      <div class="eq-nav-legend" aria-label="Question status legend"><span><i class="is-legend-current" aria-hidden="true"></i>Current</span><span><i class="is-legend-answered" aria-hidden="true"><i class="fas fa-check"></i></i>Answered</span><span><i class="is-legend-unanswered" aria-hidden="true"></i>Not answered</span></div>
+      <nav class="eq-nav-grid" aria-label="Question navigation">{% for item in question_navigation %}<a href="{% url 'exams:exam_question' exam.slug level set_number item.order %}" class="eq-nav-item{% if item.answered %} is-answered{% endif %}{% if item.current %} is-current{% endif %}" aria-label="Question {{ item.order }}{% if item.current %}, current{% endif %}{% if item.answered %}, answered{% else %}, not answered{% endif %}"{% if item.current %} aria-current="step"{% endif %}>{{ forloop.counter }}{% if item.answered %}<i class="fas fa-check eq-nav-answer-check" aria-hidden="true"></i>{% endif %}</a>{% endfor %}</nav>
+      <a class="eq-back-to-exam" href="{% url 'exams:exam_detail' exam.slug %}">View all practice sets <i class="fas fa-arrow-right" aria-hidden="true"></i></a>
+    </aside>
+  </div>
 </div>
-
-<style>
-/* Base Styles */
-.exam-question-container {
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    background: linear-gradient(120deg, #f8fafc 0%, #e0e7ff 100%);
-    padding: 1rem;
-}
-
-.question-nav-panel {
-    display: flex;
-    justify-content: center;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-    margin: 1rem auto;
-    padding: 0.75rem;
-    background: #fff;
-    border-radius: 1rem;
-    max-width: 100%;
-    width: 640px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-    position: sticky;
-    top: 1rem;
-    z-index: 10;
-}
-
-.question-nav-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    min-width: 36px;
-    height: 36px;
-    text-decoration: none;
-    background: #e0e7ff;
-    color: #4361ee;
-    border-radius: 0.5rem;
-    font-weight: 600;
-    transition: all 0.2s ease;
-}
-
-.question-nav-btn:hover {
-    background: #4cc9f0;
-    color: #fff;
-    transform: translateY(-2px);
-}
-
-.question-nav-btn.active {
-    background: #4361ee;
-    color: white;
-    box-shadow: 0 4px 8px rgba(67, 97, 238, 0.3);
-}
-
-.question-card {
-    background: #fff;
-    border-radius: 1.25rem;
-    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.12);
-    width: 100%;
-    max-width: 680px;
-    margin: 1rem auto 3rem;
-    overflow: hidden;
-    animation: fadeIn 0.5s ease-out;
-}
-
-@keyframes fadeIn {
-    from { opacity: 0; transform: translateY(20px); }
-    to { opacity: 1; transform: translateY(0); }
-}
-
-.question-header {
-    background: linear-gradient(90deg, #4361ee 0%, #4cc9f0 100%);
-    color: #fff;
-    padding: 1.5rem 2rem;
-    position: relative;
-}
-
-.question-header-content {
-    max-width: 600px;
-    margin: 0 auto;
-}
-
-.question-header h3 {
-    margin: 0 0 0.5rem 0;
-    font-weight: 700;
-    font-size: 1.3rem;
-    letter-spacing: 0.5px;
-}
-
-.of-total {
-    font-size: 1rem;
-    opacity: 0.85;
-    font-weight: 500;
-}
-
-.progress-bar-outer {
-    background: rgba(255, 255, 255, 0.2);
-    border-radius: 1rem;
-    height: 8px;
-    width: 100%;
-    overflow: hidden;
-}
-
-.progress-bar-inner {
-    background: white;
-    height: 100%;
-    border-radius: 1rem;
-    transition: width 0.4s ease-out;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-}
-
-.question-body {
-    padding: 2rem;
-    max-width: 600px;
-    margin: 0 auto;
-}
-
-.question-text {
-    font-size: 1.15rem;
-    font-weight: 600;
-    color: #22223b;
-    margin-bottom: 1.5rem;
-    line-height: 1.5;
-}
-
-.answer-options {
-    margin: 2rem 0;
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
-}
-
-.answer-option {
-    display: flex;
-    align-items: center;
-    background: #f8f9fa;
-    border-radius: 0.75rem;
-    padding: 1rem 1.5rem;
-    font-size: 1rem;
-    font-weight: 500;
-    color: #22223b;
-    cursor: pointer;
-    border: 2px solid #e9ecef;
-    transition: all 0.2s ease;
-}
-
-.answer-option:hover {
-    background: #f1f3f5;
-    border-color: #dee2e6;
-    transform: translateY(-2px);
-}
-
-.answer-option:focus-within {
-    border-color: #4361ee;
-    box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.2);
-}
-
-.answer-option input[type="radio"] {
-    margin-right: 1rem;
-    min-width: 18px;
-    min-height: 18px;
-    accent-color: #4361ee;
-}
-
-.option-label {
-    flex: 1;
-    line-height: 1.4;
-}
-
-.question-actions {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-top: 2.5rem;
-    padding-top: 1.5rem;
-    border-top: 1px solid #e9ecef;
-}
-
-.btn-gradient {
-    background: linear-gradient(90deg, #4361ee 0%, #4cc9f0 100%);
-    color: #fff;
-    border: none;
-    padding: 0.75rem 2rem;
-    border-radius: 2rem;
-    font-weight: 600;
-    font-size: 1rem;
-    box-shadow: 0 2px 8px rgba(67,97,238,0.1);
-    transition: all 0.2s ease;
-    display: inline-flex;
-    align-items: center;
-}
-
-.btn-gradient:hover {
-    background: linear-gradient(90deg, #3a56d4 0%, #3fb8e0 100%);
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(67,97,238,0.15);
-}
-
-.btn-outline-secondary {
-    border: 2px solid #4361ee;
-    color: #4361ee;
-    background: transparent;
-    border-radius: 2rem;
-    padding: 0.75rem 2rem;
-    font-weight: 600;
-    font-size: 1rem;
-    transition: all 0.2s ease;
-    display: inline-flex;
-    align-items: center;
-}
-
-.btn-outline-secondary:hover {
-    background: #4361ee;
-    color: #fff;
-    transform: translateY(-2px);
-}
-
-.alert-danger {
-    background: rgba(220, 53, 69, 0.1);
-    border: 1px solid rgba(220, 53, 69, 0.2);
-    color: #dc3545;
-    border-radius: 0.5rem;
-    padding: 0.75rem 1.25rem;
-}
-
-/* Media Queries */
-@media (max-width: 768px) {
-    .question-nav-panel {
-        padding: 0.5rem;
-        border-radius: 0.75rem;
-        top: 0.5rem;
-    }
-    
-    .question-nav-btn {
-        min-width: 32px;
-        height: 32px;
-        font-size: 0.9rem;
-    }
-    
-    .question-card {
-        border-radius: 1rem;
-        margin: 0.5rem auto 2rem;
-    }
-    
-    .question-header {
-        padding: 1.25rem 1.5rem;
-    }
-    
-    .question-body {
-        padding: 1.5rem;
-    }
-    
-    .question-text {
-        font-size: 1.1rem;
-    }
-    
-    .answer-options {
-        margin: 1.5rem 0;
-        gap: 0.5rem;
-    }
-    
-    .answer-option {
-        padding: 0.75rem 1.25rem;
-    }
-    
-    .question-actions {
-        margin-top: 2rem;
-    }
-    
-    .btn-gradient, .btn-outline-secondary {
-        padding: 0.65rem 1.5rem;
-        font-size: 0.95rem;
-    }
-}
-
-@media (max-width: 576px) {
-    .exam-question-container {
-        padding: 0.5rem;
-    }
-    
-    .question-nav-panel {
-        gap: 0.25rem;
-        padding: 0.5rem;
-    }
-    
-    .question-header {
-        padding: 1rem;
-    }
-    
-    .question-header h3 {
-        font-size: 1.2rem;
-    }
-    
-    .question-body {
-        padding: 1.25rem;
-    }
-    
-    .question-text {
-        font-size: 1.05rem;
-        margin-bottom: 1.25rem;
-    }
-    
-    .answer-option {
-        padding: 0.75rem 1rem;
-        font-size: 0.95rem;
-    }
-    
-    .answer-option input[type="radio"] {
-        margin-right: 0.75rem;
-    }
-    
-    .question-actions {
-        flex-direction: column-reverse;
-        gap: 1rem;
-        align-items: stretch;
-    }
-    
-    .btn-gradient, .btn-outline-secondary {
-        width: 100%;
-        justify-content: center;
-    }
-}
-
-/* Print Styles */
-@media print {
-    .exam-question-container {
-        background: white;
-        padding: 0;
-    }
-    
-    .question-nav-panel, .question-actions {
-        display: none;
-    }
-    
-    .question-card {
-        box-shadow: none;
-        border: 1px solid #ddd;
-        page-break-inside: avoid;
-    }
-    
-    .question-header {
-        background: white !important;
-        color: black !important;
-        border-bottom: 2px solid #4361ee;
-    }
-    
-    .progress-bar-outer {
-        display: none;
-    }
-    
-    .answer-option {
-        background: white !important;
-        border: 1px solid #ddd !important;
-        color: black !important;
-        page-break-inside: avoid;
-    }
-}
-</style>
+<div class="modal fade" id="submitSetModal" tabindex="-1" aria-labelledby="submitSetTitle" aria-hidden="true"><div class="modal-dialog modal-dialog-centered"><div class="modal-content"><div class="modal-header"><h2 class="modal-title fs-5" id="submitSetTitle">Submit this set?</h2><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div><div class="modal-body"><p>You can submit now and review your result. Unanswered questions will count as not attempted.</p><div class="d-flex justify-content-between py-2 border-bottom"><span>Answered</span><strong><span id="submitAnsweredCount">{{ answered_count }}</span> / {{ total_questions }}</strong></div><div class="d-flex justify-content-between py-2"><span>Not attempted</span><strong id="submitUnansweredCount">{{ total_questions|add:0 }}</strong></div><p class="mb-0 mt-2">Do you want to submit your answers?</p></div><div class="modal-footer"><button type="button" class="edu-btn edu-btn-outline" data-bs-dismiss="modal">Continue answering</button><button type="button" class="edu-btn edu-btn-primary" id="confirmSubmitButton">Submit set</button></div></div></div></div>
+<script>
+document.addEventListener('DOMContentLoaded',function(){
+  var form=document.getElementById('examAnswerForm'),button=document.getElementById('saveAnswerButton'),confirmField=document.getElementById('confirmSubmit');
+  var answered={{ answered_count }},total={{ total_questions }};
+  document.getElementById('submitUnansweredCount').textContent=total-answered;
+  if(button&&button.dataset.finalQuestion==='true'){
+    form.addEventListener('submit',function(event){
+      if(confirmField.value==='1')return;
+      event.preventDefault();
+      var selected=form.querySelector('input[name="selected_answer"]:checked');
+      var navCurrent=document.querySelector('.eq-nav-item.is-current');
+      var currentWasAnswered=navCurrent&&navCurrent.classList.contains('is-answered');
+      var count=answered+(selected?(currentWasAnswered?0:1):(currentWasAnswered?-1:0));
+      document.getElementById('submitAnsweredCount').textContent=count;
+      document.getElementById('submitUnansweredCount').textContent=total-count;
+      bootstrap.Modal.getOrCreateInstance(document.getElementById('submitSetModal')).show();
+    });
+    document.getElementById('confirmSubmitButton').addEventListener('click',function(){confirmField.value='1';form.requestSubmit();});
+  }
+});
+</script>
 {% endblock %}

@@ -1,20 +1,6 @@
-{% extends "exams/exam_base.html" %}
+{% extends 'exams/exam_base.html' %}
 {% load static %}
-
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/app-redesign.css' %}">{% endblock %}
 {% block content %}
-<div class="container mt-5">
-    <div class="row justify-content-center">
-        <div class="col-md-6 col-lg-4">
-            <div class="card shadow">
-                <div class="card-header bg-gradient text-white text-center">
-                    <h3 class="mb-0">Logged Out</h3>
-                </div>
-                <div class="card-body text-center">
-                    <p>You have been successfully logged out.</p>
-                    <a href="{% url 'login' %}" class="btn btn-primary">Log in again</a>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
+<main class="exam-state-page"><div class="exam-state-mark" aria-hidden="true">✓</div><p class="eq-eyebrow">ACCOUNT</p><h1>You’re signed out</h1><p>Your session has ended. Sign in again when you’re ready to continue learning.</p><a class="eq-button eq-button-primary" href="{% url 'login' %}">Sign in</a><a class="exam-state-secondary" href="{% url 'home' %}">Return to TechPhile.ai</a></main>
 {% endblock %}

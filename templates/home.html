@@ -1,27 +1,104 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block contents %}
-<section class="home-hero">
-    <div class="container">
-        <p class="text-uppercase small fw-bold mb-3">TechPhile.ai · Learning and practice</p>
-        <h1 class="display-5 fw-bold mb-3">Build skills with a clear path forward.</h1>
-        <p>Explore structured career learning paths, work through lessons and practice questions, and prepare with subject-based exams.</p>
-        <div class="d-flex flex-wrap gap-3 mt-4">
-            <a href="{% url 'careers:role_list' %}" class="btn btn-primary btn-lg">Explore career paths</a>
-            <a href="{% url 'exams:exam_list' %}" class="btn btn-outline-light btn-lg">Browse exams</a>
-            {% if features.coding %}<a href="{% url 'home_page_coding' %}" class="btn btn-outline-light btn-lg">Coding practice</a>{% endif %}
+{% block title %}TechPhile.ai | Career Learning & Exam Practice{% endblock %}
+
+{% block content %}
+<div class="container py-5 my-3">
+    
+    <!-- Hero Section -->
+    <div class="row align-items-center g-5 mb-5 pb-5">
+        <div class="col-lg-6">
+            <div class="d-inline-flex align-items-center gap-2 bg-white border rounded-pill px-3 py-1 mb-4 shadow-sm">
+                <span class="badge rounded-pill" style="background: var(--edu-success-bg); color: var(--brand-green);">NEW</span>
+                <span class="fw-bold" style="font-size: 0.85rem;">Interactive Career Paths are live</span>
+            </div>
+            
+            <h1 class="display-4 fw-bold mb-3" style="line-height: 1.15; color: var(--edu-text-main);">
+                Learn the skills.<br>
+                <span style="color: var(--brand-cyan);">Land the role.</span>
+            </h1>
+            
+            <p class="text-muted mb-4" style="font-size: 1.15rem; max-width: 500px; line-height: 1.6;">
+                TechPhile.ai organizes your learning around your next step. Follow structured career tracks, practice with real scenarios, and prepare for exams.
+            </p>
+            
+            <div class="d-flex flex-wrap gap-3">
+                <a href="{% url 'signup' %}" class="edu-btn edu-btn-primary py-3 px-4" style="font-size: 1.1rem;">
+                    Start Learning Free <i class="fas fa-arrow-right ms-1"></i>
+                </a>
+                <a href="{% url 'careers:role_list' %}" class="edu-btn edu-btn-outline py-3 px-4" style="font-size: 1.1rem;">
+                    Explore Paths
+                </a>
+            </div>
+        </div>
+        
+        <div class="col-lg-6 text-center">
+            <!-- Use the illustration from your files -->
+            <img src="{% static 'images/mock-interview-seesion-home.jpg' %}" alt="Student learning" class="img-fluid" style="max-height: 450px;">
         </div>
     </div>
-</section>
-<section class="home-section bg-light">
-    <div class="container">
-        <div class="mb-4"><p class="text-uppercase small fw-bold text-primary mb-2">Choose where to begin</p><h2 class="h2 fw-bold">Practice built around your goals</h2><p class="text-secondary mb-0">Start with a learning roadmap or focus on an exam topic.</p></div>
+
+    <!-- Features Bento Box -->
+    <div class="py-4">
+        <div class="text-center mb-5">
+            <h2 class="fw-bold mb-2">Everything you need to succeed</h2>
+            <p class="text-muted">Structured learning combined with focused practice.</p>
+        </div>
+        
         <div class="row g-4">
-            <div class="col-md-6"><article class="home-path"><span class="text-primary fs-3" aria-hidden="true"><i class="fas fa-route"></i></span><h3 class="h4 mt-3">Career learning paths</h3><p>Choose a role and experience level, then follow published lessons, questions, and milestone assessments.</p><a class="btn btn-outline-primary" href="{% url 'careers:role_list' %}">View learning paths <i class="fas fa-arrow-right ml-1" aria-hidden="true"></i></a></article></div>
-            <div class="col-md-6"><article class="home-path"><span class="text-primary fs-3" aria-hidden="true"><i class="fas fa-clipboard-check"></i></span><h3 class="h4 mt-3">Subject exams</h3><p>Review available topics and use exam practice to check your understanding.</p><a class="btn btn-outline-primary" href="{% url 'exams:exam_list' %}">Explore exams <i class="fas fa-arrow-right ml-1" aria-hidden="true"></i></a></article></div>
-            {% if features.coding %}<div class="col-md-6"><article class="home-path"><span class="text-primary fs-3" aria-hidden="true"><i class="fas fa-code"></i></span><h3 class="h4 mt-3">Coding practice</h3><p>Open the available coding practice area and work through programming challenges.</p><a class="btn btn-outline-primary" href="{% url 'home_page_coding' %}">Explore coding practice</a></article></div>{% endif %}
+            <!-- Feature 1 (Large) -->
+            <div class="col-lg-8">
+                <div class="edu-card p-4 p-md-5 h-100 d-flex flex-column justify-content-center" style="background: var(--edu-info-bg); border: none;">
+                    <div class="bg-white text-cyan rounded-circle d-flex align-items-center justify-content-center mb-4 shadow-sm" style="width: 64px; height: 64px; color: var(--brand-cyan);">
+                        <i class="fas fa-route fs-3"></i>
+                    </div>
+                    <h3 class="fw-bold mb-3">Structured Career Paths</h3>
+                    <p class="text-muted mb-4" style="font-size: 1.1rem; max-width: 500px;">Choose from roles like Backend Engineering, Data Science, or Product Management. Follow a day-by-day plan with clear milestones.</p>
+                    <div class="mt-auto">
+                        <a href="{% url 'careers:role_list' %}" class="fw-bold text-decoration-none d-flex align-items-center gap-2" style="color: var(--brand-cyan);">View all paths <i class="fas fa-arrow-right"></i></a>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Feature 2 -->
+            <div class="col-lg-4">
+                <div class="edu-card p-4 p-md-5 h-100 d-flex flex-column text-center justify-content-center" style="background: var(--edu-success-bg); border: none;">
+                    <div class="bg-white text-success rounded-circle d-flex align-items-center justify-content-center mb-4 shadow-sm mx-auto" style="width: 64px; height: 64px; color: var(--brand-green);">
+                        <i class="fas fa-clipboard-check fs-3"></i>
+                    </div>
+                    <h3 class="fw-bold mb-3">Exam Practice</h3>
+                    <p class="text-muted mb-4">Test your knowledge with subject-based mock exams and instant feedback.</p>
+                    <div class="mt-auto">
+                        <a href="{% url 'exams:exam_list' %}" class="fw-bold text-decoration-none d-flex align-items-center justify-content-center gap-2" style="color: var(--brand-green);">Browse exams <i class="fas fa-arrow-right"></i></a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Feature 3 -->
+            <div class="col-lg-4">
+                <div class="edu-card p-4 p-md-5 h-100 d-flex flex-column text-center justify-content-center" style="background: #FFFBEB; border: none;">
+                    <div class="bg-white text-warning rounded-circle d-flex align-items-center justify-content-center mb-4 shadow-sm mx-auto" style="width: 64px; height: 64px;">
+                        <i class="fas fa-chart-line fs-3"></i>
+                    </div>
+                    <h3 class="fw-bold mb-3">Track Progress</h3>
+                    <p class="text-muted mb-4">See your scores, completion rates, and areas to improve in one dashboard.</p>
+                </div>
+            </div>
+
+            <!-- Feature 4 (Large) -->
+            <div class="col-lg-8">
+                <div class="edu-card p-4 p-md-5 h-100 d-flex flex-column justify-content-center" style="background: var(--edu-navy); color: white; border: none;">
+                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-4">
+                        <div>
+                            <h3 class="fw-bold mb-2 text-white">Ready to start?</h3>
+                            <p class="mb-0" style="color: #94A3B8;">Create your free account and set your first career goal today.</p>
+                        </div>
+                        <a href="{% url 'signup' %}" class="edu-btn edu-btn-primary">Join Now <i class="fas fa-arrow-right"></i></a>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
-</section>
+</div>
 {% endblock %}

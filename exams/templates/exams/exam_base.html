@@ -1,182 +1,106 @@
-<!DOCTYPE html>
 {% load static %}
+<!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}TechPhile.ai Mock Exams{% endblock %}</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}TechPhile.ai | Exam practice{% endblock %}</title>
     <link rel="icon" type="image/png" href="{% static 'images/favicon.png' %}">
-    
-    <!-- Bootstrap and other CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700&display=swap" rel="stylesheet">
-    <link href="{% static 'css/profile-preferences.css' %}" rel="stylesheet">
-
-    <style>
-        /* Keep exam navigation visually consistent with the main site header. */
-        .exam-site-header { position: relative; z-index: 1030; background: rgba(26, 26, 46, .96); box-shadow: 0 5px 20px rgba(0, 0, 0, .12); }
-        .exam-site-navbar { min-height: 80px; padding-top: .45rem; padding-bottom: .45rem; }
-        .exam-site-navbar .navbar-brand { width: 175px; min-height: 56px; flex: 0 0 175px; }
-        .exam-site-navbar .navbar-brand img { width: auto; height: 120px; position: absolute; top: -31px; left: 0; }
-        .exam-site-navbar .navbar-nav { align-items: center; gap: .2rem; }
-        .exam-site-navbar .nav-link { color: #e3e7f5; font-weight: 600; padding: .65rem .8rem; border-radius: 999px; transition: color .18s ease, background-color .18s ease; }
-        .exam-site-navbar .nav-link:hover, .exam-site-navbar .nav-link:focus { color: #fff; background: rgba(255,255,255,.09); }
-        .exam-site-navbar .nav-link.active { color: #fff; background: rgba(255,255,255,.13); }
-        .exam-site-navbar .dropdown-menu { margin-top: .55rem; padding: .5rem; background: #fff; border: 1px solid #e6eaf2; border-radius: .85rem; box-shadow: 0 14px 35px rgba(13, 25, 51, .18); }
-        .exam-site-navbar .dropdown-header { color: #71809a; font-size: .7rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
-        .exam-site-navbar .dropdown-item { padding: .55rem .7rem; border-radius: .55rem; color: #24304a; }
-        .exam-site-navbar .dropdown-item:hover, .exam-site-navbar .dropdown-item:focus { background: #eef3ff; color: #344dc9; }
-        .exam-site-navbar .dropdown-divider { border-color: #e9edf4; }
-        .exam-site-navbar .navbar-toggler { border: 1px solid rgba(255,255,255,.35); }
-        .exam-site-navbar .navbar-toggler:focus { box-shadow: 0 0 0 .2rem rgba(110, 139, 255, .25); }
-        
-        .avatar-circle {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background-color: #4361ee;
-            color: white;
-            font-weight: 600;
-        }
-        
-        /* Main content styles */
-        body {
-            background-color: #f8f9fa;
-            color: #212529;
-            font-family: 'Open Sans', sans-serif;
-        }
-        
-        
-        
-        /* Card styles for exam listings */
-        .exam-card {
-            transition: all 0.3s ease;
-            border-radius: 8px;
-            overflow: hidden;
-            border: 1px solid #e9ecef;
-        }
-        
-        .exam-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
-        }
-        
-        .card-header {
-            background: linear-gradient(135deg, #4361ee 0%, #3f37c9 100%);
-            color: white;
-        }
-        
-        /* Button styles */
-        .btn-primary {
-            background-color: #4361ee;
-            border-color: #3f37c9;
-        }
-        
-        .btn-outline-secondary {
-            color: #6c757d;
-            border-color: #6c757d;
-        }
-        
-        /* Text styles */
-        .gradient-text {
-            background: linear-gradient(90deg, #4361ee 0%, #4cc9f0 50%, #f72585 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
-        
-        /* Responsive adjustments */
-        @media (max-width: 768px) {
-            .exam-site-navbar .navbar-brand { width: 145px; min-height: 48px; flex-basis: 145px; }
-            .exam-site-navbar .navbar-brand img { height: 90px; top: -20px; }
-            .exam-site-navbar .navbar-collapse { padding: .6rem 0 .8rem; }
-            .exam-site-navbar .navbar-nav { align-items: stretch; gap: .15rem; }
-            .exam-site-navbar .nav-link { border-radius: .65rem; }
-            .main-content {
-                padding: 10px;
-            }
-        }
-    </style>
-
     <link href="{% static 'css/design-system.css' %}" rel="stylesheet">
     {% block extra_css %}{% endblock %}
+    {% if request.resolver_match.namespace == 'exams' and request.resolver_match.url_name not in 'cancel_interview edit_interview interview_feedback interview_form interviewer_dashboard join_interview reschedule_interview view_interview' and user.is_authenticated %}<script>try{if(localStorage.getItem('tp-sidebar')==='collapsed')document.documentElement.classList.add('sidebar-collapsed')}catch(error){}</script>{% endif %}
 </head>
-<body class="exam-shell" data-theme="{{ request.profile_preferences.theme|default:'dark' }}">
-    <!-- Shared site navigation, adapted to Bootstrap 5 for exam pages. -->
+<body class="exam-shell{% if request.resolver_match.namespace == 'exams' and request.resolver_match.url_name not in 'cancel_interview edit_interview interview_feedback interview_form interviewer_dashboard join_interview reschedule_interview view_interview' %} exam-learning-shell{% endif %}">
+    <a class="skip-link" href="#exam-main">Skip to content</a>
+    {% if request.resolver_match.namespace == 'exams' and request.resolver_match.url_name not in 'cancel_interview edit_interview interview_feedback interview_form interviewer_dashboard join_interview reschedule_interview view_interview' and user.is_authenticated %}
+    <div class="app-shell exam-app-shell">
+        <header class="mobile-bar">
+            <button class="mobile-bar-btn" id="sidebarOpen" type="button" aria-controls="appSidebar" aria-expanded="false" aria-label="Open menu"><i class="fas fa-bars" aria-hidden="true"></i></button>
+            <a href="{% url 'home' %}" class="edu-logo-text"><img src="{% static 'images/logo-tp.png' %}" alt="" class="logo-tp-img"><span class="logo-text-group"><span class="text-tech">TECH</span><span class="text-phile">PHILE</span><span class="text-ai-badge">AI</span></span></a>
+        </header>
+        <div class="sidebar-scrim" id="sidebarScrim"></div>
+        <aside class="sidebar" id="appSidebar" aria-label="Main navigation">
+            <div class="sidebar-top"><a href="{% url 'home' %}" class="sidebar-brand" aria-label="TechPhile.ai home"><span class="edu-logo-text"><img src="{% static 'images/logo-tp.png' %}" alt="" class="logo-tp-img"><span class="logo-text-group"><span class="text-tech">TECH</span><span class="text-phile">PHILE</span><span class="text-ai-badge">AI</span></span></span></a><button class="sidebar-collapse-btn" id="sidebarCollapse" type="button" aria-label="Collapse sidebar" title="Collapse sidebar"><i class="fas fa-angles-left" aria-hidden="true"></i></button></div>
+            <nav class="sidebar-nav">
+                <a href="{% url 'exams:student_dashboard' %}" class="sidebar-link{% if request.resolver_match.url_name == 'student_dashboard' %} active{% endif %}" title="Dashboard"{% if request.resolver_match.url_name == 'student_dashboard' %} aria-current="page"{% endif %}><i class="fas fa-house" aria-hidden="true"></i><span class="sidebar-label">Dashboard</span></a>
+                <a href="{% url 'careers:dashboard' %}" class="sidebar-link" title="Career prep"><i class="fas fa-route" aria-hidden="true"></i><span class="sidebar-label">Career prep</span></a>
+                <a href="{% url 'exams:exam_list' %}" class="sidebar-link{% if request.resolver_match.url_name != 'student_dashboard' and request.resolver_match.url_name != 'profile_settings' %} active{% endif %}" title="Exam practice"{% if request.resolver_match.url_name != 'student_dashboard' and request.resolver_match.url_name != 'profile_settings' %} aria-current="page"{% endif %}><i class="fas fa-file-pen" aria-hidden="true"></i><span class="sidebar-label">Exam practice</span></a>
+            </nav>
+            <div class="sidebar-footer dropup"><button class="sidebar-user" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="{{ user.get_full_name|default:user.username }}"><span class="sidebar-avatar" aria-hidden="true">{{ user.username|first|upper }}</span><span class="sidebar-label sidebar-user-text"><span class="sidebar-username">{{ user.get_full_name|default:user.username }}</span><span class="sidebar-user-sub">Account and help</span></span><i class="fas fa-ellipsis-vertical sidebar-label sidebar-user-more" aria-hidden="true"></i></button><ul class="dropdown-menu sidebar-menu"><li><a class="dropdown-item" href="{% url 'exams:profile_settings' %}"><i class="fas fa-user-gear" aria-hidden="true"></i> Settings</a></li><li><hr class="dropdown-divider"></li><li><a class="dropdown-item" href="{% url 'about' %}"><i class="fas fa-circle-info" aria-hidden="true"></i> About us</a></li><li><a class="dropdown-item" href="{% url 'contact' %}"><i class="fas fa-envelope" aria-hidden="true"></i> Contact</a></li><li><hr class="dropdown-divider"></li><li><form method="post" action="{% url 'logout' %}" class="m-0">{% csrf_token %}<button class="dropdown-item" type="submit"><i class="fas fa-right-from-bracket" aria-hidden="true"></i> Log out</button></form></li></ul></div>
+        </aside>
+        <main id="exam-main" class="main-content exam-dashboard-content">
+            {% if messages %}{% for message in messages %}<div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags|default:'info' }}{% endif %} alert-dismissible fade show" role="alert">{{ message }}<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button></div>{% endfor %}{% endif %}
+    {% else %}
+    {% if request.resolver_match.namespace == 'exams' and request.resolver_match.url_name not in 'cancel_interview edit_interview interview_feedback interview_form interviewer_dashboard join_interview reschedule_interview view_interview' %}
     <header class="exam-site-header">
-        <nav class="navbar navbar-expand-lg navbar-dark exam-site-navbar">
-            <div class="container">
-                <a class="navbar-brand position-relative" href="{% url 'home' %}" aria-label="TechPhile.ai home">
-                    <img src="{% static 'images/logo-nav.png' %}" alt="TechPhile.ai">
+        <div class="exam-nav-container">
+            <nav class="exam-navbar navbar navbar-expand-lg navbar-dark" aria-label="Exam practice navigation">
+                <a class="exam-brand edu-logo-text" href="{% url 'home' %}" aria-label="TechPhile.ai home">
+                    <img src="{% static 'images/logo-tp.png' %}" alt="" class="logo-tp-img">
+                    <span class="logo-text-group"><span class="text-tech">TECH</span><span class="text-phile">PHILE</span><span class="text-ai-badge">AI</span></span>
                 </a>
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNavbar" aria-controls="mainNavbar" aria-expanded="false" aria-label="Toggle navigation">
+                <button class="navbar-toggler border-0 shadow-none" type="button" data-bs-toggle="collapse" data-bs-target="#examNav" aria-controls="examNav" aria-expanded="false" aria-label="Toggle navigation">
                     <span class="navbar-toggler-icon"></span>
                 </button>
-                <div class="collapse navbar-collapse" id="mainNavbar">
-                    {% url 'careers:dashboard' as careers_dashboard_url %}
-                    <ul class="navbar-nav ms-auto">
-                        <li class="nav-item"><a class="nav-link {% if request.path == '/' %}active{% endif %}" href="{% url 'home' %}"><i class="fas fa-home me-1"></i>Home</a></li>
-                        {% if features.coding %}
-                        <li class="nav-item"><a class="nav-link {% if 'coding' in request.path %}active{% endif %}" href="{% url 'home_page_coding' %}"><i class="fas fa-laptop-code me-1"></i>Coding</a></li>
+                <div class="collapse navbar-collapse" id="examNav">
+                    <ul class="navbar-nav ms-auto align-items-lg-center gap-lg-2">
+                        <li class="nav-item"><a class="exam-nav-link nav-link{% if request.resolver_match.namespace == 'exams' and request.resolver_match.url_name != 'student_dashboard' and request.resolver_match.url_name != 'profile_settings' %} active{% endif %}" href="{% url 'exams:exam_list' %}"{% if request.resolver_match.namespace == 'exams' and request.resolver_match.url_name != 'student_dashboard' and request.resolver_match.url_name != 'profile_settings' %} aria-current="page"{% endif %}>Exam practice</a></li>
+                        <li class="nav-item"><a class="exam-nav-link nav-link{% if request.resolver_match.url_name == 'student_dashboard' %} active{% endif %}" href="{% url 'exams:student_dashboard' %}"{% if request.resolver_match.url_name == 'student_dashboard' %} aria-current="page"{% endif %}>Dashboard</a></li>
+                        <li class="nav-item"><a class="exam-nav-link nav-link" href="{% url 'careers:dashboard' %}">Career prep</a></li>
+                        {% if user.is_authenticated %}
+                            <li class="nav-item dropdown ms-lg-2">
+                                <button class="exam-user-menu nav-link dropdown-toggle d-flex align-items-center gap-2" id="examUserMenu" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <span class="exam-user-avatar" aria-hidden="true">{{ user.username|first|upper }}</span><span>{{ user.get_full_name|default:user.username }}</span>
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-end shadow" aria-labelledby="examUserMenu">
+                                    <li><a class="dropdown-item" href="{% url 'exams:profile_settings' %}">Account settings</a></li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li><form method="post" action="{% url 'logout' %}" class="m-0">{% csrf_token %}<button class="dropdown-item" type="submit">Log out</button></form></li>
+                                </ul>
+                            </li>
+                        {% else %}
+                            <li class="nav-item"><a class="exam-nav-link nav-link" href="{% url 'login' %}">Sign in</a></li>
+                            <li class="nav-item"><a class="exam-nav-cta nav-link" href="{% url 'signup' %}">Create account</a></li>
                         {% endif %}
-                        <li class="nav-item"><a class="nav-link {% if '/careers/' in request.path %}active{% endif %}" href="{% url 'careers:role_list' %}"><i class="fas fa-route me-1"></i>Career Prep</a></li>
-                        {% if user.is_authenticated and careers_dashboard_url %}
-                        <li class="nav-item"><a class="nav-link {% if request.resolver_match.namespace == 'careers' and request.resolver_match.url_name == 'dashboard' %}active{% endif %}" href="{{ careers_dashboard_url }}"><i class="fas fa-chart-pie me-1"></i>Career Dashboard</a></li>
-                        {% endif %}
-                        <li class="nav-item dropdown">
-                            <button class="nav-link dropdown-toggle border-0 bg-transparent {% if request.resolver_match.namespace == 'exams' %}active{% endif %}" type="button" id="assessmentsDropdown" data-bs-toggle="dropdown" aria-expanded="false"><i class="fas fa-tasks me-1"></i>Assessments</button>
-                            <div class="dropdown-menu dropdown-menu-end" aria-labelledby="assessmentsDropdown">
-                                <h6 class="dropdown-header">Exam Preparation</h6>
-                                <a class="dropdown-item" href="{% url 'exams:exam_list' %}"><i class="fas fa-file-alt me-2"></i>Mock Exams</a>
-                                <a class="dropdown-item" href="{% url 'exams:student_dashboard' %}"><i class="fas fa-chart-bar me-2"></i>Exam Dashboard</a>
-                                <div class="dropdown-divider"></div>
-                                <h6 class="dropdown-header">Company Info</h6>
-                                <a class="dropdown-item" href="{% url 'about' %}"><i class="fas fa-info-circle me-2"></i>About Us</a>
-                                <a class="dropdown-item" href="{% url 'services' %}"><i class="fas fa-cogs me-2"></i>Services</a>
-                                <a class="dropdown-item" href="{% url 'contact' %}"><i class="fas fa-envelope me-2"></i>Contact</a>
-                            </div>
-                        </li>
-                        <li class="nav-item dropdown ms-lg-2">
-                            <button class="nav-link dropdown-toggle d-flex align-items-center border-0 bg-transparent" type="button" id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Open account menu">
-                                {% if user.is_authenticated %}
-                                    {% if user.profile.photo %}<img src="{{ user.profile.photo.url }}" class="rounded-circle me-2" width="36" height="36" alt="User avatar">
-                                    {% else %}<span class="avatar-circle me-2">{{ user.username|first|upper }}</span>{% endif %}
-                                    <span>{{ user.get_full_name|default:user.username }}</span>
-                                {% else %}<i class="fas fa-user-circle me-1"></i>User{% endif %}
-                            </button>
-                            <div class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
-                                {% if user.is_authenticated %}
-                                    <a class="dropdown-item" href="{% url 'exams:profile_settings' %}"><i class="fas fa-user me-2"></i>Profile</a>
-                                    <a class="dropdown-item" href="{% url 'exams:student_dashboard' %}"><i class="fas fa-chart-bar me-2"></i>Exam Dashboard</a>
-                                    {% if careers_dashboard_url %}<a class="dropdown-item" href="{{ careers_dashboard_url }}"><i class="fas fa-route me-2"></i>Career Prep Dashboard</a>{% endif %}
-                                    <div class="dropdown-divider"></div>
-                                    <form method="post" action="{% url 'logout' %}">{% csrf_token %}<button type="submit" class="dropdown-item"><i class="fas fa-sign-out-alt me-2"></i>Logout</button></form>
-                                {% else %}
-                                    <a class="dropdown-item" href="{% url 'login' %}"><i class="fas fa-sign-in-alt me-2"></i>Login</a>
-                                    <a class="dropdown-item" href="{% url 'signup' %}"><i class="fas fa-user-plus me-2"></i>Register</a>
-                                {% endif %}
-                            </div>
-                        </li>
                     </ul>
                 </div>
-            </div>
-        </nav>
-    </header>
-
-    <main class="container py-4">
-        <div class="main-content">
-            {% block content %}{% endblock %}
+            </nav>
         </div>
+    </header>
+    {% else %}
+    <header class="exam-site-header" style="background-color: var(--tp-navy); border-bottom: 1px solid rgba(255,255,255,0.1);">
+        <div class="tp-container">
+            <nav class="navbar navbar-expand-lg navbar-dark py-0" style="min-height: 72px;">
+                <a class="navbar-brand d-flex align-items-center py-2" href="{% url 'home' %}"><img src="{% static 'images/logo-nav.png' %}" alt="TechPhile.ai" style="height: 40px; width: auto;"></a>
+                <button class="navbar-toggler border-0 shadow-none" type="button" data-bs-toggle="collapse" data-bs-target="#examNav" aria-controls="examNav" aria-expanded="false" aria-label="Toggle navigation"><span class="navbar-toggler-icon"></span></button>
+                <div class="collapse navbar-collapse" id="examNav"><ul class="navbar-nav ms-auto mb-2 mb-lg-0 align-items-lg-center gap-2">
+                    <li class="nav-item"><a class="nav-link text-white" href="{% url 'exams:exam_list' %}">Mock Exams</a></li>
+                    <li class="nav-item"><a class="nav-link text-white" href="{% url 'exams:student_dashboard' %}">Dashboard</a></li>
+                    <li class="nav-item"><a class="nav-link text-white" href="{% url 'careers:role_list' %}">Career Prep</a></li>
+                    {% if user.is_authenticated %}<li class="nav-item dropdown ms-lg-3"><a class="nav-link dropdown-toggle text-white d-flex align-items-center gap-2" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false"><span class="rounded-circle d-flex align-items-center justify-content-center bg-primary text-white" style="width:32px;height:32px;font-size:.85rem;font-weight:600">{{ user.username|first|upper }}</span></a><ul class="dropdown-menu dropdown-menu-end shadow"><li><a class="dropdown-item" href="{% url 'exams:profile_settings' %}">Settings</a></li><li><hr class="dropdown-divider"></li><li><a class="dropdown-item text-danger" href="{% url 'logout' %}">Log out</a></li></ul></li>{% endif %}
+                </ul></div>
+            </nav>
+        </div>
+    </header>
+    {% endif %}
+    <main id="exam-main" class="exam-main">
+    {% endif %}
+        {% block content %}{% endblock %}
     </main>
-
-    {% include 'includes/site_footer.html' %}
-
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="{% static 'js/profile-preferences.js' %}"></script>
+    {% if request.resolver_match.namespace == 'exams' and request.resolver_match.url_name not in 'cancel_interview edit_interview interview_feedback interview_form interviewer_dashboard join_interview reschedule_interview view_interview' and user.is_authenticated %}
+    </div>
+    {% else %}{% include 'includes/site_footer.html' %}{% endif %}
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    {% if request.resolver_match.namespace == 'exams' and request.resolver_match.url_name not in 'cancel_interview edit_interview interview_feedback interview_form interviewer_dashboard join_interview reschedule_interview view_interview' and user.is_authenticated %}
+    <script>
+    (function(){var sidebar=document.getElementById('appSidebar'),root=document.documentElement,openButton=document.getElementById('sidebarOpen'),scrim=document.getElementById('sidebarScrim'),collapseButton=document.getElementById('sidebarCollapse');if(!sidebar)return;function setOpen(open){sidebar.classList.toggle('show',open);scrim.classList.toggle('show',open);openButton.setAttribute('aria-expanded',open)}openButton.addEventListener('click',function(){setOpen(!sidebar.classList.contains('show'))});scrim.addEventListener('click',function(){setOpen(false)});document.addEventListener('keydown',function(event){if(event.key==='Escape')setOpen(false)});function updateCollapseLabel(){var collapsed=root.classList.contains('sidebar-collapsed');collapseButton.setAttribute('aria-label',collapsed?'Expand sidebar':'Collapse sidebar');collapseButton.title=collapsed?'Expand sidebar':'Collapse sidebar'}collapseButton.addEventListener('click',function(){var collapsed=root.classList.toggle('sidebar-collapsed');try{localStorage.setItem('tp-sidebar',collapsed?'collapsed':'expanded')}catch(error){}updateCollapseLabel()});updateCollapseLabel()})();
+    </script>
+    {% endif %}
     {% block extra_js %}{% endblock %}
 </body>
 </html>

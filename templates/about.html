@@ -1,318 +1,52 @@
 {% extends 'base.html' %}
-{% load static %}
 
-{% block title %} About Us {% endblock %}
+{% block title %}About TechPhile.ai | Build Your IT Career{% endblock %}
 
-{% block contents %}
-<style>
-    /* About Hero Section */
-    .about-hero {
-        background: linear-gradient(135deg, #3a86ff, #4361ee);
-        padding: 120px 0 80px;
-        text-align: center;
-        color: white;
-        position: relative;
-        overflow: hidden;
-    }
+{% block content %}
+<div class="public-page public-about">
+    <section class="public-hero">
+        <div class="container">
+            <div class="row align-items-center g-5">
+                <div class="col-lg-8">
+                    <span class="public-eyebrow"><i class="fas fa-compass" aria-hidden="true"></i> About TechPhile.ai</span>
+                    <h1>Turn your learning into your next IT career move.</h1>
+                    <p class="public-hero-copy">TechPhile.ai helps graduates prepare for IT careers and helps working developers grow into their next roles. Learn with a plan, practise what you learn, and build confidence for the work ahead.</p>
+                    <div class="d-flex flex-wrap gap-3 mt-4">
+                        <a href="{% url 'careers:role_list' %}" class="edu-btn edu-btn-primary">Explore career paths <i class="fas fa-arrow-right ms-1" aria-hidden="true"></i></a>
+                        <a href="{% url 'contact' %}" class="public-secondary-btn">Talk to our team</a>
+                    </div>
+                </div>
+                <div class="col-lg-4 d-none d-lg-block">
+                    <div class="about-hero-card">
+                        <span class="about-hero-icon"><i class="fas fa-route" aria-hidden="true"></i></span>
+                        <span class="about-hero-kicker">Progress with purpose</span>
+                        <strong>Learn <i class="fas fa-arrow-right" aria-hidden="true"></i> Practice <i class="fas fa-arrow-right" aria-hidden="true"></i> Grow</strong>
+                        <span class="about-hero-rule"></span>
+                        <span class="about-hero-caption">A practical route from your current skills to your next role.</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
 
-    .about-hero h2 {
-        font-size: 3rem;
-        font-weight: 700;
-        margin-bottom: 20px;
-        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
-    }
+    <section class="container public-content-section">
+        <div class="public-section-heading">
+            <span class="public-eyebrow">Why TechPhile.ai</span>
+            <h2>Career preparation built around how you grow</h2>
+            <p>Whether you are starting out or already working in technology, build the skills and practice habits your next step calls for.</p>
+        </div>
+        <div class="row g-4">
+            <div class="col-md-4"><article class="public-step-card"><span class="public-step-number"><i class="fas fa-bullseye" aria-hidden="true"></i></span><h3>Prepare for a specific role</h3><p>Explore role-focused paths, including data science, with learning topics arranged into manageable daily steps.</p></article></div>
+            <div class="col-md-4"><article class="public-step-card"><span class="public-step-number"><i class="fas fa-people-group" aria-hidden="true"></i></span><h3>Practise for real situations</h3><p>Work through practical questions and scenarios shaped by the kinds of challenges developers and interviewers encounter.</p></article></div>
+            <div class="col-md-4"><article class="public-step-card"><span class="public-step-number"><i class="fas fa-chart-line" aria-hidden="true"></i></span><h3>Keep building your depth</h3><p>Strengthen your foundations, identify areas to improve, and keep developing as your role and the industry evolve.</p></article></div>
+        </div>
 
-    .about-hero p {
-        font-size: 1.2rem;
-        max-width: 800px;
-        margin: 0 auto 30px;
-        line-height: 1.8;
-    }
+        <div class="row g-4 align-items-stretch mt-3">
+            <div class="col-lg-7"><article class="public-step-card"><span class="public-eyebrow">Our mission</span><h2 class="h3 mt-2">Help people move forward in technology</h2><p>We aim to make structured IT career learning accessible: clear development skills, useful practice, and progress checks that help learners understand what they know and what to work on next. From graduate to IT professional, and from developer to a more capable specialist, each step should have a plan.</p></article></div>
+            <div class="col-lg-5"><article class="public-step-card"><span class="public-eyebrow">Based in Bengaluru</span><h2 class="h3 mt-2">Built for continuous learning</h2><p>TechPhile.ai is based in Bengaluru, India. We continue to improve our learning experience as technology roles and industry expectations change.</p></article></div>
+        </div>
 
-    /* Mission Section */
-    .mission-section {
-        padding: 80px 0;
-        background-color: #f8f9fa;
-    }
-
-    .mission-card {
-        background: white;
-        border-radius: 15px;
-        padding: 30px;
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
-        height: 100%;
-        transition: transform 0.3s ease, box-shadow 0.3s ease;
-    }
-
-    .mission-card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
-    }
-
-    .mission-card i {
-        font-size: 2.5rem;
-        color: #4361ee;
-        margin-bottom: 20px;
-    }
-
-    .mission-card h3 {
-        color: #1a1a2e;
-        font-weight: 600;
-        margin-bottom: 15px;
-    }
-
-    /* Team Section */
-    .team-section {
-        padding: 80px 0;
-        background: linear-gradient(to bottom, #f8f9fa 0%, white 100%);
-    }
-
-    .team-member {
-        text-align: center;
-        margin-bottom: 30px;
-    }
-
-    .team-img {
-        width: 180px;
-        height: 180px;
-        border-radius: 50%;
-        object-fit: cover;
-        border: 5px solid white;
-        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
-        margin-bottom: 20px;
-        transition: transform 0.3s ease;
-    }
-
-    .team-member:hover .team-img {
-        transform: scale(1.05);
-    }
-
-    .team-member h4 {
-        color: #1a1a2e;
-        font-weight: 600;
-        margin-bottom: 5px;
-    }
-
-    .team-member p {
-        color: #4361ee;
-        font-weight: 500;
-    }
-
-    .social-links {
-        margin-top: 15px;
-    }
-
-    .social-links a {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        width: 35px;
-        height: 35px;
-        background: rgba(67, 97, 238, 0.1);
-        border-radius: 50%;
-        color: #4361ee;
-        margin: 0 5px;
-        transition: all 0.3s ease;
-    }
-
-    .social-links a:hover {
-        background: #4361ee;
-        color: white;
-        transform: translateY(-3px);
-    }
-
-    /* Stats Section */
-    .stats-section {
-        padding: 60px 0;
-        background: #4361ee;
-        color: white;
-        text-align: center;
-    }
-
-    .stat-item {
-        padding: 20px;
-    }
-
-    .stat-number {
-        font-size: 3rem;
-        font-weight: 700;
-        margin-bottom: 10px;
-    }
-
-    .stat-label {
-        font-size: 1.1rem;
-        opacity: 0.9;
-    }
-
-    /* Values Section */
-    .values-section {
-        padding: 80px 0;
-        background-color: white;
-    }
-
-    .value-item {
-        display: flex;
-        align-items: flex-start;
-        margin-bottom: 30px;
-    }
-
-    .value-icon {
-        flex-shrink: 0;
-        width: 60px;
-        height: 60px;
-        background: rgba(67, 97, 238, 0.1);
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        margin-right: 20px;
-        color: #4361ee;
-        font-size: 1.5rem;
-    }
-
-    .value-content h4 {
-        color: #1a1a2e;
-        font-weight: 600;
-        margin-bottom: 10px;
-    }
-
-    .value-content p {
-        color: #666;
-        line-height: 1.7;
-    }
-</style>
-
-
-<div class="about-hero">
-    <div class="container">
-        <h2 class="animate__animated animate__fadeInDown">About TechPhile.ai</h2>
-        <p class="animate__animated animate__fadeInUp animate__delay-0-5s">TechPhile.ai brings together role-based learning paths, practice questions, and subject exams to support focused technology learning and career preparation.</p>
-    <a href="#our-story" class="btn btn-outline-light btn-lg mt-3 animate__animated animate__fadeInUp animate__delay-2s">
-            Our Story
-        </a>
-    </div>
+        <div class="public-bottom-cta"><div><h2>Choose a direction and start learning</h2><p>Explore a career path and build a steady practice routine.</p></div><a href="{% url 'careers:role_list' %}" class="edu-btn edu-btn-primary">Explore career paths <i class="fas fa-arrow-right ms-1" aria-hidden="true"></i></a></div>
+    </section>
 </div>
-
-<section class="mission-section" id="our-story">
-    <div class="container">
-        <div class="row">
-            <div class="col-lg-4 mb-4 animate__animated animate__fadeIn">
-                <div class="mission-card">
-                    <i class="fas fa-bullseye"></i>
-                    <h3>Our Mission</h3>
-                    <p>Make technology learning and career preparation easier to navigate through structured lessons and practice.</p>
-                </div>
-            </div>
-            <div class="col-lg-4 mb-4 animate__animated animate__fadeIn animate__delay-0-2s">
-                <div class="mission-card">
-                    <i class="fas fa-eye"></i>
-                    <h3>Our Vision</h3>
-                    <p>Help learners find a clear next step as they build knowledge, practice, and review their progress.</p>
-                </div>
-            </div>
-            <div class="col-lg-4 mb-4 animate__animated animate__fadeIn animate__delay-0-4s">
-                <div class="mission-card">
-                    <i class="fas fa-handshake"></i>
-                    <h3>Our Approach</h3>
-                    <p>Our platform brings role-based learning paths, practice questions, and subject exams into one place.</p>
-                </div>
-            </div>
-        </div>
-    </div>
-</section>
-
-<section class="team-section">
-    <div class="container">
-        <div class="text-center mb-5">
-            <h2 class="animate__animated animate__fadeIn">Meet Our Team</h2>
-            <p class="animate__animated animate__fadeIn animate__delay-0-2s">The dedicated professionals behind TechPhile.ai</p>
-        </div>
-        
-        <div class="row">
-            <div class="col-md-4 animate__animated animate__fadeInUp">
-                <div class="team-member">
-                    <!-- <img src="{% static 'images/team1.jpg' %}" alt="Team Member" class="team-img"> -->
-                    <h4>Niranjan Batana</h4>
-                    <p>Tibco Developer</p>
-                    
-                </div>
-            </div>
-            <div class="col-md-4 animate__animated animate__fadeInUp animate__delay-0-2s">
-                <div class="team-member">
-                    <!-- <img src="{% static 'images/team2.jpg' %}" alt="Team Member" class="team-img"> -->
-                    <h4>Yogesh Mahajan</h4>
-                    <p>ML Engineering Lead</p>
-                    
-                </div>
-            </div>
-            <div class="col-md-4 animate__animated animate__fadeInUp animate__delay-0-4s">
-                <div class="team-member">
-                    <!-- <img src="{% static 'images/team3.jpg' %}" alt="Team Member" class="team-img"> -->
-                    <h4>Kiran Darapu</h4>
-                    <p>Career Development Specialist & Testing Developer</p>
-                    
-                </div>
-            </div>
-        </div>
-    </div>
-</section>
-
-
-
-<section class="values-section">
-    <div class="container">
-        <div class="text-center mb-5">
-            <h2 class="animate__animated animate__fadeIn">Our Core Values</h2>
-            <p class="animate__animated animate__fadeIn animate__delay-0-2s">Principles that guide everything we do</p>
-        </div>
-        
-        <div class="row">
-            <div class="col-lg-6 animate__animated animate__fadeInUp">
-                <div class="value-item">
-                    <div class="value-icon">
-                        <i class="fas fa-lightbulb"></i>
-                    </div>
-                    <div class="value-content">
-                        <h4>Innovation</h4>
-                        <p>We constantly push boundaries to develop cutting-edge solutions that address real-world challenges in job preparation.</p>
-                    </div>
-                </div>
-            </div>
-            <div class="col-lg-6 animate__animated animate__fadeInUp animate__delay-0-2s">
-                <div class="value-item">
-                    <div class="value-icon">
-                        <i class="fas fa-chart-line"></i>
-                    </div>
-                    <div class="value-content">
-                        <h4>Accuracy</h4>
-                        <p>We maintain rigorous standards in our training and feedback processes to ensure our candidates are well-prepared.</p>
-                    </div>
-                </div>
-            </div>
-            <div class="col-lg-6 animate__animated animate__fadeInUp animate__delay-0-4s">
-                <div class="value-item">
-                    <div class="value-icon">
-                        <i class="fas fa-users"></i>
-                    </div>
-                    <div class="value-content">
-                        <h4>Collaboration</h4>
-                        <p>We believe in working closely with our candidates to understand their unique needs and challenges, ensuring our solutions deliver maximum value.</p>
-                    </div>
-                </div>
-            </div>
-            <div class="col-lg-6 animate__animated animate__fadeInUp animate__delay-0-6s">
-                <div class="value-item">
-                    <div class="value-icon">
-                        <i class="fas fa-lock"></i>
-                    </div>
-                    <div class="value-content">
-                        <h4>Integrity</h4>
-                        <p>We are committed to ethical practices, transparent methodologies, and honest communication in all our interactions.</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</section>
-
 {% endblock %}

@@ -1,60 +1,118 @@
-{% extends "exams/exam_base.html" %}
+{% extends "base.html" %}
 {% load static %}
 
-{% block title %}Exam dashboard | TechPhile.ai{% endblock %}
+{% block title %}Exam Dashboard | TechPhile.ai{% endblock %}
 
 {% block content %}
-{% url 'careers:dashboard' as careers_dashboard_url %}
-{% url 'careers:role_list' as careers_role_list_url %}
-{% firstof careers_dashboard_url careers_role_list_url as careers_entry_url %}
-<link rel="stylesheet" href="{% static 'css/learner-dashboards.css' %}">
-<main class="learner-dashboard exam-dashboard" data-dashboard-view="{{ dashboard_view|default:'default' }}">
-    <header class="ld-page-head">
-        <div><h1>Dashboard overview</h1><p>Quickly review your exam results and choose what to practise next.</p></div>
-        {% if careers_entry_url %}<div class="ld-actions"><a href="{{ careers_entry_url }}"><i class="fas fa-route me-1" aria-hidden="true"></i>Career prep dashboard</a></div>{% endif %}
+<div class="learner-dashboard">
+
+    <header class="ld-header">
+        <div>
+            <h1>Welcome back, {{ user.first_name|default:user.username }}</h1>
+            <p>{% if attempts %}Pick up where you left off.{% else %}Start your first practice exam to see your progress here.{% endif %}</p>
+        </div>
+        <a href="{% url 'careers:dashboard' %}" class="ld-btn ld-btn-outline">
+            <i class="fas fa-route"></i> Career prep
+        </a>
     </header>
 
-    <div class="ld-dashboard-grid">
-        <section class="ld-feature" aria-label="Average of your five latest scored exams">
-            <div><span class="ld-feature-kicker">Latest five exam average</span>
-                {% if last_five_average != None %}<strong class="ld-feature-value">{{ last_five_average|floatformat:0 }}%</strong><p class="ld-feature-caption">Average score across your latest five completed attempts{% if last_five_average < 70 %} · Keep practising to build confidence{% else %} · Keep up your preparation{% endif %}</p>
-                {% else %}<strong class="ld-feature-value">Ready when you are</strong><p class="ld-feature-caption">Complete a scored exam to see your result summary.</p>{% endif %}
+    <section class="ld-hero">
+        <div class="ld-hero-content">
+            <h2>Preparation overview</h2>
+            <p>
+                {% if last_five_average != None %}
+                    Your average across your last five completed exams is {{ last_five_average|floatformat:0 }}%.
+                    {% if last_five_average < 70 %}Keep practising to build confidence.{% else %}Great preparation, keep it up.{% endif %}
+                {% else %}
+                    Complete a scored exam to see your result summary and performance insights here.
+                {% endif %}
+            </p>
+            <a href="{% url 'exams:exam_list' %}" class="ld-btn ld-btn-light">
+                Practice now <i class="fas fa-arrow-right"></i>
+            </a>
+        </div>
+
+        <div class="ld-hero-stats">
+            <div class="ld-hero-stat">
+                <strong>{% if avg_score != None %}{{ avg_score|floatformat:0 }}%{% else %}0%{% endif %}</strong>
+                <span>Overall average</span>
             </div>
-            <a class="btn" href="{% url 'exams:exam_list' %}">Practise now <i class="fas fa-arrow-right ms-1" aria-hidden="true"></i></a>
-        </section>
-        <section class="ld-stat-grid" aria-label="Exam performance metrics">
-            <article class="ld-stat"><div class="ld-stat-top"><span>Overall average</span><span class="ld-stat-icon"><i class="fas fa-chart-line" aria-hidden="true"></i></span></div><div><strong class="ld-stat-value">{% if avg_score != None %}{{ avg_score|floatformat:0 }}%{% else %}—{% endif %}</strong><p class="ld-stat-note">Across completed scored attempts</p></div></article>
-            <article class="ld-stat"><div class="ld-stat-top"><span>Completed exams</span><span class="ld-stat-icon green"><i class="fas fa-circle-check" aria-hidden="true"></i></span></div><div><strong class="ld-stat-value">{{ completed_attempts }}</strong><p class="ld-stat-note">Scored attempts recorded</p></div></article>
-            <article class="ld-stat"><div class="ld-stat-top"><span>Best result</span><span class="ld-stat-icon amber"><i class="fas fa-trophy" aria-hidden="true"></i></span></div><div><strong class="ld-stat-value">{% if highest_score != None %}{{ highest_score|floatformat:0 }}%{% else %}—{% endif %}</strong><p class="ld-stat-note">{% if highest_score_exam %}{{ highest_score_exam }}{% else %}No scored attempts yet{% endif %}</p></div></article>
-        </section>
-    </div>
-
-    <div class="ld-content-grid">
-        <section class="ld-panel" aria-labelledby="exam-score-history-heading">
-            <div class="ld-panel-head"><div><h2 id="exam-score-history-heading">Recent exam results</h2><p class="ld-panel-subtitle">Your six latest completed scored attempts, oldest to newest. Scores use a 0–100% scale.</p></div></div>
-            {% if exam_chart %}<figure class="mb-0" aria-labelledby="exam-score-history-heading">
-                <svg class="ld-score-chart" viewBox="0 0 {{ exam_chart_width }} 230" role="img" aria-label="Bar chart of recent exam scores">
-                    <title>Recent exam scores</title><desc>Bars compare actual scores from your latest completed attempts; the labelled list gives each exam and date.</desc>
-                    {% for tick in exam_chart_ticks %}<line class="ld-score-chart-grid" x1="48" x2="708" y1="{{ tick.y }}" y2="{{ tick.y }}"></line><text class="ld-score-chart-axis" x="40" y="{{ tick.y|add:4 }}" text-anchor="end">{{ tick.value }}%</text>{% endfor %}
-                    {% for item in exam_chart %}<rect class="ld-score-chart-bar" x="{{ item.x }}" y="{{ item.y }}" width="{{ item.width }}" height="{{ item.height }}" rx="6"><title>{{ item.attempt.exam.title }}: {{ item.attempt.score|floatformat:1 }}%</title></rect><text class="ld-score-chart-axis" x="{{ item.center }}" y="207" text-anchor="middle">{{ item.index }}</text>{% endfor %}
-                </svg>
-                <ol class="ld-chart-legend">{% for item in exam_chart %}<li><span class="ld-name">{{ item.index }}. {{ item.attempt.exam.title }} · {{ item.attempt.completed_at|date:"M j" }}</span><strong>{{ item.attempt.score|floatformat:0 }}%</strong></li>{% endfor %}</ol>
-            </figure>{% else %}<div class="ld-empty">Complete a scored exam to see your results here.<br><a href="{% url 'exams:exam_list' %}">Browse available exams</a></div>{% endif %}
-        </section>
-
-        <section class="ld-panel" aria-labelledby="category-performance-heading">
-            <div class="ld-panel-head"><div><h2 id="category-performance-heading">Subject performance</h2><p class="ld-panel-subtitle">Average score by exam category.</p></div></div>
-            {% for category in category_stats %}<div class="ld-progress-row"><div class="ld-progress-label"><span>{{ category.exam__category__name|default:"Uncategorized" }}</span><strong>{{ category.avg_score|floatformat:0 }}%</strong></div><div class="ld-track" role="progressbar" aria-label="{{ category.exam__category__name|default:'Uncategorized' }} average exam score" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{ category.avg_score|floatformat:0 }}"><span style="width:{{ category.avg_score }}%"></span></div><p class="ld-panel-subtitle mt-1">{{ category.total }} completed attempt{{ category.total|pluralize }}</p></div>
-            {% empty %}<div class="ld-empty">Subject summaries will appear after you complete an exam.</div>{% endfor %}
-        </section>
-    </div>
-
-    <section class="ld-panel" aria-labelledby="recent-attempts-heading">
-        <div class="ld-panel-head"><div><h2 id="recent-attempts-heading">Recent exam activity</h2><p class="ld-panel-subtitle">{{ total_attempts }} attempt{{ total_attempts|pluralize }} recorded, including unfinished attempts.</p></div><div class="ld-actions"><a href="{% url 'exams:exam_list' %}">Browse exams <i class="fas fa-arrow-right ms-1" aria-hidden="true"></i></a></div></div>
-        <div class="ld-table-wrap"><table class="ld-table"><thead><tr><th>Exam</th><th>Date</th><th>Status</th><th>Score</th></tr></thead><tbody>
-            {% for attempt in attempts %}<tr><td><div class="ld-table-title">{{ attempt.exam.title }}</div></td><td>{% if attempt.completed_at %}{{ attempt.completed_at|date:"M j, Y" }}{% else %}{{ attempt.started_at|date:"M j, Y" }}{% endif %}</td><td>{% if attempt.completed_at %}<span class="ld-badge done">Completed</span>{% else %}<span class="ld-badge review">In progress</span>{% endif %}</td><td>{% if attempt.score != None %}<div class="ld-score"><span>{{ attempt.score|floatformat:0 }}%</span><span class="ld-track"><span style="width:{{ attempt.score }}%"></span></span></div>{% else %}—{% endif %}</td></tr>
-            {% empty %}<tr><td colspan="4"><div class="ld-empty">You have not started an exam yet.</div></td></tr>{% endfor %}
-        </tbody></table></div>
+            <div class="ld-hero-stat">
+                <strong>{{ completed_attempts|default:"0" }}</strong>
+                <span>Exams completed</span>
+            </div>
+            <div class="ld-hero-stat">
+                <strong>{% if highest_score != None %}{{ highest_score|floatformat:0 }}%{% else %}0%{% endif %}</strong>
+                <span>Best result</span>
+            </div>
+        </div>
     </section>
-</main>
+
+    <div class="ld-grid">
+
+        <!-- Recent activity -->
+        <section class="ld-card">
+            <div class="ld-card-header">
+                <h2 class="ld-card-title">Recent exam activity</h2>
+                <a href="{% url 'exams:exam_list' %}" class="ld-link">View all</a>
+            </div>
+
+            {% for attempt in attempts %}
+            <div class="ld-activity-item">
+                <div class="ld-activity-icon {% if attempt.score >= 70 %}green{% elif attempt.score >= 50 %}blue{% else %}amber{% endif %}" aria-hidden="true">
+                    {{ attempt.exam.title|first|upper }}
+                </div>
+                <div class="ld-activity-content">
+                    <h4>{{ attempt.exam.title }}</h4>
+                    <span>
+                        {% if attempt.completed_at %}Completed {{ attempt.completed_at|date:"M j, Y" }}
+                        {% else %}Started {{ attempt.started_at|date:"M j, Y" }}{% endif %}
+                    </span>
+                </div>
+                <div class="ld-activity-action">
+                    {% if attempt.completed_at %}
+                        <span class="ld-score">{{ attempt.score|floatformat:0 }}%</span>
+                        <a href="{% url 'exams:exam_detail' attempt.exam.slug %}" class="ld-btn ld-btn-outline ld-btn-sm">Review</a>
+                    {% else %}
+                        <a href="{% url 'exams:exam_detail' attempt.exam.slug %}" class="ld-btn ld-btn-primary ld-btn-sm">Continue</a>
+                    {% endif %}
+                </div>
+            </div>
+            {% empty %}
+            <div class="ld-empty">
+                <i class="fas fa-clipboard-list"></i>
+                <p>No exam attempts yet. Start practising to track your progress.</p>
+                <a href="{% url 'exams:exam_list' %}" class="ld-btn ld-btn-primary">Browse exams</a>
+            </div>
+            {% endfor %}
+        </section>
+
+        <!-- Side column: real data only -->
+        <div class="ld-stack">
+            {% if completed_attempts %}
+            <section class="ld-card">
+                <div class="ld-card-header">
+                    <h2 class="ld-card-title">Recent scores</h2>
+                </div>
+                {% for attempt in attempts %}{% if attempt.completed_at %}
+                <div class="ld-bar-row">
+                    <span class="ld-bar-name">{{ attempt.exam.title }}</span>
+                    <span class="ld-bar-value">{{ attempt.score|floatformat:0 }}%</span>
+                    <div class="ld-progress-track" role="img" aria-label="{{ attempt.score|floatformat:0 }} percent">
+                        <div class="ld-progress-fill {% if attempt.score >= 70 %}green{% elif attempt.score >= 50 %}{% else %}amber{% endif %}" style="width: {{ attempt.score|floatformat:0 }}%;"></div>
+                    </div>
+                </div>
+                {% endif %}{% endfor %}
+            </section>
+            {% endif %}
+
+            <section class="ld-card ld-next">
+                <h2 class="ld-card-title mb-2">Next step</h2>
+                <p>Build job-ready skills with a guided day-by-day path for your target role.</p>
+                <a href="{% url 'careers:dashboard' %}" class="ld-btn ld-btn-primary">Open career prep <i class="fas fa-arrow-right"></i></a>
+            </section>
+        </div>
+
+    </div>
+</div>
 {% endblock %}

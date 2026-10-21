@@ -1,339 +1,59 @@
 {% extends 'exams/exam_base.html' %}
 {% load static %}
-
-{% block title %}{{ exam.title }} - TechPhile.ai{% endblock %}
-
+{% block title %}{{ exam.title }} | TechPhile.ai{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/app-redesign.css' %}">{% endblock %}
 {% block content %}
-<div class="container py-5">
-    <!-- Exam Header with Gradient and Glass -->
-    <div class="glass-header text-center mb-5 p-5 rounded-4 shadow-lg position-relative overflow-hidden">
-        <div class="position-absolute top-0 start-0 w-100 h-100" style="pointer-events:none;z-index:0;opacity:0.15;background: url('{% static 'images/exam-illustration.jpg' %}') center/cover no-repeat;"></div>
-        <div class="position-relative z-1">
-            <h1 class="display-4 fw-bold mb-3 gradient-text">{{ exam.title }}</h1>
-            <div class="d-flex justify-content-center align-items-center gap-3 mb-4 flex-wrap">
-                <span class="badge bg-{% if exam.level == 'B' %}success{% elif exam.level == 'I' %}primary{% else %}danger{% endif %} bg-opacity-10 text-{% if exam.level == 'B' %}success{% elif exam.level == 'I' %}primary{% else %}danger{% endif %} px-3 py-2 fs-6 shadow-sm">
-                    <i class="fas fa-{% if exam.level == 'B' %}seedling{% elif exam.level == 'I' %}user-graduate{% else %}user-ninja{% endif %} me-2"></i>
-                    {{ exam.get_level_display }} Level
-                </span>
-                <span class="badge bg-secondary bg-opacity-10 text-secondary px-3 py-2 fs-6 shadow-sm">
-                    <i class="fas fa-tag me-2"></i>
-                    {{ exam.category.name }}
-                </span>
-            </div>
-            <p class="lead col-lg-8 mx-auto text-dark-emphasis">{{ exam.description }}</p>
-        </div>
-    </div>
+<div class="exam-workspace exam-detail-workspace">
+    <nav class="ew-breadcrumb" aria-label="Breadcrumb">
+        <a href="{% url 'exams:exam_list' %}">Exam practice</a><span aria-hidden="true">/</span><span aria-current="page">{{ exam.title }}</span>
+    </nav>
 
-    <!-- Exam Details Card with Glassmorphism -->
-    <div class="card border-0 shadow-lg mb-5 overflow-hidden glass-card">
-        <div class="row g-0">
-            <!-- Left Side - Exam Illustration -->
-            <div class="col-md-5 d-none d-md-flex bg-light align-items-center justify-content-center p-4 glass-illustration">
-                <img src="{% static 'images/exam-illustration.jpg' %}" alt="Exam Illustration" class="img-fluid rounded-4 shadow" style="max-height: 300px;">
-            </div>
-            
-            <!-- Right Side - Exam Content -->
-            <div class="col-md-7">
-                <div class="card-body p-4 p-lg-5">
-                    <div class="d-flex align-items-center mb-4">
-                        <span class="icon-circle-gradient me-3">
-                            <i class="fas fa-info-circle"></i>
-                        </span>
-                        <span class="fs-4 fw-bold text-gradient">Exam Overview</span>
-                        <div class="flex-grow-1 ms-3 border-top border-2 border-primary opacity-25"></div>
-                    </div>
-                    
-                    <!-- Stats Grid -->
-                    <div class="row g-3 mb-4">
-                        <div class="col-6">
-                            <div class="p-3 glass-stat text-center">
-                                <div class="icon-stat bg-primary bg-opacity-10 text-primary mb-2 mx-auto">
-                                    <i class="fas fa-list-ol"></i>
-                                </div>
-                                <div class="text-muted small mb-1">Questions</div>
-                                <div class="h3 text-primary">{{ exam.questions.count }}</div>
-                            </div>
-                        </div>
-                        <div class="col-6">
-                            <div class="p-3 glass-stat text-center">
-                                <div class="icon-stat bg-success bg-opacity-10 text-success mb-2 mx-auto">
-                                    <i class="fas fa-clock"></i>
-                                </div>
-                                <div class="text-muted small mb-1">Duration</div>
-                                <div class="h3 text-success">30 min</div>
-                            </div>
-                        </div>
-                        <div class="col-6">
-                            <div class="p-3 glass-stat text-center">
-                                <div class="icon-stat bg-warning bg-opacity-10 text-warning mb-2 mx-auto">
-                                    <i class="fas fa-bullseye"></i>
-                                </div>
-                                <div class="text-muted small mb-1">Passing Score</div>
-                                <div class="h3 text-warning">70%</div>
-                            </div>
-                        </div>
-                        <div class="col-6">
-                            <div class="p-3 glass-stat text-center">
-                                <div class="icon-stat bg-info bg-opacity-10 text-info mb-2 mx-auto">
-                                    <i class="fas fa-redo"></i>
-                                </div>
-                                <div class="text-muted small mb-1">Attempts</div>
-                                <div class="h3 text-info">{{ attempt_count }}</div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                                   <!-- Topics Covered -->
-                    <!--<div class="mb-4">-->
-                        <!--<div class="d-flex align-items-center mb-2">-->
-                            <!--<span class="icon-circle-gradient me-2">-->
-                                <!--<i class="fas fa-book-open"></i>-->
-                            <!--</span>-->
-                            <!--<span class="fw-bold text-gradient fs-5">Topics Covered</span>-->
-                        <!--</div>-->
-                        <!--<div class="d-flex flex-wrap gap-2">-->
-                            <!--{% for topic in exam.topics.all %}-->
-                            <!--<span class="badge bg-primary bg-opacity-10 text-primary">{{ topic.name }}</span>-->
-                            <!--{% endfor %}-->
-                        <!--</div>-->
-                    <!--</div>-->
-                    
-                    <!-- Incomplete Attempt Warning -->
-                    <!--{% if incomplete_attempt %}-->
-                    <!--<div class="alert alert-warning d-flex align-items-center shadow-sm">-->
-                        <!--<i class="fas fa-exclamation-triangle me-3 fs-4"></i>-->
-                        <!--<div>-->
-                            <!--<h5 class="alert-heading mb-1">Incomplete Attempt</h5>-->
-                            <!--You have an unfinished attempt from {{ incomplete_attempt.started_at|timesince }} ago-->
-                        <!--</div>-->
-                    <!--</div>-->
-                    <!--{% endif %}-->
-                    
-                    <!-- Start Button -->
-                    <!--<form method="post" class="mt-4">-->
-                        <!--{% csrf_token %}-->
-                        <!--<button type="submit" class="btn btn-gradient btn-lg w-100 py-3 shadow-sm">-->
-                            <!--<i class="fas fa-{% if incomplete_attempt %}play-circle{% else %}rocket{% endif %} me-2"></i>-->
-                            <!--Start Now-->
-                        <!--</button>-->
-                    <!--</form>-->
+    <header class="ew-detail-hero">
+        <div><p class="ew-eyebrow">{{ exam.category.name }} | SUBJECT PRACTICE</p><h1>{{ exam.title }}</h1><p>{{ exam.description }}</p></div>
+        <div class="ew-detail-meta"><span class="ew-detail-meta-icon"><i class="fas fa-list-check" aria-hidden="true"></i></span><div><strong>{{ exam.questions.count }}</strong><span>available questions</span></div></div>
+    </header>
 
+    {% if incomplete_attempt %}<div class="ew-notice" role="status"><span><i class="fas fa-circle-info" aria-hidden="true"></i></span><p>You have an unfinished attempt. Your saved answers are marked below; choose Continue on a set to resume.</p></div>{% endif %}
+
+    <section class="ew-level-section" aria-labelledby="choose-set-heading">
+        <div class="ew-section-title"><div><p class="ew-eyebrow">PICK UP WHERE YOU WANT</p><h2 id="choose-set-heading">Choose a level and set</h2><p>Answered questions and completed sets are saved, so you can see your progress and continue where you left off.</p></div></div>
+        {% if exam_levels %}
+        <div class="ew-level-list">
+            {% for level in exam_levels %}
+            <details class="ew-level-accordion" {% if forloop.first %}open{% endif %}>
+                <summary>
+                    <span class="ew-level-index">{{ forloop.counter|stringformat:'02d' }}</span>
+                    <span class="ew-level-summary-copy"><strong>{{ level.name|title }}</strong><small>{{ level.completed_count }} of {{ level.sets|length }} sets completed{% if level.in_progress_count %} | {{ level.in_progress_count }} in progress{% endif %} | {{ level.question_count }} questions</small></span>
+                    <span class="ew-level-progress">{{ level.completed_count }}/{{ level.sets|length }}</span><i class="fas fa-chevron-down ew-level-chevron" aria-hidden="true"></i>
+                </summary>
+                <div class="ew-set-grid">
+                    {% for set in level.sets %}
+                        {% if set.completed %}
+                        <article class="ew-set-card is-completed">
+                            <span class="ew-set-icon"><i class="fas fa-check" aria-hidden="true"></i></span>
+                            <span class="ew-set-copy"><strong>Set {{ set.number }}</strong><small>Completed | {{ set.question_count }} questions</small></span>
+                            <span class="ew-set-actions"><a href="{% url 'exams:exam_result' set.result_attempt_id %}">Review</a><a href="{% url 'exams:exam_question' exam.slug level.name set.number set.first_question_order %}?retake=1">Retake</a></span>
+                        </article>
+                        {% else %}
+                        <a class="ew-set-card{% if set.in_progress %} is-in-progress{% endif %}" href="{% url 'exams:exam_question' exam.slug level.name set.number set.start_order %}">
+                            <span class="ew-set-icon"><i class="fas {% if set.in_progress %}fa-play{% else %}fa-layer-group{% endif %}" aria-hidden="true"></i></span>
+                            <span class="ew-set-copy"><strong>Set {{ set.number }}</strong><small>{% if set.in_progress %}In progress | {{ set.answered_count }}/{{ set.question_count }} answered | Continue{% else %}{{ set.question_count }} question{{ set.question_count|pluralize }} | Start practice{% endif %}</small></span>
+                            <span class="ew-set-arrow"><i class="fas fa-arrow-right" aria-hidden="true"></i></span>
+                        </a>
+                        {% endif %}
+                    {% endfor %}
                 </div>
-            </div>
+            </details>
+            {% endfor %}
         </div>
-    </div>
-    
-    <!-- Additional Resources -->
-    <div class="row g-4">
-        <!-- Study Guide -->
-        <div class="col-md-4">
-            <div class="card border-0 shadow-sm h-100 glass-card">
-                <div class="card-body text-center p-4">
-                    <div class="icon-wrapper bg-success bg-opacity-10 text-success rounded-circle mx-auto mb-3">
-                        <i class="fas fa-book fa-lg"></i>
-                    </div>
-                    <h4 class="h5 mb-3">Study Guide</h4>
-                    <ul class="list-unstyled text-muted small mb-3">
-                        <li><i class="fas fa-check-circle text-success me-2"></i>Key concepts explained</li>
-                        <li><i class="fas fa-check-circle text-success me-2"></i>Tips & strategies</li>
-                        <li><i class="fas fa-check-circle text-success me-2"></i>Practice exercises</li>
-                        <li><i class="fas fa-check-circle text-success me-2"></i>Downloadable PDF</li>
-                    </ul>
-                    <a href="{% url 'exams:study_guide' %}" class="btn btn-sm btn-outline-success">View Resources</a>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Your Progress -->
-        <div class="col-md-4">
-            <div class="card border-0 shadow-sm h-100 glass-card">
-                <div class="card-body text-center p-4">
-                    <div class="icon-wrapper bg-primary bg-opacity-10 text-primary rounded-circle mx-auto mb-3">
-                        <i class="fas fa-chart-line fa-lg"></i>
-                    </div>
-                    <h4 class="h5 mb-3">Your Progress</h4>
-                    <div class="mb-2">
-                        <div class="progress" style="height: 10px;">
-                            <div class="progress-bar bg-primary" role="progressbar" style="width: {{ user_progress|default:60 }}%;" aria-valuenow="{{ user_progress|default:60 }}" aria-valuemin="0" aria-valuemax="100"></div>
-                        </div>
-                        <span class="small text-muted">Completed: {{ user_progress|default:60 }}%</span>
-                    </div>
-                    <p class="text-muted mb-3">Track your improvement and see detailed analytics.</p>
-                    <a href="{% url 'exams:user_analytics' %}" class="btn btn-sm btn-outline-primary">View Analytics</a>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Sample Questions -->
-        <div class="col-md-4">
-            <div class="card border-0 shadow-sm h-100 glass-card">
-                <div class="card-body text-center p-4">
-                    <div class="icon-wrapper bg-warning bg-opacity-10 text-warning rounded-circle mx-auto mb-3">
-                        <i class="fas fa-question-circle fa-lg"></i>
-                    </div>
-                    <h4 class="h5 mb-3">Sample Questions</h4>
-                    <div class="mb-3">
-                        <div class="list-group text-start">
-                            <strong>Example:</strong> {{ sample_question|default:"what is web api ?" }}
-                        </div>
-                    </div>
-                    <p class="text-muted mb-3">Try a few sample questions to get familiar with the format.</p>
-                    <button class="btn btn-sm btn-outline-warning" data-bs-toggle="modal" data-bs-target="#sampleQuestionsModal">Try Samples</button>
-                </div>
-            </div>
-        </div>
-    </div>
+        {% else %}
+        <div class="ew-empty"><span aria-hidden="true"><i class="fas fa-book-open"></i></span><h3>No questions published yet</h3><p>Browse other subjects or return to this exam later.</p><a class="edu-btn edu-btn-primary" href="{% url 'exams:exam_list' %}">Browse exams</a></div>
+        {% endif %}
+    </section>
+
+    <section class="ew-related" aria-label="More study tools">
+        <a class="ew-related-link" href="{% url 'exams:study_guide' %}?exam={{ exam.slug }}"><span><i class="fas fa-book-open" aria-hidden="true"></i></span><div><strong>Study guide</strong><small>Get a focused plan for preparing, practicing, and reviewing {{ exam.title }}.</small></div><b aria-hidden="true"><i class="fas fa-arrow-right"></i></b></a>
+        <a class="ew-related-link" href="{% url 'exams:user_analytics' %}"><span><i class="fas fa-chart-line" aria-hidden="true"></i></span><div><strong>Your analytics</strong><small>See completed attempts, scores, and topics to revisit.</small></div><b aria-hidden="true"><i class="fas fa-arrow-right"></i></b></a>
+    </section>
 </div>
-
-<!-- Sample Questions Modal -->
-<div class="modal fade" id="sampleQuestionsModal" tabindex="-1" aria-labelledby="sampleQuestionsModalLabel" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content glass-card">
-      <div class="modal-header">
-        <h5 class="modal-title" id="sampleQuestionsModalLabel"><i class="fas fa-question-circle me-2"></i>Sample Questions</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
-      <div class="modal-body">
-        <ul class="list-group list-group-flush">
-           <li class="list-group-item">
-             <strong>1. What is the correct syntax to import a module in <code>Python</code>?</strong><br>
-             <span class="text-success small">✅ A) import module_name</span><br>
-             <span class="small">B) include module_name</span><br>
-             <span class="small">C) using module_name</span><br>
-             <span class="small">D) load module_name</span>
-           </li>
-         
-           <li class="list-group-item">
-             <strong>2. Which keyword is used to define a function in Python?</strong><br>
-             <span class="text-success small">✅ A) def</span><br>
-             <span class="small">B) function</span><br>
-             <span class="small">C) define</span><br>
-             <span class="small">D) fun</span>
-           </li>
-         
-           <li class="list-group-item">
-             <strong>3. What does HTML stand for?</strong><br>
-             <span class="text-success small">✅ A) HyperText Markup Language</span><br>
-             <span class="small">B) Home Tool Markup Language</span><br>
-             <span class="small">C) Hyperlinks and Text Markup Language</span><br>
-             <span class="small">D) High-level Text Management Language</span>
-           </li>
-         
-           <li class="list-group-item">
-             <strong>4. What is the default port for HTTP?</strong><br>
-             <span class="text-success small">✅ A) 80</span><br>
-             <span class="small">B) 20</span><br>
-             <span class="small">C) 21</span><br>
-             <span class="small">D) 443</span>
-           </li>
-         
-           <li class="list-group-item">
-             <strong>5. Which SQL command is used to retrieve data?</strong><br>
-             <span class="text-success small">✅ A) SELECT</span><br>
-             <span class="small">B) GET</span><br>
-             <span class="small">C) EXTRACT</span><br>
-             <span class="small">D) RETRIEVE</span>
-           </li>
-      </ul>
-
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-gradient" data-bs-dismiss="modal">Close</button>
-      </div>
-    </div>
-  </div>
-</div>
-
-<style>
-.gradient-text {
-    background: linear-gradient(90deg, #4361ee 0%, #4cc9f0 50%, #f72585 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-}
-.glass-header {
-    background: rgba(255,255,255,0.85);
-    backdrop-filter: blur(10px);
-    border-radius: 2rem;
-    box-shadow: 0 8px 32px 0 rgba(67,97,238,0.10);
-}
-.glass-card {
-    background: rgba(255,255,255,0.8) !important;
-    backdrop-filter: blur(8px);
-    border-radius: 1.5rem;
-}
-.glass-illustration {
-    background: linear-gradient(135deg, #e0e7ff 0%, #f8fafc 100%);
-}
-.icon-circle-gradient {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 2.5rem;
-    height: 2.5rem;
-    border-radius: 50%;
-    background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
-    color: #fff;
-    font-size: 1.3rem;
-    box-shadow: 0 2px 8px rgba(67,233,123,0.10);
-}
-.text-gradient {
-    background: linear-gradient(90deg, #43e97b 0%, #38f9d7 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-}
-.glass-stat {
-    background: rgba(255,255,255,0.7) !important;
-    border-radius: 1rem;
-    box-shadow: 0 2px 12px rgba(67,233,123,0.07);
-    padding: 1.5rem 1rem;
-}
-.icon-stat {
-    width: 2.5rem;
-    height: 2.5rem;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.3rem;
-    margin-bottom: 0.5rem;
-}
-.btn-gradient {
-    background: linear-gradient(90deg, #43e97b 0%, #38f9d7 100%);
-    color: #fff;
-    border: none;
-    transition: box-shadow 0.2s, transform 0.2s;
-}
-.btn-gradient:hover {
-    box-shadow: 0 4px 16px rgba(67,233,123,0.18);
-    transform: translateY(-2px) scale(1.03);
-    color: #fff;
-}
-.icon-wrapper {
-    width: 60px;
-    height: 60px;
-    line-height: 60px;
-    font-size: 2rem;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin-bottom: 0.5rem;
-    background: rgba(255,255,255,0.7);
-    box-shadow: 0 2px 8px rgba(67,233,123,0.07);
-    transition: all 0.3s;
-}
-.icon-wrapper:hover {
-    transform: scale(1.1);
-}
-.badge {
-    font-weight: 500;
-    padding: 6px 12px;
-    border-radius: 50px;
-}
-.btn-lg {
-    border-radius: 50px;
-    font-weight: 500;
-}
-</style>
 {% endblock %}

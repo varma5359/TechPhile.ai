@@ -2,6 +2,8 @@
 
 {% block title %}Sample questions · {{ exam.title }} | TechPhile.ai{% endblock %}
 
+{% load static %}
+
 {% block content %}
 <main class="sample-questions-page">
     <nav class="sample-breadcrumb" aria-label="Breadcrumb">
@@ -12,28 +14,23 @@
         <span aria-current="page">Sample questions</span>
     </nav>
     <header class="sample-page-heading">
-        <span class="auth-eyebrow">Practice preview</span>
-        <h1>Sample questions</h1>
-        <p>Preview the question and answer format for {{ exam.title }}.</p>
+        <span class="auth-eyebrow">{{ exam.category.name }}</span>
+        <h1>Question preview</h1>
+        <p>{{ exam.title }}</p>
     </header>
-    <section class="sample-question-list" aria-label="Sample questions">
-        {% for sample in samples %}
-            <article class="sample-question">
-                <h2><span>Question {{ forloop.counter }}</span>{{ sample.question }}</h2>
-                <details>
-                    <summary>Show answer</summary>
-                    <p>{{ sample.answer }}</p>
-                </details>
-            </article>
-        {% empty %}
-            <p class="sample-empty">Sample questions are not available for this exam yet.</p>
-        {% endfor %}
+    <section class="sample-question-list" aria-label="Question preview">
+        <div class="sample-empty">
+            <h2>Exam-specific previews are not available yet</h2>
+            <p>Choose one of the published levels and sets to practise with this exam's questions.</p>
+            <a class="btn btn-primary" href="{% url 'exams:exam_detail' exam.slug %}">View available practice sets</a>
+        </div>
     </section>
     <a class="btn btn-primary" href="{% url 'exams:exam_detail' exam.slug %}">Back to {{ exam.title }}</a>
 </main>
 {% endblock %}
 
 {% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/app-redesign.css' %}">
 <style>
     .sample-questions-page { max-width: 920px; margin: 0 auto; padding: 1rem 0 2rem; }
     .sample-breadcrumb { display: flex; flex-wrap: wrap; gap: .5rem; margin-bottom: 1.5rem; color: var(--tp-muted); font-size: .88rem; }

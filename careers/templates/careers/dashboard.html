@@ -1,118 +1,181 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block contents %}
-<link rel="stylesheet" href="{% static 'css/learner-dashboards.css' %}">
-<main class="learner-dashboard career-dashboard" data-dashboard-view="{{ dashboard_view|default:'default' }}">
-    <header class="ld-page-head">
+{% block title %}Career Dashboard | TechPhile.ai{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/learner-dashboards.css' %}"><link rel="stylesheet" href="{% static 'css/app-redesign.css' %}">{% endblock %}
+
+{% block content %}
+<div class="learner-dashboard career-workspace">
+
+    <header class="ld-header">
         <div>
-            <h1>Dashboard overview</h1>
-            <p>See your career path, learning progress, and next preparation step.</p>
+            <h1>Career dashboard</h1>
+            <p>Track your learning path, review progress, and prepare for your next role.</p>
         </div>
-        <div class="ld-actions"><a href="{% url 'exams:student_dashboard' %}"><i class="fas fa-chart-column me-1" aria-hidden="true"></i>Exam dashboard</a></div>
+        <a href="{% url 'exams:student_dashboard' %}" class="ld-btn ld-btn-outline">
+            <i class="fas fa-chart-column"></i> Exam dashboard
+        </a>
     </header>
 
     {% if role %}
-    <div class="ld-dashboard-grid">
-        <section class="ld-feature" aria-label="Continue your career preparation">
-            <div>
-                <span class="ld-feature-kicker">{{ role.title }} · {{ level_label }} path</span>
-                {% if recommendation.milestone_due %}
-                    <strong class="ld-feature-value">Milestone ready</strong>
-                    <p class="ld-feature-caption">{{ recommendation.milestone_due.milestone.title }} · {{ experience_label }} experience</p>
-                {% elif recommendation.next_day %}
-                    <strong class="ld-feature-value">Day {{ recommendation.next_day.day_number }}</strong>
-                    <p class="ld-feature-caption">{{ recommendation.next_day.title }} · {{ experience_label }} experience</p>
-                {% elif recommendation.revision_days %}
-                    <strong class="ld-feature-value">Review recommended</strong>
-                    <p class="ld-feature-caption">Revisit a submitted lesson to reinforce your learning.</p>
+        <section class="ld-feature-banner">
+            <span class="ld-feature-kicker">{{ role.title }} &middot; {{ level_label }} path</span>
+
+            {% if recommendation.milestone_due %}
+                <h2 class="ld-feature-title">Milestone ready</h2>
+                <p class="ld-feature-desc">{{ recommendation.milestone_due.milestone.title }} &middot; {{ experience_label }} experience</p>
+                <a href="{% url 'careers:level_milestone_detail' role.slug level recommendation.milestone_due.milestone.number %}" class="ld-btn ld-btn-light">
+                    Take assessment <i class="fas fa-arrow-right"></i>
+                </a>
+            {% elif recommendation.next_day %}
+                <h2 class="ld-feature-title">Day {{ recommendation.next_day.day_number }}: {{ recommendation.next_day.title }}</h2>
+                <p class="ld-feature-desc">Continue your learning path and build your skills.</p>
+                <a href="{% url 'careers:level_day_detail' role.slug level recommendation.next_day.day_number %}" class="ld-btn ld-btn-light">
+                    Continue learning <i class="fas fa-arrow-right"></i>
+                </a>
+            {% else %}
+                <h2 class="ld-feature-title">Review your path</h2>
+                <p class="ld-feature-desc">Check your roadmap or review previous lessons.</p>
+                <a href="{% url 'careers:level_role_detail' role.slug level %}" class="ld-btn ld-btn-light">
+                    Open roadmap <i class="fas fa-arrow-right"></i>
+                </a>
+            {% endif %}
+        </section>
+
+        <section class="ld-stats-grid">
+            <div class="ld-stat-card">
+                <div class="ld-stat-label"><i class="fas fa-book-open ld-icon-cyan"></i> Days submitted</div>
+                <div class="ld-stat-value">{{ summary.submitted_days }} <span class="fs-6 text-muted fw-normal">/ {{ summary.total_days }}</span></div>
+                <p class="ld-stat-note">Published days in this path</p>
+            </div>
+            <div class="ld-stat-card">
+                <div class="ld-stat-label"><i class="fas fa-bullseye ld-icon-green"></i> Average score</div>
+                <div class="ld-stat-value">{% if summary.average_score is not None %}{{ summary.average_score|floatformat:0 }}%{% else %}&mdash;{% endif %}</div>
+                <p class="ld-stat-note">Best saved score per submitted day</p>
+            </div>
+            <div class="ld-stat-card">
+                <div class="ld-stat-label"><i class="fas fa-flag-checkered ld-icon-amber"></i> Milestones ready</div>
+                <div class="ld-stat-value">{{ milestones_ready }}</div>
+                <p class="ld-stat-note">Published assessments available</p>
+            </div>
+        </section>
+
+        <div class="ld-grid-2">
+            <section class="ld-panel">
+                <div class="ld-panel-header">
+                    <div>
+                        <h2 class="ld-panel-title">Recent lesson results</h2>
+                        <p class="ld-panel-subtitle">Latest five attempts &middot; Avg {{ recent_practice_average|default_if_none:"—" }}{% if recent_practice_average is not None %}%{% endif %}</p>
+                    </div>
+                </div>
+                <div class="table-responsive">
+                    <table class="ld-table">
+                        <thead>
+                            <tr><th>Lesson</th><th>Date</th><th>Score</th><th>Result</th></tr>
+                        </thead>
+                        <tbody>
+                            {% for attempt in recent_scores %}
+                            <tr>
+                                <td class="ld-table-title">Day {{ attempt.day.day_number }} &middot; {{ attempt.day.title }}</td>
+                                <td>{{ attempt.submitted_at|date:"M j" }}</td>
+                                <td class="fw-bold">{{ attempt.score_percent|floatformat:0 }}%</td>
+                                <td>
+                                    {% if attempt.score_percent >= role.pass_percent %}
+                                        <span class="edu-badge edu-badge-success">On track</span>
+                                    {% else %}
+                                        <span class="edu-badge edu-badge-warning">Review</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr><td colspan="4"><div class="ld-empty">Your submitted results will appear here.</div></td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <section class="ld-panel">
+                <div class="ld-panel-header">
+                    <div>
+                        <h2 class="ld-panel-title">Skill performance</h2>
+                        <p class="ld-panel-subtitle">{{ role.pass_percent }}% path benchmark</p>
+                    </div>
+                </div>
+                {% if skill_insights.strengths or skill_insights.practice %}
+                    {% for item in skill_insights.strengths %}
+                    <div class="ld-progress-item">
+                        <div class="ld-progress-label"><span>{{ item.skill }}</span><strong>{{ item.percent }}%</strong></div>
+                        <div class="ld-progress-track"><div class="ld-progress-fill green" style="width: {{ item.percent }}%;"></div></div>
+                        <div class="ld-progress-note">{{ item.correct }}/{{ item.total }} correct</div>
+                    </div>
+                    {% endfor %}
+                    {% for item in skill_insights.practice %}
+                    <div class="ld-progress-item">
+                        <div class="ld-progress-label"><span>{{ item.skill }}</span><strong>{{ item.percent }}% <span class="text-warning">(practise)</span></strong></div>
+                        <div class="ld-progress-track"><div class="ld-progress-fill amber" style="width: {{ item.percent }}%;"></div></div>
+                        <div class="ld-progress-note">{{ item.correct }}/{{ item.total }} correct</div>
+                    </div>
+                    {% endfor %}
                 {% else %}
-                    <strong class="ld-feature-value">Path overview</strong>
-                    <p class="ld-feature-caption">Review your roadmap or check for newly published lessons.</p>
+                    <div class="ld-empty">Answer at least three questions in a skill to see a reliable performance summary.</div>
                 {% endif %}
-            </div>
-            {% if recommendation.milestone_due %}<a class="btn" href="{% url 'careers:level_milestone_detail' role.slug level recommendation.milestone_due.milestone.number %}">Continue learning <i class="fas fa-arrow-right ms-1" aria-hidden="true"></i></a>
-            {% elif recommendation.next_day %}<a class="btn" href="{% url 'careers:level_day_detail' role.slug level recommendation.next_day.day_number %}">Continue learning <i class="fas fa-arrow-right ms-1" aria-hidden="true"></i></a>
-            {% elif recommendation.revision_days %}<a class="btn" href="{% url 'careers:level_day_detail' role.slug level recommendation.revision_days.0.day_number %}">Review a lesson <i class="fas fa-arrow-right ms-1" aria-hidden="true"></i></a>
-            {% else %}<a class="btn" href="{% url 'careers:level_role_detail' role.slug level %}">Open roadmap <i class="fas fa-arrow-right ms-1" aria-hidden="true"></i></a>{% endif %}
-        </section>
-
-        <section class="ld-stat-grid" aria-label="Career preparation metrics">
-            <article class="ld-stat">
-                <div class="ld-stat-top"><span>Learning days submitted</span><span class="ld-stat-icon"><i class="fas fa-book-open" aria-hidden="true"></i></span></div>
-                <div><strong class="ld-stat-value">{{ summary.submitted_days }} / {{ summary.total_days }}</strong><p class="ld-stat-note">Published days in this path</p></div>
-            </article>
-            <article class="ld-stat">
-                <div class="ld-stat-top"><span>Average best lesson score</span><span class="ld-stat-icon green"><i class="fas fa-bullseye" aria-hidden="true"></i></span></div>
-                <div><strong class="ld-stat-value">{% if summary.average_score is not None %}{{ summary.average_score|floatformat:0 }}%{% else %}—{% endif %}</strong><p class="ld-stat-note">Best saved score per submitted day</p></div>
-            </article>
-            <article class="ld-stat">
-                <div class="ld-stat-top"><span>Milestones ready</span><span class="ld-stat-icon amber"><i class="fas fa-flag-checkered" aria-hidden="true"></i></span></div>
-                <div><strong class="ld-stat-value">{{ milestones_ready }}</strong><p class="ld-stat-note">Published assessments available now</p></div>
-            </article>
-        </section>
-    </div>
-
-    <div class="ld-content-grid">
-        <section class="ld-panel" aria-labelledby="career-skills-title">
-            <div class="ld-panel-head"><div><h2 id="career-skills-title">Skill performance overview</h2><p class="ld-panel-subtitle">Latest submitted attempt for each day · {{ role.pass_percent }}% path benchmark</p></div></div>
-            {% if skill_insights.strengths or skill_insights.practice %}
-                {% for item in skill_insights.strengths %}
-                    <div class="ld-progress-row"><div class="ld-progress-label"><span>{{ item.skill }} <span class="ld-muted">({{ item.correct }}/{{ item.total }} correct)</span></span><strong>{{ item.percent }}%</strong></div><div class="ld-track green" role="progressbar" aria-label="{{ item.skill }} answer accuracy" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{ item.percent }}"><span style="width:{{ item.percent }}%"></span></div></div>
-                {% endfor %}
-                {% for item in skill_insights.practice %}
-                    <div class="ld-progress-row"><div class="ld-progress-label"><span>{{ item.skill }} <span class="ld-muted">({{ item.correct }}/{{ item.total }} correct)</span></span><strong>{{ item.percent }}% · practice</strong></div><div class="ld-track amber" role="progressbar" aria-label="{{ item.skill }} answer accuracy" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{ item.percent }}"><span style="width:{{ item.percent }}%"></span></div></div>
-                {% endfor %}
-                <p class="ld-panel-subtitle mb-0">Insights appear only after at least three recorded answers per skill.</p>
-            {% else %}<div class="ld-empty">Answer at least three questions in a skill to see a reliable performance summary.</div>{% endif %}
-        </section>
-
-        <section class="ld-panel" aria-labelledby="career-progress-title">
-            <div class="ld-panel-head"><div><h2 id="career-progress-title">Learning path progress</h2><p class="ld-panel-subtitle">{{ experience_label }} experience · {{ level_label }} path</p></div><strong>{{ summary.percent }}%</strong></div>
-            <div class="ld-progress-bar" role="progressbar" aria-label="Published learning days submitted" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{ summary.percent }}"><span style="width:{{ summary.percent }}%"></span></div>
-            <p class="ld-panel-subtitle mb-3">{{ summary.submitted_days }} of {{ summary.total_days }} published days submitted</p>
-            <div class="ld-status-grid" aria-label="Learning day status">
-                <div class="ld-status"><span>Completed</span><strong>{{ status_counts.completed }}</strong></div>
-                <div class="ld-status"><span>Revision suggested</span><strong>{{ status_counts.revision }}</strong></div>
-                <div class="ld-status"><span>In progress</span><strong>{{ status_counts.in_progress }}</strong></div>
-                <div class="ld-status"><span>Not started</span><strong>{{ status_counts.not_started }}</strong></div>
-            </div>
-            <div class="ld-actions mt-3"><a href="{% url 'careers:level_role_detail' role.slug level %}">View full roadmap <i class="fas fa-arrow-right ms-1" aria-hidden="true"></i></a><a href="{% url 'exams:profile_settings' %}?tab=career">Change path</a></div>
-        </section>
-    </div>
-
-    <div class="ld-content-grid">
-        <section class="ld-panel" aria-labelledby="career-recent-title">
-            <div class="ld-panel-head"><div><h2 id="career-recent-title">Recent lesson results</h2><p class="ld-panel-subtitle">Latest five submitted practice attempts · average {{ recent_practice_average|default_if_none:"—" }}{% if recent_practice_average is not None %}%{% endif %}</p></div></div>
-            <div class="ld-table-wrap"><table class="ld-table"><thead><tr><th>Lesson</th><th>Date</th><th>Score</th><th>Result</th></tr></thead><tbody>
-                {% for attempt in recent_scores %}<tr><td><div class="ld-table-title">Day {{ attempt.day.day_number }} · {{ attempt.day.title }}</div></td><td>{{ attempt.submitted_at|date:"M j, Y" }}</td><td><div class="ld-score"><span>{{ attempt.score_percent|floatformat:0 }}%</span><span class="ld-track"><span style="width:{{ attempt.score_percent }}%"></span></span></div></td><td>{% if attempt.score_percent >= role.pass_percent %}<span class="ld-badge done">On track</span>{% else %}<span class="ld-badge review">Review</span>{% endif %}</td></tr>
-                {% empty %}<tr><td colspan="4"><div class="ld-empty">Your submitted lesson results will appear here.</div></td></tr>{% endfor %}
-            </tbody></table></div>
-        </section>
-
-        <section class="ld-panel" aria-labelledby="career-milestones-title">
-            <div class="ld-panel-head"><div><h2 id="career-milestones-title">Milestone assessments</h2><p class="ld-panel-subtitle">Formal checks for published learning blocks.</p></div></div>
-            <div class="ld-table-wrap"><table class="ld-table"><thead><tr><th>Assessment</th><th>Status</th></tr></thead><tbody>
-                {% for item in recommendation.milestones %}<tr><td><div class="ld-table-title">{{ item.milestone.title|default:item.milestone.number }}</div>{% if item.attempts %}<span class="ld-panel-subtitle">{{ item.attempts }} attempt{{ item.attempts|pluralize }} · best {{ item.best_score|floatformat:0 }}%</span>{% elif item.reason %}<span class="ld-panel-subtitle">{{ item.reason }}</span>{% endif %}</td><td>{% if item.passed %}<span class="ld-badge done">Passed</span>{% elif item.available %}<a class="ld-badge ready" href="{% url 'careers:level_milestone_detail' role.slug level item.milestone.number %}">{% if item.attempts %}Review{% else %}Start{% endif %}</a>{% elif item.best_score is not None %}<span class="ld-badge review">Review</span>{% else %}<span class="ld-badge">Upcoming</span>{% endif %}</td></tr>
-                {% empty %}<tr><td colspan="2"><div class="ld-empty">No milestone assessments are published for this path yet.</div></td></tr>{% endfor %}
-            </tbody></table></div>
-        </section>
-    </div>
-
-    <section class="ld-panel" aria-labelledby="career-roadmap-title">
-        <div class="ld-panel-head"><div><h2 id="career-roadmap-title">Your roadmap</h2><p class="ld-panel-subtitle">{% if dashboard_view == 'detailed' %}All published learning days.{% else %}A quick look at published learning days.{% endif %}</p></div><div class="ld-actions"><a href="{% url 'careers:level_role_detail' role.slug level %}">See all days</a></div></div>
-        {% if rows %}<div class="ld-roadmap">
-            {% if dashboard_view == 'detailed' %}{% for row in rows %}<article class="ld-roadmap-item"><strong>Day {{ row.day.day_number }} · {{ row.day.title }}</strong><span>{{ row.status_label }}</span>{% if row.unlocked and row.has_questions %}<a href="{% url 'careers:level_day_detail' role.slug level row.day.day_number %}">{% if row.progress and row.progress.is_submitted %}Review lesson{% else %}Open lesson{% endif %}</a>{% elif row.unlocked %}<span>Lesson content</span>{% else %}<span>Locked · complete earlier days</span>{% endif %}</article>{% endfor %}{% else %}{% for row in rows|slice:":5" %}<article class="ld-roadmap-item"><strong>Day {{ row.day.day_number }} · {{ row.day.title }}</strong><span>{{ row.status_label }}</span>{% if row.unlocked and row.has_questions %}<a href="{% url 'careers:level_day_detail' role.slug level row.day.day_number %}">{% if row.progress and row.progress.is_submitted %}Review lesson{% else %}Open lesson{% endif %}</a>{% elif row.unlocked %}<span>Lesson content</span>{% else %}<span>Locked · complete earlier days</span>{% endif %}</article>{% endfor %}{% endif %}
-        </div>{% else %}<div class="ld-empty">No lessons have been published for this path yet.</div>{% endif %}
-    </section>
+            </section>
+        </div>
 
     {% else %}
-    <section class="ld-panel" aria-labelledby="career-empty-title">
-        <div class="ld-panel-head"><div><h2 id="career-empty-title">Choose a career path</h2><p class="ld-panel-subtitle">Save a preferred role to see progress and a recommended next step.</p></div></div>
-        {% if available_roles %}<div class="ld-roadmap">{% for item in available_roles %}<article class="ld-roadmap-item"><strong>{{ item.title }}</strong><span>{{ item.summary|truncatewords:22 }}</span><a href="{% url 'careers:role_list' %}">Explore path</a></article>{% endfor %}</div>
-        {% else %}<div class="ld-empty">No career paths are published yet.</div>{% endif %}
-        <div class="ld-actions mt-3"><a class="btn btn-primary" href="{% url 'exams:profile_settings' %}?tab=career">Set your preferred path</a></div>
-    </section>
+        <section class="career-path-setup" aria-labelledby="career-path-setup-title">
+            <div class="career-path-setup-intro">
+                <span class="career-path-setup-icon" aria-hidden="true"><i class="fas fa-route"></i></span>
+                <p class="career-path-setup-kicker">YOUR LEARNING ROADMAP</p>
+                <h2 id="career-path-setup-title">Set up your career path</h2>
+                <p>Choose a role, tell us your experience, and select the learning level that fits your goal. We’ll open your roadmap when you continue.</p>
+            </div>
+
+            {% if available_roles %}
+            <form class="career-path-setup-form" method="post" action="{% url 'careers:dashboard' %}">
+                {% csrf_token %}
+                {% if path_form.non_field_errors %}<div class="career-path-form-errors" role="alert">{{ path_form.non_field_errors }}</div>{% endif %}
+                <div class="career-path-form-grid">
+                    <div class="career-path-field">
+                        <label for="{{ path_form.career_role.id_for_label }}">Career role</label>
+                        {{ path_form.career_role }}
+                        {% for error in path_form.career_role.errors %}<p class="career-path-field-error" role="alert">{{ error }}</p>{% endfor %}
+                    </div>
+                    <div class="career-path-field">
+                        <label for="{{ path_form.experience_band.id_for_label }}">Your experience</label>
+                        {{ path_form.experience_band }}
+                        {% for error in path_form.experience_band.errors %}<p class="career-path-field-error" role="alert">{{ error }}</p>{% endfor %}
+                    </div>
+                    <div class="career-path-field">
+                        <label for="{{ path_form.learning_path.id_for_label }}">Learning path</label>
+                        {{ path_form.learning_path }}
+                        {% for error in path_form.learning_path.errors %}<p class="career-path-field-error" role="alert">{{ error }}</p>{% endfor %}
+                    </div>
+                </div>
+                <button type="submit" class="ld-btn ld-btn-primary">Open my learning path <i class="fas fa-arrow-right" aria-hidden="true"></i></button>
+            </form>
+            <script>
+                (function () {
+                    var experience = document.getElementById('{{ path_form.experience_band.id_for_label }}');
+                    var learningPath = document.getElementById('{{ path_form.learning_path.id_for_label }}');
+                    if (!experience || !learningPath) return;
+                    experience.addEventListener('change', function () {
+                        if (this.value === 'fresher') {
+                            learningPath.value = 'beginner';
+                        } else {
+                            learningPath.value = '';
+                        }
+                    });
+                }());
+            </script>
+            {% else %}
+            <div class="career-path-unavailable" role="status">
+                <h3>Career paths are being prepared</h3>
+                <p>No roles are published yet. Please check back when a learning path is available.</p>
+            </div>
+            {% endif %}
+        </section>
     {% endif %}
-</main>
+</div>
 {% endblock %}

@@ -4,6 +4,13 @@
 <ul class="lx-checks">{% for item in day.objective_list %}<li>{{ item }}</li>{% endfor %}</ul>
 {% endif %}
 
+{% if day.topic_list %}
+<section class="lx-topics" aria-labelledby="lx-topics-title">
+    <h2 id="lx-topics-title">Topics covered</h2>
+    <ul>{% for topic in day.topic_list %}<li>{{ topic }}</li>{% endfor %}</ul>
+</section>
+{% endif %}
+
 {% if day.lesson_scenario %}
 <aside class="lx-scenario">
     <span class="lx-label">Real-world scenario</span>

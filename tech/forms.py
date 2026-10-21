@@ -25,9 +25,9 @@ class ContactForm(forms.ModelForm):
                 'class': 'form-control'
             }),
             'message': forms.Textarea(attrs={
-                'placeholder': 'Your message...',
+                'placeholder': 'Tell us your goal or question, the role or learning path you have in mind, what you have tried so far, and what help you are looking for.',
                 'class': 'form-control',
-                'rows': 5
+                'rows': 6
             }),
         }
 

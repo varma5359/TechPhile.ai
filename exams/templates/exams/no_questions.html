@@ -1,11 +1,18 @@
 <!-- templates/exams/no_questions.html -->
 {% extends "exams/exam_base.html" %}
+{% load static %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/app-redesign.css' %}">{% endblock %}
 {% block content %}
-<div class="container mt-5">
-    <div class="alert alert-warning">
-        <h4>No Questions Found</h4>
-        <p>There are currently no questions available for <strong>{{ level|title }}</strong> level, Set {{ set_number }}.</p>
-        <a href="{% url 'exams:exam_list' %}" class="btn btn-primary mt-3">Back to Exams</a>
-    </div>
+<div class="exam-workspace">
+    <section class="exam-unavailable-card" aria-labelledby="no-questions-title">
+        <span class="exam-unavailable-icon" aria-hidden="true"><i class="fas fa-hourglass-half"></i></span>
+        <p class="ew-eyebrow">{{ exam.title }}</p>
+        <h1 id="no-questions-title">This practice set is not ready yet</h1>
+        <p class="exam-unavailable-copy">Questions for the <strong>{{ level|title }}</strong> level, Set {{ set_number }}, are not available right now. Try another exam or check back later as more practice is added.</p>
+        <div class="exam-unavailable-actions">
+            <a href="{% url 'exams:exam_list' %}" class="edu-btn edu-btn-primary"><i class="fas fa-magnifying-glass" aria-hidden="true"></i> Browse available exams</a>
+            <a href="{% url 'careers:role_list' %}" class="edu-btn edu-btn-outline">Explore career paths</a>
+        </div>
+    </section>
 </div>
 {% endblock %}

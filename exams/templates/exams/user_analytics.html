@@ -1,124 +1,37 @@
 {% extends 'exams/exam_base.html' %}
-
-{% block title %}Your Progress - Analytics{% endblock %}
-
+{% load static %}
+{% block title %}Your exam analytics | TechPhile.ai{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/app-redesign.css' %}">{% endblock %}
 {% block content %}
-<div class="container py-5">
-    <div class="card shadow-lg border-0 glass-card p-4 mb-5">
-        <div class="text-center mb-4">
-            <span class="icon-circle-gradient mb-3">
-                <i class="fas fa-chart-line fa-2x"></i>
-            </span>
-            <h1 class="fw-bold gradient-text mb-2">Your Progress</h1>
-            <p class="lead text-dark-emphasis">Track your exam performance and improvement over time.</p>
-        </div>
-        <div class="row g-4 mb-4">
-            <div class="col-md-4 text-center">
-                <div class="glass-stat p-3">
-                    <div class="icon-stat bg-primary bg-opacity-10 text-primary mb-2 mx-auto">
-                        <i class="fas fa-list-ol"></i>
-                    </div>
-                    <div class="text-muted small mb-1">Total Exams Taken</div>
-                    <div class="h3 text-primary">{{ total_exams }}</div>
-                </div>
-            </div>
-            <div class="col-md-4 text-center">
-                <div class="glass-stat p-3">
-                    <div class="icon-stat bg-success bg-opacity-10 text-success mb-2 mx-auto">
-                        <i class="fas fa-percentage"></i>
-                    </div>
-                    <div class="text-muted small mb-1">Average Score</div>
-                    <div class="h3 text-success">{{ avg_score|floatformat:1 }}%</div>
-                </div>
-            </div>
-            <div class="col-md-4 text-center">
-                <div class="glass-stat p-3">
-                    <div class="icon-stat bg-info bg-opacity-10 text-info mb-2 mx-auto">
-                        <i class="fas fa-trophy"></i>
-                    </div>
-                    <div class="text-muted small mb-1">Progress</div>
-                    <div class="progress" style="height: 12px;">
-                        <div class="progress-bar bg-info" role="progressbar" style="width: {{ progress }}%;" aria-valuenow="{{ progress }}" aria-valuemin="0" aria-valuemax="100"></div>
-                    </div>
-                    <span class="small text-muted">{{ progress }}% completed</span>
-                </div>
-            </div>
-        </div>
-        <h4 class="mb-3">Recent Exam Attempts</h4>
-        <div class="table-responsive">
-            <table class="table table-bordered align-middle">
-                <thead class="table-light">
-                    <tr>
-                        <th>Exam</th>
-                        <th>Date</th>
-                        <th>Score</th>
-                        <th>Status</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for attempt in recent_attempts %}
-                    <tr>
-                        <td>{{ attempt.exam.title }}</td>
-                        <td>{{ attempt.completed_at|date:"M d, Y H:i" }}</td>
-                        <td>{{ attempt.score|floatformat:1 }}%</td>
-                        <td>
-                            {% if attempt.score >= 70 %}
-                                <span class="badge bg-success">Passed</span>
-                            {% else %}
-                                <span class="badge bg-danger">Failed</span>
-                            {% endif %}
-                        </td>
-                    </tr>
-                    {% empty %}
-                    <tr>
-                        <td colspan="4" class="text-center text-muted">No exam attempts yet.</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-    </div>
-</div>
+<div class="exam-workspace analytics-workspace">
+    <nav class="ew-breadcrumb" aria-label="Breadcrumb"><a href="{% url 'exams:exam_list' %}">Exam practice</a><span aria-hidden="true">/</span><span aria-current="page">Your analytics</span></nav>
+    <header class="an-page-head"><div><p class="ew-eyebrow">YOUR PRACTICE, MADE VISIBLE</p><h1>Your exam analytics</h1><p>See how your completed exam practice is going and choose a useful next step.</p></div><a href="{% url 'exams:exam_list' %}" class="edu-btn edu-btn-primary">Practice an exam <i class="fas fa-arrow-right" aria-hidden="true"></i></a></header>
 
-<style>
-.gradient-text {
-    background: linear-gradient(90deg, #4361ee 0%, #4cc9f0 50%, #f72585 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-}
-.icon-circle-gradient {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 3rem;
-    height: 3rem;
-    border-radius: 50%;
-    background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
-    color: #fff;
-    font-size: 2rem;
-    box-shadow: 0 2px 8px rgba(67,233,123,0.10);
-}
-.glass-card {
-    background: rgba(255,255,255,0.85);
-    backdrop-filter: blur(10px);
-    border-radius: 2rem;
-}
-.glass-stat {
-    background: rgba(255,255,255,0.7) !important;
-    border-radius: 1rem;
-    box-shadow: 0 2px 12px rgba(67,233,123,0.07);
-    padding: 1.5rem 1rem;
-}
-.icon-stat {
-    width: 2.5rem;
-    height: 2.5rem;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.3rem;
-    margin-bottom: 0.5rem;
-}
-</style>
+    {% if total_attempts %}
+    <section class="an-stat-grid" aria-label="Exam practice summary">
+        <article class="an-stat-card"><span class="an-stat-icon"><i class="fas fa-clipboard-check" aria-hidden="true"></i></span><div><small>Completed attempts</small><strong>{{ total_attempts }}</strong><span>Finished exam sets</span></div></article>
+        <article class="an-stat-card"><span class="an-stat-icon"><i class="fas fa-chart-simple" aria-hidden="true"></i></span><div><small>Average score</small><strong>{{ average_score|floatformat:0 }}%</strong><span>Across scored attempts</span></div></article>
+        <article class="an-stat-card"><span class="an-stat-icon"><i class="fas fa-arrow-trend-up" aria-hidden="true"></i></span><div><small>Best score</small><strong>{{ best_score|floatformat:0 }}%</strong><span>Your highest recorded result</span></div></article>
+    </section>
+
+    <div class="an-content-grid">
+        <section class="an-panel" aria-labelledby="an-review-title"><header class="an-panel-heading"><div><p class="ew-eyebrow">TARGETED REVISION</p><h2 id="an-review-title">Areas to revisit</h2><p>Based on your saved answers in completed exam attempts.</p></div></header>
+            {% if review_areas %}<div class="an-topic-list">{% for area in review_areas %}<article class="an-topic-row"><div class="an-topic-heading"><div><strong>{{ area.question__category__name|default:'General' }}</strong><span>{{ area.question__level|title }} level · {{ area.answer_count }} answered</span></div><b>{{ area.accuracy }}%</b></div><div class="an-progress-track" role="img" aria-label="{{ area.accuracy }} percent answer accuracy"><span style="width:{{ area.accuracy }}%"></span></div></article>{% endfor %}</div><p class="an-panel-footnote">Lower accuracy areas appear first. Use them as revision clues, not as a measure of your potential.</p>{% else %}<div class="an-inline-empty"><i class="fas fa-circle-info" aria-hidden="true"></i><p>Your attempts don’t have saved answer details to compare yet. Complete a practice set with answer review to see topic accuracy here.</p></div>{% endif %}
+        </section>
+
+        <section class="an-panel" aria-labelledby="an-subject-title"><header class="an-panel-heading"><div><p class="ew-eyebrow">BY SUBJECT</p><h2 id="an-subject-title">Recent subject results</h2><p>Average score and attempt count for subjects you’ve practiced.</p></div></header>
+            {% if exam_breakdown %}<div class="an-subject-list">{% for row in exam_breakdown %}<a class="an-subject-row" href="{% url 'exams:exam_detail' row.exam__slug %}"><span class="an-subject-icon"><i class="fas fa-book-open" aria-hidden="true"></i></span><span class="an-subject-copy"><strong>{{ row.exam__title }}</strong><small>{{ row.exam__category__name|default:'Exam practice' }} · {{ row.attempt_count }} attempt{{ row.attempt_count|pluralize }}</small></span><span class="an-subject-score">{{ row.average_score|floatformat:0 }}%</span><i class="fas fa-chevron-right an-subject-arrow" aria-hidden="true"></i></a>{% endfor %}</div>{% else %}<div class="an-inline-empty"><i class="fas fa-chart-line" aria-hidden="true"></i><p>Your subject breakdown will appear after you complete a scored exam practice set.</p></div>{% endif %}
+        </section>
+    </div>
+
+    <section class="an-panel an-recent-panel" aria-labelledby="an-recent-title"><header class="an-panel-heading"><div><p class="ew-eyebrow">PICK UP WHERE YOU LEFT OFF</p><h2 id="an-recent-title">Recent attempts</h2><p>Open a result to review your answers and explanations.</p></div></header>
+        <div class="an-attempt-list">{% for attempt in recent_attempts %}<a class="an-attempt-row" href="{% url 'exams:exam_result' attempt.id %}"><span class="an-attempt-icon"><i class="fas fa-file-circle-check" aria-hidden="true"></i></span><span class="an-attempt-copy"><strong>{{ attempt.exam.title }}</strong><small>{{ attempt.completed_at|date:'M j, Y, g:i A' }}</small></span><span class="an-attempt-score">{% if attempt.score is not None %}{{ attempt.score|floatformat:0 }}%{% else %}Result{% endif %}</span><span class="an-attempt-action">Review <i class="fas fa-arrow-right" aria-hidden="true"></i></span></a>{% endfor %}</div>
+    </section>
+
+    <p class="an-scope-note"><i class="fas fa-circle-info" aria-hidden="true"></i> This page summarizes exam attempts recorded in TechPhile.ai. Career-path lesson and milestone progress is available in your <a href="{% url 'careers:dashboard' %}">career learning workspace</a>.</p>
+    {% else %}
+    <section class="an-empty-state"><span class="an-empty-icon"><i class="fas fa-chart-line" aria-hidden="true"></i></span><p class="ew-eyebrow">YOUR FIRST DATA POINT</p><h2>Complete a practice set to start your analytics</h2><p>Once you finish an exam set, your score and answer review will appear here. Use the review to spot topics to revisit and plan your next practice session.</p><div class="an-empty-actions"><a href="{% url 'exams:exam_list' %}" class="edu-btn edu-btn-primary">Browse available exams <i class="fas fa-arrow-right" aria-hidden="true"></i></a><a href="{% url 'exams:study_guide' %}" class="edu-btn edu-btn-outline">See the study guide</a></div></section>
+    <p class="an-scope-note"><i class="fas fa-circle-info" aria-hidden="true"></i> This page tracks exam attempts. For role-based learning plans, visit <a href="{% url 'careers:role_list' %}">career paths</a>.</p>
+    {% endif %}
+</div>
 {% endblock %}

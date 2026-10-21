@@ -1,403 +1,48 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block contents %}
-<style>
-    /* Contact Hero Section */
-    .contact-hero {
-        background: linear-gradient(135deg, #3f37c9, #1a1a2e);
-        padding: 100px 0 60px;
-        text-align: center;
-        color: white;
-    }
-    
-    .contact-hero h2 {
-        font-size: 2.5rem;
-        font-weight: 700;
-        margin-bottom: 15px;
-    }
-    
-    .contact-hero p {
-        font-size: 1.1rem;
-        max-width: 700px;
-        margin: 0 auto;
-        opacity: 0.9;
-    }
-    
-    /* Contact Section */
-    .contact-section {
-        padding: 60px 0;
-    }
-    
-    .contact-card {
-        background: white;
-        border-radius: 10px;
-        padding: 25px;
-        margin-bottom: 25px;
-        box-shadow: 0 5px 15px rgba(0,0,0,0.05);
-        height: 100%;
-        text-align: center;
-        border-top: 3px solid #4361ee;
-    }
-    
-    .contact-icon {
-        font-size: 2rem;
-        color: #4361ee;
-        margin-bottom: 15px;
-    }
-    
-    .contact-card h3 {
-        font-size: 1.3rem;
-        margin-bottom: 15px;
-        color: #333;
-    }
-    
-    .contact-card p {
-        color: #666;
-        margin-bottom: 10px;
-    }
-    
-    .contact-card a {
-        color: #4361ee;
-        text-decoration: none;
-        transition: all 0.3s;
-    }
-    
-    .contact-card a:hover {
-        color: #3a0ca3;
-    }
-    
-    /* Contact Form */
-    .contact-form-container {
-        background: white;
-        border-radius: 10px;
-        padding: 30px;
-        box-shadow: 0 5px 15px rgba(0,0,0,0.05);
-    }
-    
-    .form-title {
-        color: #333;
-        margin-bottom: 25px;
-        padding-bottom: 10px;
-        border-bottom: 2px solid #f0f0f0;
-    }
-    
-    .form-control {
-        height: 45px;
-        border-radius: 6px;
-        margin-bottom: 20px;
-    }
-    
-    textarea.form-control {
-        min-height: 120px;
-    }
-    
-    .submit-btn {
-        background: #4361ee;
-        color: white;
-        border: none;
-        padding: 10px 25px;
-        border-radius: 6px;
-        transition: all 0.3s;
-    }
-    
-    .submit-btn:hover {
-        background: #3a0ca3;
-        color: white;
-    }
-    
-    /* Support Section */
-    .support-section {
-        background: #f9f9f9;
-        padding: 60px 0;
-    }
-    
-    .support-card {
-        background: white;
-        border-radius: 10px;
-        padding: 20px;
-        margin-bottom: 20px;
-        box-shadow: 0 5px 15px rgba(0,0,0,0.05);
-    }
-    
-    .support-card h4 {
-        color: #333;
-        margin-bottom: 15px;
-    }
-    
-    .support-card p {
-        color: #666;
-    }
+{% block title %}Contact TechPhile.ai{% endblock %}
 
-    /* Success Popup Styles */
-    .success-popup {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(0,0,0,0.8);
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        z-index: 9999;
-        opacity: 0;
-        visibility: hidden;
-        transition: all 0.3s ease;
-    }
-    
-    .success-popup.active {
-        opacity: 1;
-        visibility: visible;
-    }
-    
-    .popup-content {
-        background: white;
-        padding: 40px;
-        border-radius: 12px;
-        text-align: center;
-        max-width: 500px;
-        width: 90%;
-        transform: translateY(20px);
-        transition: transform 0.3s ease;
-    }
-    
-    .success-popup.active .popup-content {
-        transform: translateY(0);
-    }
-    
-    .popup-content svg {
-        margin-bottom: 20px;
-    }
-    
-    .popup-content h3 {
-        color: #2c3e50;
-        font-size: 1.5rem;
-        margin-bottom: 15px;
-    }
-    
-    .popup-content p {
-        color: #7f8c8d;
-        margin-bottom: 25px;
-        line-height: 1.6;
-    }
-    
-    .popup-actions {
-        display: flex;
-        gap: 15px;
-        justify-content: center;
-    }
-    
-    .popup-btn {
-        padding: 10px 25px;
-        border-radius: 6px;
-        border: none;
-        cursor: pointer;
-        transition: all 0.3s;
-        font-weight: 500;
-    }
-    
-    .popup-btn.primary {
-        background: #4361ee;
-        color: white;
-    }
-    
-    .popup-btn.primary:hover {
-        background: #3a0ca3;
-    }
-    
-    .popup-btn.secondary {
-        background: #f0f0f0;
-        color: #333;
-    }
-    
-    .popup-btn.secondary:hover {
-        background: #e0e0e0;
-    }
-
-    .email-link {
-    color: #4361ee;
-    text-decoration: none;
-    transition: all 0.3s;
-    word-break: break-all;
-}
-
-.email-link:hover {
-    color: #3a0ca3;
-    text-decoration: underline;
-}
-</style>
-
-<section class="contact-hero">
-    <div class="container">
-        <h2>Get in Touch With Us</h2>
-        <p>Have questions about our free learning resources? Our team is here to help you with your technical learning journey.</p>
-    </div>
-</section>
-
-<section class="contact-section">
-    <div class="container">
-        <div class="row">
-<div class="col-lg-4 mb-4">
-    <div class="contact-card">
-        <div class="contact-icon">
-            <i class="fas fa-envelope"></i>
+{% block content %}
+<div class="public-page public-contact">
+    <section class="public-page-heading">
+        <div class="container">
+            <span class="public-eyebrow"><i class="fas fa-message" aria-hidden="true"></i> Contact</span>
+            <h1>We’d be glad to hear from you.</h1>
+            <p>Questions about a learning path, exam practice, or your experience? Send us a message and our team will get back to you.</p>
         </div>
-        <h3>Email Support</h3>
-        <p>For general inquiries and support:</p>
-        <p>
-            <a href="mailto:support@techphile.in?subject=Support Request" class="email-link">
-                support@techphile.in
-            </a>
-        </p>
-        <p>For content suggestions:</p>
-        <p>
-            <a href="mailto:hr@techphile.in?subject=Content Suggestion" class="email-link">
-                hr@techphile.in
-            </a>
-        </p>
-    </div>
-</div>
+    </section>
 
-            
-            <div class="col-lg-4 mb-4">
-                <div class="contact-card">
-                    <div class="contact-icon">
-                        <i class="fas fa-comments"></i>
-                    </div>
-                    <h3>Community Help</h3>
-                    <p>Join our community for quick answers:</p>
-                    <p><a href="https://chat.whatsapp.com/H0pyvUjv2lYFeNhwkE1VAW" target="_blank">WhatsApp Community</a></p>
-                    <p><a href="https://t.me/TechPhile150" target="_blank">Telegram Discussions</a></p>
+    <section class="container public-contact-layout">
+        <div class="row g-4 g-xl-5 align-items-start">
+            <div class="col-lg-4">
+                <div class="contact-intro-card">
+                    <span class="contact-icon"><i class="fas fa-envelope" aria-hidden="true"></i></span>
+                    <h2>How can we help?</h2>
+                    <p>Tell us what you are working toward and where you need help. We’ll use your details only to respond to your request.</p>
+                    <div class="contact-direct"><span class="contact-direct-icon"><i class="fas fa-at" aria-hidden="true"></i></span><span><small>Email us</small><a href="mailto:techphile@techphile.in">techphile@techphile.in</a></span></div>
+                    <div class="contact-direct"><span class="contact-direct-icon"><i class="fas fa-location-dot" aria-hidden="true"></i></span><span><small>Based in</small><span>Bengaluru, India</span></span></div>
+                    <div class="contact-direct"><span class="contact-direct-icon"><i class="fas fa-clock" aria-hidden="true"></i></span><span><small>Typical response time</small><span>Within 2 hours</span></span></div>
                 </div>
             </div>
-            
-            <div class="col-lg-4 mb-4">
-                <div class="contact-card">
-                    <div class="contact-icon">
-                        <i class="fas fa-clock"></i>
-                    </div>
-                    <h3>Response Times</h3>
-                    <p>Email: Within 24 hours</p>
-                    <p>Community: Real-time help</p>
-                    <p>Weekdays: 9AM - 6PM IST</p>
-                </div>
-            </div>
-        </div>
-    </div>
-</section>
-
-<section class="contact-section bg-light">
-    <div class="container">
-        <div class="row">
-            <div class="col-lg-6 mb-4 mb-lg-0">
-                <div class="contact-form-container">
-                    <h3 class="form-title">Send Us a Message</h3>
-
-                    {% if messages %}
-                        {% for message in messages %}
-                            <div class="alert alert-{{ message.tags }}">
-                                {{ message }}
-                            </div>
-                        {% endfor %}
-                    {% endif %}
-
+            <div class="col-lg-8">
+                <div class="contact-form-card">
+                    <div class="contact-form-heading"><span class="public-eyebrow">Message us</span><h2>How can we help?</h2><p>Choose the closest topic and tell us what outcome you need. We’ll reply by email, typically within 2 hours.</p></div>
+                    {% if messages %}{% for message in messages %}<div class="alert alert-{{ message.tags }} mb-4" role="status">{{ message }}</div>{% endfor %}{% endif %}
                     <form method="post" id="contactForm" action="{% url 'contact' %}">
-                        {% csrf_token %}
-                        {{ form.non_field_errors }}
-
-                        <div class="form-group">
-                            {{ form.name }}
-                            {{ form.name.errors }}
+                        {% csrf_token %}{{ form.non_field_errors }}
+                        <div class="row g-3">
+                            <div class="col-md-6"><label for="{{ form.name.id_for_label }}" class="form-label">Name <span>(required)</span></label>{{ form.name }}{{ form.name.errors }}</div>
+                            <div class="col-md-6"><label for="{{ form.email.id_for_label }}" class="form-label">Email <span>(required)</span></label>{{ form.email }}{{ form.email.errors }}</div>
+                            <div class="col-md-6"><label for="{{ form.phone.id_for_label }}" class="form-label">Phone <span>(optional)</span></label>{{ form.phone }}{{ form.phone.errors }}</div>
+                            <div class="col-md-6"><label for="{{ form.subject.id_for_label }}" class="form-label">What do you need help with? <span>(required)</span></label>{{ form.subject }}{{ form.subject.errors }}</div>
+                            <div class="col-12"><label for="{{ form.message.id_for_label }}" class="form-label">Your message <span>(required)</span></label><div class="form-text mb-2">Include your goal, the role or learning path you mean, what you have tried, and what you expect help with. Please don’t send passwords or payment details.</div>{{ form.message }}{{ form.message.errors }}</div>
                         </div>
-
-                        <div class="form-group">
-                            {{ form.email }}
-                            {{ form.email.errors }}
-                        </div>
-
-                        <div class="form-group">
-                            {{ form.phone }}
-                            {{ form.phone.errors }}
-                        </div>
-
-                        <div class="form-group">
-                            {{ form.subject }}
-                            {{ form.subject.errors }}
-                        </div>
-
-                        <div class="form-group">
-                            {{ form.message }}
-                            {{ form.message.errors }}
-                        </div>
-
-                        <button type="submit" class="submit-btn">Send Message <i class="fas fa-paper-plane"></i></button>
+                        <button type="submit" class="edu-btn edu-btn-primary mt-4">Send message <i class="fas fa-arrow-right ms-1" aria-hidden="true"></i></button>
                     </form>
                 </div>
             </div>
-            
-            <div class="col-lg-6">
-                <div class="support-section">
-                    <h3 class="mb-4">How Can We Help You?</h3>
-                    
-                    <div class="support-card">
-                        <h4><i class="fas fa-question-circle mr-2 text-primary"></i> Technical Questions</h4>
-                        <p>Get help with understanding concepts from our tutorials and courses.</p>
-                    </div>
-                    
-                    <div class="support-card">
-                        <h4><i class="fas fa-lightbulb mr-2 text-primary"></i> Content Suggestions</h4>
-                        <p>Request topics you'd like us to cover in future tutorials.</p>
-                    </div>
-                    
-                    <div class="support-card">
-                        <h4><i class="fas fa-bug mr-2 text-primary"></i> Report Issues</h4>
-                        <p>Let us know if you encounter any problems with our platform.</p>
-                    </div>
-                    
-                    <div class="support-card">
-                        <h4><i class="fas fa-handshake mr-2 text-primary"></i> Collaborations</h4>
-                        <p>Interested in working together? We'd love to hear from you.</p>
-                    </div>
-                </div>
-            </div>
         </div>
-    </div>
-</section>
-
-<!-- Success Popup -->
-<div id="successPopup" class="success-popup {% if messages %}active{% endif %}">
-    <div class="popup-content">
-        <svg width="60" height="60" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <circle cx="12" cy="12" r="10" fill="#4BB543" opacity="0.2"/>
-            <path d="M22 11.08V12C21.9988 14.1564 21.3005 16.2547 20.0093 17.9818C18.7182 19.709 16.9033 20.9725 14.8354 21.5839C12.7674 22.1953 10.5573 22.1219 8.53447 21.3746C6.51168 20.6273 4.78465 19.2461 3.61096 17.4371C2.43727 15.628 1.87979 13.4881 2.02168 11.3363C2.16356 9.18455 2.99721 7.13631 4.39828 5.49706C5.79935 3.85781 7.69279 2.71537 9.79619 2.24013C11.8996 1.7649 14.1003 1.98232 16.07 2.86" stroke="#4BB543" stroke-width="2" stroke-linecap="round"/>
-            <path d="M22 4L12 14.01L9 11.01" stroke="#4BB543" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-        <h3>Message Sent Successfully!</h3>
-        <p>Thank you for contacting Techphile. We've received your message and will respond within 24 hours.</p>
-        <div class="popup-actions">
-            <button id="closePopup" class="popup-btn secondary">Close</button>
-            <a href="{% url 'home' %}" class="popup-btn primary">Return Home</a>
-        </div>
-    </div>
+    </section>
 </div>
-
-<script>
-    document.addEventListener('DOMContentLoaded', function() {
-        // Check if there are success messages
-        const successMessages = document.querySelectorAll('.alert-success');
-        if (successMessages.length > 0) {
-            const popup = document.getElementById('successPopup');
-            popup.classList.add('active');
-        }
-
-        // Close popup handler
-        document.getElementById('closePopup').addEventListener('click', function() {
-            const popup = document.getElementById('successPopup');
-            popup.classList.remove('active');
-        });
-    });
-</script>
-
-
 {% endblock %}

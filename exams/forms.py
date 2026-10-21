@@ -147,6 +147,21 @@ class CustomPasswordChangeForm(PasswordChangeForm):
     )
 
 class NotificationSettingsForm(forms.ModelForm):
+    LABELS = {
+        'exam_notifications': 'Exam and practice updates',
+        'interview_notifications': 'Mock interview updates',
+        'promotional_emails': 'Product news and learning resources',
+        'push_reminders': 'Study reminders',
+        'important_alerts': 'Important account and learning alerts',
+    }
+    HELP_TEXTS = {
+        'exam_notifications': 'Get updates related to exams, quizzes, and practice.',
+        'interview_notifications': 'Receive updates about your mock interview sessions.',
+        'promotional_emails': 'Occasional announcements about new learning features.',
+        'push_reminders': 'Get a nudge to return to your learning plan.',
+        'important_alerts': 'Receive essential updates about your account and learning activity.',
+    }
+
     class Meta:
         model = Profile
         fields = [
@@ -163,6 +178,12 @@ class NotificationSettingsForm(forms.ModelForm):
             'push_reminders': forms.CheckboxInput(attrs={'class': 'form-check-input me-2'}),
             'important_alerts': forms.CheckboxInput(attrs={'class': 'form-check-input me-2'}),
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for name, label in self.LABELS.items():
+            self.fields[name].label = label
+            self.fields[name].help_text = self.HELP_TEXTS[name]
 
 from django import forms
 from .models import Profile

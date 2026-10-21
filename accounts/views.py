@@ -1,4 +1,7 @@
-from django.shortcuts import render, redirect 
+from django.shortcuts import render, redirect
+from django.http import JsonResponse
+from django.views.decorators.http import require_POST
+from django.conf import settings
 from django.contrib.auth import login as auth_login, logout as auth_logout
 from django.contrib import messages
 from django.contrib.auth.models import User
@@ -6,6 +9,13 @@ from django.utils.http import url_has_allowed_host_and_scheme, urlsafe_base64_de
 from django.contrib.auth.tokens import default_token_generator
 from .forms import EmailSignUpForm, EmailLoginForm
 from django.urls import reverse
+
+
+def _google_auth_page(response):
+    """Allow Google Identity Services to communicate with its sign-in popup."""
+    response['Cross-Origin-Opener-Policy'] = 'same-origin-allow-popups'
+    response['Referrer-Policy'] = 'no-referrer-when-downgrade'
+    return response
 
 
 def signup_view(request):
@@ -17,7 +27,10 @@ def signup_view(request):
             return redirect('login')  # This will redirect to login page
     else:
         form = EmailSignUpForm(request=request)
-    return render(request, 'registration/signup.html', {'form': form})
+    return _google_auth_page(render(request, 'registration/signup.html', {
+        'form': form,
+        'google_oauth_client_id': settings.GOOGLE_OAUTH_CLIENT_ID,
+    }))
 
 
 from django.views.decorators.cache import never_cache
@@ -69,18 +82,70 @@ def login_view(request):
     else:
         form = EmailLoginForm()
 
-    return render(request, 'registration/login.html', {
+    return _google_auth_page(render(request, 'registration/login.html', {
         'form': form,
         'failed_login': request.method == 'POST',
-        'next': next_url  # pass it to template
-    })
+        'next': next_url,
+        'google_oauth_client_id': settings.GOOGLE_OAUTH_CLIENT_ID,
+    }))
+
+
+@require_POST
+def google_sign_in(request):
+    """Verify a Google Identity credential and sign in or create the user."""
+    client_id = settings.GOOGLE_OAUTH_CLIENT_ID
+    if not client_id:
+        return JsonResponse({'error': 'Google sign-in is not configured yet.'}, status=503)
+
+    credential = request.POST.get('credential', '')
+    if not credential:
+        return JsonResponse({'error': 'Google did not return a sign-in credential.'}, status=400)
+
+    try:
+        from google.auth.transport.requests import Request as GoogleRequest
+        from google.oauth2 import id_token
+
+        claims = id_token.verify_oauth2_token(credential, GoogleRequest(), audience=client_id)
+        email = (claims.get('email') or '').strip().lower()
+        if not email or claims.get('email_verified') is not True:
+            return JsonResponse({'error': 'Use a Google account with a verified email address.'}, status=400)
+    except Exception:
+        return JsonResponse({'error': 'Google sign-in could not be verified. Please try again.'}, status=400)
+
+    user = User.objects.filter(email__iexact=email).first()
+    if user is None:
+        base_username = email.split('@', 1)[0].lower()
+        username = base_username
+        suffix = 1
+        while User.objects.filter(username__iexact=username).exists():
+            username = f'{base_username}{suffix}'
+            suffix += 1
+        user = User.objects.create_user(username=username, email=email)
+
+    # A verified Google identity proves control of this email. It can safely
+    # complete an older pending email-activation registration for that address.
+    if not user.is_active:
+        user.is_active = True
+        user.save(update_fields=['is_active'])
+
+    auth_login(request, user, backend='django.contrib.auth.backends.ModelBackend')
+    if request.POST.get('remember') != 'on':
+        request.session.set_expiry(0)
+
+    next_url = request.POST.get('next') or reverse('exams:student_dashboard')
+    if not url_has_allowed_host_and_scheme(
+        next_url,
+        allowed_hosts={request.get_host()},
+        require_https=request.is_secure(),
+    ):
+        next_url = reverse('exams:student_dashboard')
+    return JsonResponse({'redirect_url': next_url})
     
 
 from django.views.decorators.cache import never_cache
 @never_cache
 def logout_view(request):
     auth_logout(request)
-    messages.success(request, "You have been logged out successfully.")
     return redirect('home')
 
 def verify_email(request, uidb64, token):

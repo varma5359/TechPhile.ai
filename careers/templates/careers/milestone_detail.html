@@ -1,35 +1,38 @@
 {% extends 'base.html' %}
 
+{% load static %}
+{% block title %}{{ milestone.title }} | {{ role.title }}{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/app-redesign.css' %}">{% endblock %}
 {% block contents %}
-<div class="container cp-page">
+<div class="container cp-page cp-assessment-page career-workspace">
     <div class="main-content">
         {% include 'careers/_shared.html' %}
         <div class="cp-breadcrumb">
             <a href="{% url 'careers:role_list' %}">Career Preparation</a> /
             <a href="{% url 'careers:level_role_detail' role.slug level %}">{{ role.title }}</a> / {{ level|title }} path / {{ milestone.title }}
         </div>
-        <h1>{{ milestone.title }}</h1>
-        <p class="cp-muted">
-            Milestone assessment covering days {{ milestone.start_day }}-{{ milestone.end_day }} of {{ role.title }}.
-            This is separate from the regular mock exams.
-            {% if milestone.time_limit_minutes %}Suggested time: {{ milestone.time_limit_minutes }} minutes.{% endif %}
-        </p>
+        <header class="cp-assessment-hero">
+            <p class="cp-result-eyebrow">{{ role.title }} · {{ level|title }} path · Milestone</p>
+            <h1>{{ milestone.title }}</h1>
+            <p>Check your understanding of days {{ milestone.start_day }}–{{ milestone.end_day }}. Your answers will be reviewed when you submit.</p>
+            <div class="cp-assessment-meta"><span>Days {{ milestone.start_day }}–{{ milestone.end_day }}</span>{% if milestone.time_limit_minutes %}<span>Suggested time: {{ milestone.time_limit_minutes }} minutes</span>{% endif %}</div>
+        </header>
         {% if status.attempts %}
-            <div class="cp-alert info">
+            <div class="cp-alert info cp-attempt-notice">
                 You have taken this milestone {{ status.attempts }} time{{ status.attempts|pluralize }}.
                 Best score {{ status.best_score|floatformat:0 }}%.
             </div>
         {% endif %}
 
         {% if questions %}
-            <form method="post" novalidate>
+            <form class="cp-assessment-form" method="post" novalidate>
                 {% csrf_token %}
+                <div class="cp-section-heading"><div><p class="cp-result-eyebrow">Assessment</p><h2>Work through each question</h2><p class="cp-muted">Select one answer for every question, then submit for feedback.</p></div><span class="cp-question-count">{{ questions|length }} questions</span></div>
                 {% include 'careers/_question_form.html' %}
-                <button type="submit" class="cp-btn">Submit milestone exam</button>
-                <a class="cp-btn outline ml-2" href="{% url 'careers:level_role_detail' role.slug level %}">Back to plan</a>
+                <div class="cp-assessment-actions"><a class="cp-btn outline" href="{% url 'careers:level_role_detail' role.slug level %}">Back to learning plan</a><button type="submit" class="cp-btn">Submit milestone</button></div>
             </form>
         {% else %}
-            <div class="cp-panel">Questions for this milestone have not been added yet.</div>
+            <div class="cp-panel cp-empty-state"><h2>Assessment not available yet</h2><p class="mb-0">Questions for this milestone have not been added yet.</p></div>
         {% endif %}
     </div>
 </div>

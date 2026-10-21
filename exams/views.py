@@ -27,7 +27,7 @@ from django.shortcuts import render, redirect
 from django.contrib.auth import login as auth_login, logout as auth_logout, authenticate
 from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
 from exams import models
-from django.db.models import Q, Count, Max, Avg, Sum, F
+from django.db.models import Q, Count, Max, Min, Avg, Sum, F
 #  interview views
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
@@ -75,6 +75,22 @@ from .serializers import (
     InterviewSerializer, ProfileSerializer, SignupSerializer, LoginSerializer
 )
 
+def exam_not_available(request, heading, explanation):
+    """Render a learner-friendly 404 for unavailable exam content."""
+    return render(request, 'exams/not_available.html', {
+        'unavailable_heading': heading,
+        'unavailable_explanation': explanation,
+    }, status=404)
+
+
+def exam_page_not_found(request, unmatched_path=''):
+    return exam_not_available(
+        request,
+        'This exam page is not available',
+        'The link may be out of date, or this page may not have been published yet. Browse the available exams to find current practice.',
+    )
+
+
 def exam_list(request):
     filter_slug = request.GET.get('filter', 'all')
     
@@ -82,7 +98,13 @@ def exam_list(request):
         exams = Exam.objects.all()
         active_filter = 'all'
     else:
-        category = get_object_or_404(Category, slug=filter_slug)
+        category = Category.objects.filter(slug=filter_slug).first()
+        if category is None:
+            return exam_not_available(
+                request,
+                'This subject is not available',
+                'That subject filter may be out of date, or the subject is not currently published. Browse all available exams to see what you can practice now.',
+            )
         exams = Exam.objects.filter(category=category)
         active_filter = category.slug
     categories = Category.objects.all()
@@ -98,30 +120,110 @@ def exam_list(request):
 
 @login_required
 def exam_detail(request, exam_slug):
-    exam = get_object_or_404(Exam, slug=exam_slug)
+    exam = Exam.objects.filter(slug=exam_slug).first()
+    if exam is None:
+        return exam_not_available(
+            request,
+            'This exam is not available',
+            'It may have been removed or is not currently published. Browse the available exams to find another subject to practice.',
+        )
     
     # Check for existing incomplete attempt
-    incomplete_attempt = ExamAttempt.objects.filter(
+    incomplete_attempts = ExamAttempt.objects.filter(
         user=request.user,
         exam=exam,
         completed_at__isnull=True
-    ).first()
-    
-    if request.method == 'POST':
-        # Don't need form validation here - just get/create attempt
-        if incomplete_attempt:
-            attempt = incomplete_attempt
-        else:
-            attempt = ExamAttempt.objects.create(
-                user=request.user,
-                exam=exam
-            )
-        return redirect('exams:exam_question', exam_slug=exam.slug,level=Question.level, set_number=1, question_order=1)
+    ).order_by('-started_at')
+    incomplete_attempt = incomplete_attempts.first()
+
+    set_rows = list(
+        exam.questions.values('level', 'set_number')
+        .annotate(question_count=Count('id'), first_question_order=Min('order'))
+        .order_by('level', 'set_number')
+    )
+    question_counts = {
+        (row['level'], row['set_number']): row['question_count']
+        for row in set_rows
+    }
+    completed_sets = {}
+    completed_answer_rows = UserAnswer.objects.filter(
+        attempt__user=request.user,
+        attempt__exam=exam,
+        attempt__completed_at__isnull=False,
+    ).values(
+        'attempt_id', 'question__level', 'question__set_number',
+    ).annotate(
+        completed_at=Max('attempt__completed_at'),
+    ).order_by()
+    for row in completed_answer_rows:
+        key = (row['question__level'], row['question__set_number'])
+        if question_counts.get(key, 0):
+            previous = completed_sets.get(key)
+            if previous is None or row['completed_at'] > previous['completed_at']:
+                completed_sets[key] = {
+                    'attempt_id': row['attempt_id'],
+                    'completed_at': row['completed_at'],
+                }
+
+    in_progress_sets = {}
+    if incomplete_attempts.exists():
+        progress_answer_rows = UserAnswer.objects.filter(
+            attempt__in=incomplete_attempts,
+            selected_answer__isnull=False,
+        ).values_list('question__level', 'question__set_number', 'question__order').distinct()
+        for level_name, set_number, question_order in progress_answer_rows:
+            progress_key = (level_name, set_number)
+            in_progress_sets.setdefault(progress_key, set()).add(question_order)
+
+    question_orders_by_set = {}
+    for level_name, set_number, question_order in exam.questions.order_by().values_list(
+        'level', 'set_number', 'order',
+    ):
+        question_orders_by_set.setdefault((level_name, set_number), []).append(question_order)
+
+    level_order = {value: index for index, (value, _label) in enumerate(Question.LEVEL_CHOICES)}
+    levels_by_name = {}
+    for row in set_rows:
+        level_name = row['level']
+        levels_by_name.setdefault(level_name, {
+            'name': level_name,
+            'sets': [],
+            'completed_count': 0,
+            'in_progress_count': 0,
+            'question_count': 0,
+        })
+        completed = completed_sets.get((level_name, row['set_number']))
+        answered_orders = in_progress_sets.get((level_name, row['set_number']), set())
+        answered_count = len(answered_orders)
+        in_progress = not completed and answered_count > 0
+        unanswered_orders = [
+            order for order in question_orders_by_set.get((level_name, row['set_number']), [])
+            if order not in answered_orders
+        ]
+        levels_by_name[level_name]['sets'].append({
+            'number': row['set_number'],
+            'question_count': row['question_count'],
+            'first_question_order': row['first_question_order'],
+            'start_order': unanswered_orders[0] if in_progress and unanswered_orders else row['first_question_order'],
+            'completed': completed is not None,
+            'in_progress': in_progress,
+            'answered_count': answered_count,
+            'result_attempt_id': completed['attempt_id'] if completed else None,
+        })
+        levels_by_name[level_name]['question_count'] += row['question_count']
+        if completed:
+            levels_by_name[level_name]['completed_count'] += 1
+        elif in_progress:
+            levels_by_name[level_name]['in_progress_count'] += 1
+    exam_levels = sorted(
+        levels_by_name.values(),
+        key=lambda item: (level_order.get(item['name'], len(level_order)), item['name']),
+    )
     
     context = {
         'exam': exam,
         'incomplete_attempt': incomplete_attempt,
-        
+        'exam_levels': exam_levels,
     }
     return render(request, 'exams/exam_detail.html', context)
 
@@ -130,8 +232,21 @@ def exam_detail(request, exam_slug):
 def exam_question(request, exam_slug, level, set_number, question_order):
 
     # Step 1: Validate exam and normalize level
-    exam = get_object_or_404(Exam, slug=exam_slug)
+    exam = Exam.objects.filter(slug=exam_slug).first()
+    if exam is None:
+        return exam_not_available(
+            request,
+            'This exam is not available',
+            'It may have been removed or is not currently published. Browse the available exams to find another subject to practice.',
+        )
     level = level.lower()  # Ensure consistent case
+    valid_levels = {value for value, _label in Question.LEVEL_CHOICES}
+    if level not in valid_levels:
+        return exam_not_available(
+            request,
+            'This practice level is not available',
+            'The level in this link is not recognized. Choose an exam and select one of its available practice levels.',
+        )
     
     # Step 2: Get questions for this set and level
     question_qs = Question.objects.filter(
@@ -148,33 +263,84 @@ def exam_question(request, exam_slug, level, set_number, question_order):
             'set_number': set_number,
         })
     
+    question_orders = list(question_qs.values_list('order', flat=True))
+
     # Step 4: Get current question
-    question = get_object_or_404(question_qs, order=question_order)
+    question = question_qs.filter(order=question_order).first()
+    if question is None:
+        return exam_not_available(
+            request,
+            'This question is not available',
+            'This question may have been removed or is not part of the selected set. Return to exam practice and choose an available set.',
+        )
     
-    # Step 5: Handle exam attempt
-    attempt, created = ExamAttempt.objects.get_or_create(
-    user=request.user,
-    exam=exam,
-    completed_at__isnull=True,
-    defaults={'started_at': timezone.now()}
-   )
+    # Keep each level and set in its own attempt so progress and scores cannot mix.
+    attempt_session_key = f'exam_attempt_{exam.pk}_{level}_{set_number}'
+    retaking = request.GET.get('retake') == '1'
+    attempt = None
+    if not retaking:
+        attempt = ExamAttempt.objects.filter(
+            pk=request.session.get(attempt_session_key),
+            user=request.user,
+            exam=exam,
+            completed_at__isnull=True,
+        ).first()
+        if attempt is None:
+            attempt = ExamAttempt.objects.filter(
+                user=request.user,
+                exam=exam,
+                completed_at__isnull=True,
+                user_answers__question__level=level,
+                user_answers__question__set_number=set_number,
+            ).distinct().order_by('-started_at').first()
+    if attempt is None:
+        attempt = ExamAttempt.objects.create(user=request.user, exam=exam)
+    request.session[attempt_session_key] = attempt.pk
+    if retaking and request.method == 'GET':
+        return redirect(
+            'exams:exam_question',
+            exam_slug=exam.slug,
+            level=level,
+            set_number=set_number,
+            question_order=question_order,
+        )
     
     # Step 6: Handle POST request (answer submission)
     if request.method == 'POST':
         form = UserAnswerForm(request.POST, question=question)
-        if form.is_valid():
-            selected_answer = form.cleaned_data.get('selected_answer')
-            if selected_answer:
+        # The final confirmation is allowed to submit with this question blank.
+        if form.is_valid() or request.POST.get('confirm_submit') == '1':
+            selected_answer = form.cleaned_data.get('selected_answer') if form.is_valid() else None
+            if selected_answer or request.POST.get('confirm_submit') == '1':
                 UserAnswer.objects.update_or_create(
                     attempt=attempt,
                     question=question,
                     defaults={
                         'selected_answer': selected_answer,
-                        'is_correct': selected_answer.is_correct
+                        'is_correct': bool(selected_answer and selected_answer.is_correct)
                     }
                 )
-                # Redirect to next question or finish exam
-                next_question = question_qs.filter(order__gt=question_order).first()
+            if request.POST.get('confirm_submit') == '1':
+                correct_answers = UserAnswer.objects.filter(
+                    attempt=attempt,
+                    question__in=question_qs,
+                    is_correct=True,
+                ).count()
+                attempt.score = (correct_answers / question_qs.count()) * 100
+                attempt.completed_at = timezone.now()
+                attempt.save()
+                request.session.pop(attempt_session_key, None)
+                return redirect('exams:exam_result', attempt_id=attempt.id)
+            if selected_answer:
+                # Do not finish a set while any question is still unanswered.
+                answered_question_ids = UserAnswer.objects.filter(
+                    attempt=attempt,
+                    selected_answer__isnull=False,
+                ).values('question_id')
+                unanswered_questions = question_qs.exclude(pk__in=answered_question_ids)
+                next_question = unanswered_questions.filter(order__gt=question_order).first()
+                if next_question is None:
+                    next_question = unanswered_questions.first()
                 if next_question:
                     return redirect('exams:exam_question', 
                                   exam_slug=exam.slug,
@@ -184,11 +350,14 @@ def exam_question(request, exam_slug, level, set_number, question_order):
                 else:
                     # Calculate score and finish
                     correct_answers = UserAnswer.objects.filter(
-                        attempt=attempt, is_correct=True
+                        attempt=attempt,
+                        question__in=question_qs,
+                        is_correct=True,
                     ).count()
                     attempt.score = (correct_answers / question_qs.count()) * 100
                     attempt.completed_at = timezone.now()
                     attempt.save()
+                    request.session.pop(attempt_session_key, None)
                     return redirect('exams:exam_result', attempt_id=attempt.id)
     else:
         # Handle GET request
@@ -204,15 +373,35 @@ def exam_question(request, exam_slug, level, set_number, question_order):
         form.fields['selected_answer'].queryset = question.answers.all()
     
     # Prepare context
+    answered_orders = set(UserAnswer.objects.filter(
+        attempt=attempt,
+        question__level=level,
+        question__set_number=set_number,
+        selected_answer__isnull=False,
+    ).values_list('question__order', flat=True))
+    question_navigation = [
+        {
+            'order': order,
+            'answered': order in answered_orders,
+            'current': order == question_order,
+        }
+        for order in question_orders
+    ]
+    current_position = question_orders.index(question_order) + 1
+    total_questions = len(question_orders)
+
     context = {
         'exam': exam,
         'question': question,
         'form': form,
         'current_question': question_order,
+        'current_position': current_position,
         'level': level,
         'set_number': set_number,
-        'total_questions': question_qs.count(),
-        "total_question_range": range(1, question_qs.count() + 1)
+        'total_questions': total_questions,
+        'answered_count': len(answered_orders),
+        'question_navigation': question_navigation,
+        'previous_question': question_qs.filter(order__lt=question_order).order_by('-order').first(),
     }
     return render(request, 'exams/exam_question.html', context)
 
@@ -220,23 +409,53 @@ def exam_question(request, exam_slug, level, set_number, question_order):
 
 @login_required
 def exam_result(request, attempt_id):
-    attempt = get_object_or_404(ExamAttempt, id=attempt_id)
-    user_answers = attempt.user_answers.select_related('question', 'selected_answer').all()
+    attempt = ExamAttempt.objects.filter(id=attempt_id, user=request.user).first()
+    if attempt is None:
+        return exam_not_available(
+            request,
+            'This exam result is not available',
+            'The result may have expired, or it may belong to a different account. Browse your available exam practice to continue.',
+        )
+    attempt_answers = attempt.user_answers.select_related('question', 'selected_answer').all()
     correct_answers = 0
-    total_questions = user_answers.count()
-    for ua in user_answers:
-        # Attach the correct answer manually to each user_answer
-        ua.correct_answer = ua.question.answers.filter(is_correct=True).first()
-        if ua.is_correct:
-            correct_answers += 1
-    # Calculate incorrect answers
-    incorrect_answers = total_questions - correct_answers
+    anchor_question = attempt_answers.first().question if attempt_answers.exists() else None
+    user_answers = attempt_answers.filter(selected_answer__isnull=False)
+    set_questions = Question.objects.filter(
+        exam=attempt.exam,
+        level=anchor_question.level,
+        set_number=anchor_question.set_number,
+    ).order_by('order') if anchor_question else Question.objects.none()
+    total_questions = set_questions.count() or user_answers.count()
+    answers_by_question = {ua.question_id: ua for ua in user_answers}
+    review_rows = []
+    for question in set_questions:
+        ua = answers_by_question.get(question.pk)
+        question.correct_answer = question.answers.filter(is_correct=True).first()
+        if ua:
+            ua.correct_answer = question.correct_answer
+            if ua.is_correct and ua.selected_answer_id:
+                correct_answers += 1
+        review_rows.append({'question': question, 'user_answer': ua, 'correct_answer': question.correct_answer,
+                            'is_correct': bool(ua and ua.selected_answer_id and ua.is_correct),
+                            'answered': bool(ua and ua.selected_answer_id)})
+    if not set_questions.exists():
+        for ua in user_answers:
+            ua.correct_answer = ua.question.answers.filter(is_correct=True).first()
+            if ua.is_correct and ua.selected_answer_id:
+                correct_answers += 1
+            review_rows.append({'question': ua.question, 'user_answer': ua, 'correct_answer': ua.correct_answer,
+                                'is_correct': bool(ua.is_correct and ua.selected_answer_id),
+                                'answered': bool(ua.selected_answer_id)})
+    answered_count = sum(1 for row in review_rows if row['answered'])
+    incorrect_answers = answered_count - correct_answers
     return render(request, 'exams/exam_result.html', {
         'attempt': attempt,
         'user_answers': user_answers,
+        'review_rows': review_rows,
         'correct_answers': correct_answers,
         'incorrect_answers': incorrect_answers,  # Add this line
         'total_questions': total_questions,
+        'unanswered_count': total_questions - answered_count,
     })
 
 # def signup(request):
@@ -991,7 +1210,7 @@ from .utils import get_active_sessions, terminate_active_session
 def profile_settings(request):
     requested_tab = request.GET.get('tab', 'basic')
     active_tab = requested_tab if requested_tab in {
-        'basic', 'security', 'notifications', 'preferences', 'career'
+        'basic', 'notifications', 'career'
     } else 'basic'
     user_profile = request.user.profile
     # Initialize forms with instance
@@ -1924,28 +2143,73 @@ from django.contrib.auth.decorators import login_required
 from .models import Exam
 
 def study_guide(request):
-    return render(request, 'exams/study_guide.html')
+    exam_slug = request.GET.get('exam')
+    exam = None
+    if exam_slug:
+        exam = Exam.objects.filter(slug=exam_slug).select_related('category').first()
+        if exam is None:
+            return exam_not_available(
+                request,
+                'This study guide is not available',
+                'The exam connected to this guide may have been removed or is not currently published. Browse the available exams to choose another subject.',
+            )
+    return render(request, 'exams/study_guide.html', {'exam': exam})
 
-from django.db.models import Avg
+from django.db.models import Avg, Count, Max, Q
 
 @login_required
 def user_analytics(request):
-    user = request.user
-    attempts = ExamAttempt.objects.filter(user=user).order_by('-completed_at')
-    total_exams = attempts.count()
-    avg_score = attempts.aggregate(avg_score=Avg('score'))['avg_score'] or 0
-    recent_attempts = attempts[:5]
-    progress = int(avg_score)  # For progress bar
-
+    completed = ExamAttempt.objects.filter(
+        user=request.user, completed_at__isnull=False,
+    ).select_related('exam', 'exam__category')
+    scored = completed.exclude(score__isnull=True)
+    summary = scored.aggregate(
+        total_attempts=Count('id'),
+        average_score=Avg('score'),
+        best_score=Max('score'),
+    )
+    total_attempts = summary['total_attempts'] or 0
+    average_score = summary['average_score']
+    best_score = summary['best_score']
+    recent_attempts = completed.order_by('-completed_at')[:8]
+    exam_breakdown = scored.values(
+        'exam__title', 'exam__slug', 'exam__category__name',
+    ).annotate(
+        attempt_count=Count('id'),
+        average_score=Avg('score'),
+        latest_attempt=Max('completed_at'),
+    ).order_by('-latest_attempt')[:6]
+    review_areas = list(
+        UserAnswer.objects.filter(
+            attempt__user=request.user,
+            attempt__completed_at__isnull=False,
+        ).values(
+            'question__category__name', 'question__level',
+        ).annotate(
+            answer_count=Count('id'),
+            correct_count=Count('id', filter=Q(is_correct=True)),
+        ).order_by('question__category__name', 'question__level')
+    )
+    for area in review_areas:
+        area['accuracy'] = round(area['correct_count'] * 100 / area['answer_count']) if area['answer_count'] else 0
+    review_areas.sort(key=lambda area: (area['accuracy'], -area['answer_count']))
     return render(request, 'exams/user_analytics.html', {
-        'total_exams': total_exams,
-        'avg_score': avg_score,
+        'total_attempts': total_attempts,
+        'average_score': average_score,
+        'best_score': best_score,
         'recent_attempts': recent_attempts,
-        'progress': progress,
+        'exam_breakdown': exam_breakdown,
+        'review_areas': review_areas[:5],
     })
 
 def sample_questions(request, exam_slug):
-    exam = get_object_or_404(Exam, slug=exam_slug)
+    exam = Exam.objects.filter(slug=exam_slug).first()
+    if exam is None:
+        return exam_not_available(
+            request,
+            'Sample questions are not available',
+            'This exam may have been removed or is not currently published. Browse the available exams to find practice that is ready now.',
+        )
     # Example: Get 3 sample questions (replace with real logic)
     samples = [
         {"question": "What is the output of print(2 ** 3)?", "answer": "8"},

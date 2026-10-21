@@ -1,472 +1,121 @@
 {% extends "exams/exam_base.html" %}
 {% load static %}
 
+{% block title %}Learning settings | TechPhile.ai{% endblock %}
+
 {% block content %}
 <style>
-    .profile-settings-page { max-width: 1120px; margin: 0 auto; }
-    .profile-settings-page .card-body { padding: clamp(1rem, 2.5vw, 2rem); }
-    .profile-settings-page .tab-content { min-width: 0; }
-    .profile-settings-page .nav-tabs { gap: .25rem; overflow-x: auto; flex-wrap: nowrap; }
-    .profile-settings-page .nav-tabs .nav-link { white-space: nowrap; }
-    .profile-settings-page .form-text { max-width: 62ch; }
-    .profile-settings-page .form-check { min-height: 2.75rem; }
-    .profile-settings-page .theme-options { display: grid; grid-template-columns: repeat(auto-fit, minmax(155px, 1fr)); gap: .65rem; }
-    .profile-settings-page .theme-choice {
-        display: flex; align-items: flex-start; gap: .65rem; min-height: 5rem;
-        margin: 0; padding: .75rem; border: 1px solid #dce3ef;
-        border-radius: .75rem; background: #fff; cursor: pointer;
-        transition: border-color .16s ease, background-color .16s ease, box-shadow .16s ease;
-    }
-    .profile-settings-page .theme-choice:hover { border-color: #7894f7; }
-    .profile-settings-page .theme-choice:focus-within { outline: 3px solid rgba(67,97,238,.2); outline-offset: 2px; }
-    .profile-settings-page .theme-choice.is-selected {
-        border-color: #4361ee; background: #f0f3ff;
-        box-shadow: 0 0 0 2px rgba(67, 97, 238, .12);
-    }
-    .profile-settings-page .theme-choice .form-check-input { float: none; margin: .2rem 0 0; }
-    .profile-settings-page .theme-choice .form-check-label { display: block; flex: 1; cursor: pointer; }
-    .profile-settings-page .theme-choice-title { display: flex; align-items: center; gap: .45rem; font-weight: 600; }
-    .profile-settings-page .theme-choice-description { display: block; margin-top: .25rem; color: #69778d; font-size: .75rem; }
-    .profile-settings-page .theme-swatch { width: 1rem; height: 1rem; border: 1px solid rgba(20,35,55,.18); border-radius: 50%; }
-    .profile-settings-page .theme-choice-light .theme-swatch { background: linear-gradient(135deg,#fff 50%,#dce7ff 50%); }
-    .profile-settings-page .theme-choice-dark .theme-swatch { background: linear-gradient(135deg,#101a30,#53627a); }
-    .profile-settings-page .theme-choice-system .theme-swatch { background: linear-gradient(135deg,#fff 50%,#172033 50%); }
-    .profile-settings-page .theme-choice-ocean .theme-swatch { background: linear-gradient(135deg,#087ba1,#39c8d2); }
-    .profile-settings-page .theme-choice-aurora .theme-swatch { background: linear-gradient(135deg,#754bb5,#65d7c6); }
-    .profile-settings-page .theme-choice-sunset .theme-swatch { background: linear-gradient(135deg,#f3b36f,#df684a); }
-    .profile-settings-page .theme-choice-forest .theme-swatch { background: linear-gradient(135deg,#336448,#8bd3a0); }
-    .profile-settings-page .theme-choice-sky .theme-swatch { background: linear-gradient(135deg,#eaf7ff,#2584d8); }
-    .profile-settings-page .theme-choice-midnight .theme-swatch { background: linear-gradient(135deg,#302c69,#9a8cff); }
-    .profile-settings-page .theme-choice-rose .theme-swatch { background: linear-gradient(135deg,#fff0f4,#c64f74); }
-    .profile-settings-page .theme-choice-lavender .theme-swatch { background: linear-gradient(135deg,#f4edff,#8058cf); }
-    .profile-settings-page .theme-choice-mint .theme-swatch { background: linear-gradient(135deg,#e8f8ef,#25895f); }
-    .profile-settings-page .theme-choice-slate .theme-swatch { background: linear-gradient(135deg,#283d52,#63b3d9); }
-    .profile-settings-page .theme-choice-sand .theme-swatch { background: linear-gradient(135deg,#fff6df,#a87537); }
-    .profile-settings-page .theme-choice-plum .theme-swatch { background: linear-gradient(135deg,#552c60,#e59ad2); }
-    .profile-settings-page .form-control:focus, .profile-settings-page .form-select:focus,
-    .profile-settings-page .nav-link:focus-visible { box-shadow: 0 0 0 .2rem rgba(67,97,238,.2); }
-    @media (max-width: 575.98px) {
-        .profile-settings-page.container-fluid { padding-left: .75rem !important; padding-right: .75rem !important; }
-        .profile-settings-page .card-header { padding: 1rem; }
-        .profile-settings-page .profile-photo-container { align-items: flex-start !important; }
-        .profile-settings-page .profile-photo-container img { width: 64px; height: 64px; object-fit: cover; }
-        .profile-settings-page .table { min-width: 420px; }
-        .profile-settings-page .theme-options { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-    }
-    @media (max-width: 380px) {
-        .profile-settings-page .theme-options { grid-template-columns: minmax(0, 1fr); }
-    }
-    /* Form control sizing */
-    .form-floating > .form-control {
-        height: calc(3.5rem + 2px);
-        padding: 1rem 0.75rem;
-    }
-    .form-floating > label {
-        padding: 1rem 0.75rem;
-    }
-    .form-floating > .form-control:focus,
-    .form-floating > .form-control:not(:placeholder-shown) {
-        padding-top: 1.625rem;
-        padding-bottom: 0.625rem;
-    }
-    .form-control, .form-select {
-        height: 50px;
-    }
-    .form-check-input {
-        margin-top: 0.25em;
-    }
-    .table td, .table th {
-        vertical-align: middle;
-    }
-    .profile-photo-container {
-        min-height: 80px;
-    }
-
-    /* --- Custom styles for tab names --- */
-    .nav-tabs .nav-link {
-        color: #4361ee; /* A vibrant blue for inactive tab names */
-        font-weight: 500; /* Slightly bolder for readability */
-        transition: color 0.3s ease; /* Smooth transition for hover */
-    }
-
-    .nav-tabs .nav-link:hover {
-        color: #3a86ff; /* A slightly lighter blue on hover */
-    }
-
-    .nav-tabs .nav-link.active {
-        color: #1a1a2e; /* Darker text for the active tab */
-        font-weight: 600; /* More emphasis on the active tab */
-        border-color: #dee2e6 #dee2e6 #fff; /* Standard Bootstrap active tab border */
-        background-color: #fff;
-    }
+    .settings-page { --settings-ink:#172b4d; --settings-muted:#64748b; --settings-line:#e5eaf1; color:var(--settings-ink); }
+    .settings-heading { display:flex; align-items:flex-end; justify-content:space-between; gap:1rem; margin-bottom:1.5rem; }
+    .settings-heading h1 { font-size:clamp(1.65rem, 3vw, 2rem); font-weight:750; letter-spacing:-.035em; margin:0 0 .35rem; }
+    .settings-heading p { color:var(--settings-muted); margin:0; }
+    .settings-layout { display:grid; grid-template-columns:250px minmax(0,1fr); gap:1.25rem; align-items:start; }
+    .settings-nav, .settings-panel { background:#fff; border:1px solid var(--settings-line); border-radius:18px; box-shadow:0 8px 26px rgba(25,45,75,.045); }
+    .settings-nav { padding:1rem; position:sticky; top:1rem; }
+    .settings-nav-label { color:#94a3b8; font-size:.7rem; font-weight:800; letter-spacing:.12em; margin:.35rem .75rem .7rem; text-transform:uppercase; }
+    .settings-nav .nav-link { align-items:center; border-radius:11px; color:#53647d; display:flex; font-size:.92rem; font-weight:650; gap:.75rem; margin:.18rem 0; padding:.78rem .8rem; }
+    .settings-nav .nav-link i { color:#8292a8; text-align:center; width:19px; }
+    .settings-nav .nav-link.active { background:#edf5ff; color:#1267d6; }
+    .settings-nav .nav-link.active i { color:#1267d6; }
+    .settings-panel { min-height:500px; padding:clamp(1.25rem, 3.5vw, 2.4rem); }
+    .settings-section-head { border-bottom:1px solid var(--settings-line); margin-bottom:1.5rem; padding-bottom:1.1rem; }
+    .settings-section-head h2 { font-size:1.3rem; font-weight:750; letter-spacing:-.025em; margin:0 0 .35rem; }
+    .settings-section-head p { color:var(--settings-muted); font-size:.92rem; margin:0; }
+    .settings-page .form-label { color:#34445d; font-size:.82rem; font-weight:700; margin-bottom:.45rem; }
+    .settings-page .form-control, .settings-page .form-select { border-color:#dce3ed; border-radius:9px; min-height:43px; }
+    .settings-page .form-control:focus, .settings-page .form-select:focus { border-color:#75aef5; box-shadow:0 0 0 .2rem rgba(18,103,214,.1); }
+    .settings-email { background:#f7f9fc!important; color:#66758b; }
+    .settings-avatar { border:1px solid var(--settings-line); flex:0 0 auto; height:70px; object-fit:cover; width:70px; }
+    .settings-photo-help { color:var(--settings-muted); font-size:.78rem; margin:.45rem 0 0; }
+    .settings-actions { border-top:1px solid var(--settings-line); margin-top:1.6rem; padding-top:1.25rem; }
+    .settings-actions .edu-btn { min-height:43px; padding:.65rem 1.15rem; }
+    .settings-choice { background:#fff; border:1px solid var(--settings-line); border-radius:12px; height:100%; padding:1rem; }
+    .settings-choice:has(input:checked) { background:#f5f9ff; border-color:#8dbafa; }
+    .settings-choice .form-check-input { margin-top:.2rem; }
+    .settings-choice-title { font-size:.9rem; font-weight:700; }
+    .settings-choice-copy { color:var(--settings-muted); font-size:.79rem; line-height:1.45; margin:.35rem 0 0 1.6rem; }
+    .settings-note { background:#f5f9ff; border:1px solid #e2edfc; border-radius:12px; color:#53647d; font-size:.86rem; padding:1rem; }
+    @media (max-width:767.98px) { .settings-heading { align-items:flex-start; flex-direction:column; } .settings-layout { grid-template-columns:1fr; } .settings-nav { padding:.65rem; position:static; } .settings-nav .nav { flex-direction:row!important; flex-wrap:nowrap; overflow-x:auto; } .settings-nav-label { display:none; } .settings-nav .nav-link { flex:0 0 auto; margin:0 .15rem; white-space:nowrap; } .settings-panel { min-height:0; } }
 </style>
 
+<main class="settings-page">
+    <header class="settings-heading">
+        <div><h1>Your learning settings</h1><p>Shape your learning path, study experience, and reminders.</p></div>
+    </header>
 
+    {% if messages %}{% for message in messages %}<div class="alert alert-{{ message.tags }} rounded-3 border-0 mb-3" role="status">{{ message }}</div>{% endfor %}{% endif %}
 
-<div class="container-fluid px-4 profile-settings-page">
-    <div class="card shadow-sm border-0 mb-4">
-        <div class="card-header bg-white">
-            <h5 class="mb-0"><i class="fas fa-user-cog me-2 text-white"></i>Profile Settings</h5>
-        </div>
-        <div class="card-body" >
-            {% if messages %}
-            <div class="mb-4">
-                {% for message in messages %}
-                <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="status">
-                    {{ message }}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                </div>
-                {% endfor %}
-            </div>
-            {% endif %}
+    <div class="settings-layout">
+        <aside class="settings-nav" aria-label="Settings sections">
+            <div class="settings-nav-label">Your account</div>
+            <nav class="nav flex-column" role="tablist" aria-orientation="vertical">
+                <button class="nav-link {% if active_tab == 'basic' %}active{% endif %}" id="tab-profile" data-bs-toggle="pill" data-bs-target="#profile" type="button" role="tab" aria-controls="profile" aria-selected="{% if active_tab == 'basic' %}true{% else %}false{% endif %}"><i class="fas fa-user" aria-hidden="true"></i>Profile</button>
+                <button class="nav-link {% if active_tab == 'career' %}active{% endif %}" id="tab-learning" data-bs-toggle="pill" data-bs-target="#learning" type="button" role="tab" aria-controls="learning" aria-selected="{% if active_tab == 'career' %}true{% else %}false{% endif %}"><i class="fas fa-route" aria-hidden="true"></i>Learning plan</button>
+                <button class="nav-link {% if active_tab == 'notifications' %}active{% endif %}" id="tab-reminders" data-bs-toggle="pill" data-bs-target="#reminders" type="button" role="tab" aria-controls="reminders" aria-selected="{% if active_tab == 'notifications' %}true{% else %}false{% endif %}"><i class="fas fa-bell" aria-hidden="true"></i>Reminders</button>
+            </nav>
+        </aside>
 
-            <ul class="nav nav-tabs mb-4" id="profileTabs" role="tablist" aria-label="Profile settings sections">
-                <li class="nav-item" role="presentation"> {# Removed inline style here #}
-                    <button class="nav-link {% if active_tab == 'basic' %}active{% endif %}" id="basic-tab" role="tab" aria-controls="basic" aria-selected="{% if active_tab == 'basic' %}true{% else %}false{% endif %}" data-bs-toggle="tab" data-bs-target="#basic" type="button">
-                        <i class="fas fa-id-card me-1"></i> Basic Info
-                    </button>
-                </li>
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link {% if active_tab == 'security' %}active{% endif %}" id="security-tab" role="tab" aria-controls="security" aria-selected="{% if active_tab == 'security' %}true{% else %}false{% endif %}" data-bs-toggle="tab" data-bs-target="#security" type="button">
-                        <i class="fas fa-shield-alt me-1"></i> Security
-                    </button>
-                </li>
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link {% if active_tab == 'notifications' %}active{% endif %}" id="notifications-tab" role="tab" aria-controls="notifications" aria-selected="{% if active_tab == 'notifications' %}true{% else %}false{% endif %}" data-bs-toggle="tab" data-bs-target="#notifications" type="button">
-                        <i class="fas fa-bell me-1"></i> Notifications
-                    </button>
-                </li>
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link {% if active_tab == 'preferences' %}active{% endif %}" id="preferences-tab" role="tab" aria-controls="preferences" aria-selected="{% if active_tab == 'preferences' %}true{% else %}false{% endif %}" data-bs-toggle="tab" data-bs-target="#preferences" type="button">
-                        <i class="fas fa-sliders-h me-1"></i> Preferences
-                    </button>
-                </li>
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link {% if active_tab == 'career' %}active{% endif %}" id="career-tab" role="tab" aria-controls="career" aria-selected="{% if active_tab == 'career' %}true{% else %}false{% endif %}" data-bs-toggle="tab" data-bs-target="#career" type="button">
-                        <i class="fas fa-route me-1"></i> Career Learning
-                    </button>
-                </li>
-            </ul>
-
+        <section class="settings-panel">
             <div class="tab-content">
-                  <div class="tab-pane fade {% if active_tab == 'basic' %}show active{% endif %}" id="basic" role="tabpanel" aria-labelledby="basic-tab" tabindex="0">
-                      <form method="post" action="{% url 'exams:update_profile' %}" enctype="multipart/form-data">
-                          {% csrf_token %}
-                          <div class="row g-3">
-                              <div class="col-md-6">
-                                  <div class="form-floating mb-3">
-                                      <input type="text" class="form-control" id="id_first_name" name="first_name" 
-                                              value="{{ profile_form.first_name.value|default:'' }}" placeholder="First Name" maxlength="30" autocomplete="given-name" required>
-                                      <label for="id_first_name">First Name</label>
-                                  </div>
-                              </div>
-                              <div class="col-md-6">
-                                  <div class="form-floating mb-3">
-                                      <input type="text" class="form-control" id="id_last_name" name="last_name" 
-                                              value="{{ profile_form.last_name.value|default:'' }}" placeholder="Last Name" maxlength="30" autocomplete="family-name" required>
-                                      <label for="id_last_name">Last Name</label>
-                                  </div>
-                              </div>
-                              <div class="col-md-6">
-                                  <div class="mb-3">
-                                      <label class="form-label" for="profile-email">Email</label>
-                                      <input type="email" class="form-control" id="profile-email" value="{{ user.email }}" readonly aria-describedby="email-help">
-                                      <div id="email-help" class="form-text">Email changes are handled by an administrator.</div>
-                                  </div>
-                              </div>
-                              <div class="col-md-6">
-                                  <div class="form-floating mb-3">
-                                      <input type="tel" class="form-control" id="id_phone" name="phone"
-                                              value="{{ profile_form.phone.value|default:'' }}" placeholder="+91XXXXXXXXXX" maxlength="20" autocomplete="tel">
-                                      <label for="id_phone">Phone Number</label>
-                                  </div>
-                              </div>
-                              <div class="col-12">
-                                  <div class="mb-3">
-                                      <label class="form-label">Profile Photo</label>
-                                      <div class="d-flex align-items-center profile-photo-container">
-                                          <div class="me-3">
-                                              {% if user.profile.photo %}
-                                                  <img src="{{ user.profile.photo.url }}" class="rounded-circle" width="80" height="80" alt="Profile">
-                                              {% else %}
-                                                  <i class="fas fa-user-circle fa-4x text-secondary"></i>
-                                              {% endif %}
-                                          </div>
-                                          <div class="flex-grow-1">
-                                              <input type="file" class="form-control" id="id_photo" name="photo" accept=".jpg,.jpeg,.png,image/jpeg,image/png">
-                                              <small class="text-muted">JPG or PNG, max 2MB</small>
-                                          </div>
-                                      </div>
-                                  </div>
-                              </div>
-                          </div>
-                          <button type="submit" class="btn btn-primary px-4 mt-2">Update Profile</button> 
-                      </form>
-                  
-                      {% if user.profile.photo %}
-                      <form method="post" action="{% url 'exams:delete_profile_photo' %}">
-                          {% csrf_token %}
-                          <button type="submit" class="btn btn-danger px-4 mt-2">Delete</button> 
-                      </form>
-                      {% endif %}
-                  </div>
+                <div class="tab-pane fade {% if active_tab == 'basic' %}show active{% endif %}" id="profile" role="tabpanel" aria-labelledby="tab-profile" tabindex="0">
+                    <header class="settings-section-head"><h2>Profile</h2><p>Keep your learner profile up to date.</p></header>
+                    <form method="post" action="{% url 'exams:update_profile' %}" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        <div class="row g-3">
+                            <div class="col-md-6"><label class="form-label" for="id_first_name">First name</label><input id="id_first_name" type="text" name="first_name" class="form-control" value="{{ profile_form.first_name.value|default:'' }}" autocomplete="given-name" required></div>
+                            <div class="col-md-6"><label class="form-label" for="id_last_name">Last name</label><input id="id_last_name" type="text" name="last_name" class="form-control" value="{{ profile_form.last_name.value|default:'' }}" autocomplete="family-name" required></div>
+                            <div class="col-md-6"><label class="form-label" for="settings-email">Email address</label><input id="settings-email" type="email" class="form-control settings-email" value="{{ user.email }}" readonly><div class="settings-photo-help">Used for your account and learning updates.</div></div>
+                            <div class="col-md-6"><label class="form-label" for="id_phone">Phone number <span class="fw-normal text-muted">(optional)</span></label><input id="id_phone" type="tel" name="phone" class="form-control" value="{{ profile_form.phone.value|default:'' }}" placeholder="+91 98765 43210" autocomplete="tel"></div>
+                            <div class="col-12"><label class="form-label d-block">Profile photo</label><div class="d-flex align-items-center gap-3">
+                                {% if user.profile.photo %}<img id="profile-photo-preview" src="{{ user.profile.photo.url }}" alt="Profile photo" class="settings-avatar rounded-circle">{% else %}<div id="profile-photo-preview" class="settings-avatar rounded-circle bg-light d-flex align-items-center justify-content-center text-secondary"><i class="fas fa-user fs-4" aria-hidden="true"></i></div>{% endif %}
+                                <div class="flex-grow-1"><input type="file" name="photo" accept=".jpg,.jpeg,.png,image/jpeg,image/png" class="form-control"><p class="settings-photo-help">JPG or PNG, up to 2 MB.</p></div>
+                            </div></div>
+                        </div>
+                        <div class="settings-actions"><button type="submit" class="edu-btn edu-btn-primary">Save profile</button></div>
+                    </form>
+                </div>
 
-
-                <div class="tab-pane fade {% if active_tab == 'career' %}show active{% endif %}" id="career" role="tabpanel" aria-labelledby="career-tab" tabindex="0">
-                    <div class="mb-4">
-                        <h6 class="mb-2"><i class="fas fa-graduation-cap me-2"></i>Personalized career plan</h6>
-                        <p class="text-muted">Choose a role and experience range. We recommend a learning path from your experience; you can select either path at any time.</p>
-                    </div>
+                <div class="tab-pane fade {% if active_tab == 'career' %}show active{% endif %}" id="learning" role="tabpanel" aria-labelledby="tab-learning" tabindex="0">
+                    <header class="settings-section-head"><h2>Your learning plan</h2><p>Choose a career goal and the path that fits your experience.</p></header>
+                    <div class="settings-note mb-4"><i class="fas fa-lightbulb me-2 text-primary" aria-hidden="true"></i>Your choices personalize the career preparation paths and help you pick up at the right level.</div>
                     <form method="post" action="{% url 'exams:update_career_preferences' %}">
                         {% csrf_token %}
                         <div class="row g-3">
-                            <div class="col-md-6">
-                                <label class="form-label" for="{{ career_preferences_form.career_role.id_for_label }}">Career role</label>
-                                {{ career_preferences_form.career_role }}
-                                {% if career_preferences_form.career_role.errors %}<div class="text-danger small">{{ career_preferences_form.career_role.errors }}</div>{% endif %}
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label" for="{{ career_preferences_form.experience_band.id_for_label }}">Professional experience</label>
-                                {{ career_preferences_form.experience_band }}
-                                {% if career_preferences_form.experience_band.errors %}<div class="text-danger small">{{ career_preferences_form.experience_band.errors }}</div>{% endif %}
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label" for="{{ career_preferences_form.learning_path.id_for_label }}">Learning path</label>
-                                {{ career_preferences_form.learning_path }}
-                                <div class="form-text">Leave this blank to follow the <strong>{{ recommended_path_label }}</strong> recommendation for your experience range. You can override it whenever you want.</div>
-                                {% if career_preferences_form.learning_path.errors %}<div class="text-danger small">{{ career_preferences_form.learning_path.errors }}</div>{% endif %}
-                            </div>
+                            <div class="col-12"><label class="form-label" for="{{ career_preferences_form.career_role.id_for_label }}">Career goal</label>{{ career_preferences_form.career_role }}<div class="settings-photo-help">Pick the role you’re working toward. You can change it anytime.</div></div>
+                            <div class="col-md-6"><label class="form-label" for="{{ career_preferences_form.experience_band.id_for_label }}">Your experience</label>{{ career_preferences_form.experience_band }}</div>
+                            <div class="col-md-6"><label class="form-label" for="{{ career_preferences_form.learning_path.id_for_label }}">Preferred path</label>{{ career_preferences_form.learning_path }}<div class="settings-photo-help">Leave this blank to use the suggested {{ recommended_path_label|lower }} path.</div></div>
                         </div>
-                        <button type="submit" class="btn btn-primary px-4 mt-3">Save Career Plan</button>
-                        <a href="{% url 'careers:role_list' %}" class="btn btn-outline-primary mt-3">View career plans</a>
+                        <div class="settings-actions"><button type="submit" class="edu-btn edu-btn-primary">Save learning plan</button></div>
                     </form>
                 </div>
 
-                <div class="tab-pane fade {% if active_tab == 'security' %}show active{% endif %}" id="security" role="tabpanel" aria-labelledby="security-tab" tabindex="0">
-                    <div class="mb-4">
-                        <h6 class="mb-3"><i class="fas fa-key me-2"></i>Password</h6>
-                        <form method="post" action="{% url 'exams:change_password' %}">
-                            {% csrf_token %}
-                            <div class="row g-3">
-                                <div class="col-md-6">
-                                    <div class="form-floating mb-3">
-                                        <input type="password" class="form-control" id="id_old_password" name="old_password" 
-                                                placeholder="Current Password" required>
-                                        <label for="id_old_password">Current Password</label>
-                                    </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <div class="form-floating mb-3">
-                                        <input type="password" class="form-control" id="id_new_password1" name="new_password1" 
-                                                placeholder="New Password" required>
-                                        <label for="id_new_password1">New Password</label>
-                                    </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <div class="form-floating mb-3">
-                                        <input type="password" class="form-control" id="id_new_password2" name="new_password2" 
-                                                placeholder="Confirm Password" required>
-                                        <label for="id_new_password2">Confirm Password</label>
-                                    </div>
-                                </div>
-                            </div>
-                            <button type="submit" class="btn btn-primary px-4">Change Password</button>
-                        </form>
-                    </div>
-                    
-                    <hr class="my-4">
-                    
-                    <div>
-                        <h6 class="mb-3"><i class="fas fa-lock me-2"></i>Active Sessions</h6>
-                        <p class="text-muted small">You can sign out other active sessions. This session cannot be ended here.</p>
-                        <div class="table-responsive">
-                            <table class="table table-sm">
-                                <thead>
-                                    <tr>
-                                        <th>Session</th>
-                                        <th>Expires</th>
-                                        <th>Action</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {% for session in active_sessions %}
-                                    <tr>
-                                        <td>{% if session.is_current %}This device (current){% else %}Other signed-in device{% endif %}</td>
-                                        <td>{{ session.expires_at|date:"M j, Y H:i" }}</td>
-                                        <td>
-                                            {% if not session.is_current %}
-                                            <form method="post" action="{% url 'exams:terminate_session' session.id %}">
-                                                {% csrf_token %}
-                                                <button type="submit" class="btn btn-link text-danger p-0">Sign out</button>
-                                            </form>
-                                            {% endif %}
-                                        </td>
-                                    </tr>
-                                    {% endfor %}
-                                    {% if not active_sessions %}<tr><td colspan="3" class="text-muted py-3">No active sessions found.</td></tr>{% endif %}
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="tab-pane fade {% if active_tab == 'notifications' %}show active{% endif %}" id="notifications" role="tabpanel" aria-labelledby="notifications-tab" tabindex="0">
+                <div class="tab-pane fade {% if active_tab == 'notifications' %}show active{% endif %}" id="reminders" role="tabpanel" aria-labelledby="tab-reminders" tabindex="0">
+                    <header class="settings-section-head"><h2>Learning reminders</h2><p>Choose which updates help you stay on track.</p></header>
                     <form method="post" action="{% url 'exams:update_notifications' %}">
                         {% csrf_token %}
-                        <h6 class="mb-3"><i class="fas fa-envelope me-2"></i>Email Notifications</h6>
-                        <div class="form-check form-switch mb-3 d-flex align-items-center">
-                            {{ notification_form.exam_notifications }}
-                            <label class="form-check-label" for="{{ notification_form.exam_notifications.id_for_label }}">Exam results and updates</label>
+                        <div class="d-grid gap-3">
+                            {% for field in notification_form %}
+                            <label class="settings-choice" for="{{ field.id_for_label }}"><span class="d-flex align-items-start gap-2">{{ field }}<span><span class="settings-choice-title">{{ field.label }}</span>{% if field.help_text %}<span class="settings-choice-copy d-block">{{ field.help_text }}</span>{% endif %}</span></span></label>
+                            {% endfor %}
                         </div>
-                        <div class="form-check form-switch mb-3 d-flex align-items-center">
-                            {{ notification_form.interview_notifications }}
-                            <label class="form-check-label" for="{{ notification_form.interview_notifications.id_for_label }}">Interview schedules and feedback</label>
-                        </div>
-                        <div class="form-check form-switch mb-3 d-flex align-items-center">
-                            {{ notification_form.promotional_emails }}
-                            <label class="form-check-label" for="{{ notification_form.promotional_emails.id_for_label }}">Promotional offers</label>
-                        </div>
-                        
-                        <hr class="my-4">
-                        
-                        <h6 class="mb-3"><i class="fas fa-mobile-alt me-2"></i>Push Notifications</h6>
-                        <div class="form-check form-switch mb-3 d-flex align-items-center">
-                            {{ notification_form.push_reminders }}
-                            <label class="form-check-label" for="{{ notification_form.push_reminders.id_for_label }}">Upcoming exam/interview reminders</label>
-                        </div>
-                        <div class="form-check form-switch mb-3 d-flex align-items-center">
-                            {{ notification_form.important_alerts }}
-                            <label class="form-check-label" for="{{ notification_form.important_alerts.id_for_label }}">Important alerts</label>
-                        </div>
-                        
-                        <p class="form-text">These choices are saved to your profile. Automated email and push delivery is not connected to them yet.</p>
-                        <button type="submit" class="btn btn-primary px-4 mt-2">Save notification settings</button>
-                    </form>
-                </div>
-
-                <div class="tab-pane fade {% if active_tab == 'preferences' %}show active{% endif %}" id="preferences" role="tabpanel" aria-labelledby="preferences-tab" tabindex="0">
-                    <form method="post" action="{% url 'exams:update_preferences' %}">
-                        {% csrf_token %}
-                        <div class="row g-3">
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label class="form-label" for="{{ preferences_form.timezone.id_for_label }}">Time zone</label>
-                                    {{ preferences_form.timezone }}
-                                    <div class="form-text">Site dates and times use this time zone after you save.</div>
-                                    {% if preferences_form.timezone.errors %}
-                                        <div class="text-danger">{{ preferences_form.timezone.errors }}</div>
-                                    {% endif %}
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <fieldset class="border-0 p-0 m-0">
-                                    <legend class="form-label fs-6">Theme preference</legend>
-                                    <div class="theme-options" role="radiogroup" aria-label="Theme preference">
-                                        {% for radio in preferences_form.theme %}
-                                            <div class="form-check theme-choice theme-choice-{{ radio.choice_value }} {% if radio.choice_value == preferences_form.theme.value %}is-selected{% endif %}">
-                                                {{ radio.tag }}
-                                                <label class="form-check-label" for="{{ radio.id_for_label }}">
-                                                    <span class="theme-choice-title"><span class="theme-swatch" aria-hidden="true"></span>
-                                                        <i class="fas {% if radio.choice_value == 'system' %}fa-desktop{% elif radio.choice_value == 'light' or radio.choice_value == 'sunset' or radio.choice_value == 'sky' or radio.choice_value == 'rose' or radio.choice_value == 'lavender' or radio.choice_value == 'mint' or radio.choice_value == 'sand' %}fa-sun{% else %}fa-moon{% endif %}" aria-hidden="true"></i>
-                                                        {{ radio.choice_label }}
-                                                    </span>
-                                                    <small class="theme-choice-description">
-                                                        {% if radio.choice_value == 'light' %}Clear and bright{% elif radio.choice_value == 'dark' %}Low-glare focus{% elif radio.choice_value == 'system' %}Follow your device{% elif radio.choice_value == 'ocean' %}Calm blue and teal{% elif radio.choice_value == 'aurora' %}Violet with fresh teal{% elif radio.choice_value == 'sunset' %}Warm and soft{% elif radio.choice_value == 'forest' %}Quiet green tones{% elif radio.choice_value == 'sky' %}Open, cool blue{% elif radio.choice_value == 'midnight' %}Deep indigo focus{% elif radio.choice_value == 'rose' %}Soft rose accents{% elif radio.choice_value == 'lavender' %}Light violet calm{% elif radio.choice_value == 'mint' %}Fresh and gentle green{% elif radio.choice_value == 'slate' %}Cool graphite tones{% elif radio.choice_value == 'sand' %}Warm neutral paper{% elif radio.choice_value == 'plum' %}Rich plum and blush{% endif %}
-                                                    </small>
-                                                </label>
-                                            </div>
-                                        {% endfor %}
-                                    </div>
-                                    </fieldset>
-                                    {% if preferences_form.theme.errors %}
-                                        <div class="text-danger">{{ preferences_form.theme.errors }}</div>
-                                    {% endif %}
-                                    <div class="form-text">Choose a palette that feels comfortable for your study space. Preview it now or save it for future pages; System Default follows your device.</div>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label class="form-label" for="{{ preferences_form.dashboard_view.id_for_label }}">Dashboard view</label>
-                                    {{ preferences_form.dashboard_view }}
-                                    {% if preferences_form.dashboard_view.errors %}
-                                        <div class="text-danger">{{ preferences_form.dashboard_view.errors }}</div>
-                                    {% endif %}
-                                    <div class="form-text">Compact shows less at once; Detailed expands the recent activity and roadmap.</div>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label class="form-label" for="{{ preferences_form.language.id_for_label }}">Language</label>
-                                    {{ preferences_form.language }}
-                                    <div class="form-text">Your language choice is saved. Interface translation is not enabled yet.</div>
-                                    {% if preferences_form.language.errors %}<div class="text-danger">{{ preferences_form.language.errors }}</div>{% endif %}
-                                </div>
-                            </div>
-                        </div>
-                        <button type="submit" class="btn btn-primary px-4">Save Preferences</button>
+                        <div class="settings-actions"><button type="submit" class="edu-btn edu-btn-primary">Save reminders</button></div>
                     </form>
                 </div>
             </div>
-        </div>
+        </section>
     </div>
-</div>
+</main>
+
+{% if user.profile.photo %}
 <script>
-// Activate the correct tab based on URL hash or active_tab
-document.addEventListener('DOMContentLoaded', function() {
-    const themeChoices = document.querySelectorAll('input[name="theme"]');
-    const systemTheme = window.matchMedia('(prefers-color-scheme: dark)');
-
-    function previewTheme(value) {
-        document.documentElement.dataset.activeTheme = value === 'system'
-            ? (systemTheme.matches ? 'dark' : 'light')
-            : value;
-        themeChoices.forEach(function(choice) {
-            const card = choice.closest('.theme-choice');
-            if (card) card.classList.toggle('is-selected', choice.checked);
-        });
-    }
-
-    themeChoices.forEach(function(choice) {
-        choice.addEventListener('change', function() { previewTheme(this.value); });
-        const card = choice.closest('.theme-choice');
-        if (card) {
-            card.addEventListener('click', function(event) {
-                if (event.target.closest('label') || event.target === choice) return;
-                choice.checked = true;
-                choice.dispatchEvent(new Event('change', { bubbles: true }));
-            });
-        }
-    });
-    if (themeChoices.length) {
-        const selectedTheme = document.querySelector('input[name="theme"]:checked');
-        if (selectedTheme) previewTheme(selectedTheme.value);
-        if (systemTheme.addEventListener) {
-            systemTheme.addEventListener('change', function() {
-                const currentChoice = document.querySelector('input[name="theme"]:checked');
-                if (currentChoice && currentChoice.value === 'system') previewTheme('system');
-            });
-        }
-    }
-
-    // If coming from a redirect with ?tab= parameter
-    const urlParams = new URLSearchParams(window.location.search);
-    const activeTab = urlParams.get('tab');
-    
-    if (activeTab) {
-        const tabButton = document.querySelector(`button[data-bs-target="#${activeTab}"]`);
-        if (tabButton) {
-            new bootstrap.Tab(tabButton).show();
-        }
-    }
-    
-    // If there's a hash in the URL
-    if (window.location.hash) {
-        const tabButton = document.querySelector(`button[data-bs-target="${window.location.hash}"]`);
-        if (tabButton) {
-            new bootstrap.Tab(tabButton).show();
-        }
-    }
-});
+(function () { var avatar=document.querySelector('.sidebar-avatar'); if (!avatar) return; var image=document.createElement('img'); image.src="{{ user.profile.photo.url|escapejs }}"; image.alt=''; image.style.width='100%'; image.style.height='100%'; image.style.borderRadius='50%'; image.style.objectFit='cover'; avatar.replaceChildren(image); }());
+</script>
+{% endif %}
+<script>
+(function () {
+    var input=document.querySelector('input[name="photo"]'); var preview=document.getElementById('profile-photo-preview'); var avatar=document.querySelector('.sidebar-avatar'); if (!input || !preview) return; var previewUrl=null;
+    input.addEventListener('change', function () { var file=input.files && input.files[0]; if (!file || !/^image\/(jpeg|png)$/.test(file.type)) return; if (previewUrl) URL.revokeObjectURL(previewUrl); previewUrl=URL.createObjectURL(file); var image=document.createElement('img'); image.src=previewUrl; image.alt='Selected profile photo preview'; image.width=70; image.height=70; image.className='settings-avatar rounded-circle'; if (preview.tagName==='IMG') preview.src=previewUrl; else { preview.replaceWith(image); preview=image; } if (avatar) { var avatarImage=document.createElement('img'); avatarImage.src=previewUrl; avatarImage.alt=''; avatarImage.style.width='100%'; avatarImage.style.height='100%'; avatarImage.style.borderRadius='50%'; avatarImage.style.objectFit='cover'; avatar.replaceChildren(avatarImage); } });
+    window.addEventListener('pagehide', function () { if (previewUrl) URL.revokeObjectURL(previewUrl); }, {once:true});
+}());
 </script>
 {% endblock %}

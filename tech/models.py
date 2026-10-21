@@ -6,10 +6,13 @@ from django.utils import timezone
 
 class Contact(models.Model):
     SUBJECT_CHOICES = [
-        ('general', 'General Inquiry'),
-        ('support', 'Technical Support'),
-        ('interview', 'Interview Coaching'),
-        ('feedback', 'Feedback'),
+        ('general', 'General Question'),
+        ('career', 'Career Path Guidance'),
+        ('learning', 'Learning Path or Exam Practice'),
+        ('support', 'Account or Technical Support'),
+        ('interview', 'Interview Preparation'),
+        ('partnership', 'Partnership or Business Inquiry'),
+        ('feedback', 'Feedback or Suggestion'),
         ('other', 'Other'),
     ]
     

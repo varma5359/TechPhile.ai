@@ -1,34 +1,53 @@
 {% load static %}
-<footer class="footer-modern">
-    <div class="container">
-        <div class="footer-grid">
-            <section class="footer-brand" aria-label="About TechPhile.ai">
-                <a href="{% url 'home' %}" class="footer-brand-mark" aria-label="TechPhile.ai home">
-                    <img src="{% static 'images/logo-nav.png' %}" alt="TechPhile.ai" class="footer-brand-logo">
+<footer class="site-footer">
+    <div class="container site-footer-inner">
+        <div class="row g-4 g-lg-5">
+            <!-- Brand & Description -->
+            <div class="col-lg-5 col-md-6">
+                <a href="{% url 'home' %}" class="d-inline-block mb-3">
+                    <!-- Using the main logo, assuming there is a dark version for light backgrounds -->
+                    <img src="{% static 'images/logo-nav.png' %}" alt="TechPhile.ai" style="height: 40px; width: auto; filter: brightness(0.2);">
                 </a>
-                <p class="footer-description">Build technology skills with focused learning paths, lessons, and practice.</p>
-            </section>
+                <p class="site-footer-description">
+                    Free, structured learning and practical exercises to help graduates start IT careers and technology professionals grow.
+                </p>
+                <span class="site-footer-launch"><i class="fas fa-rocket" aria-hidden="true"></i> Built in 2024 <span aria-hidden="true">&middot;</span> Available since August 2024</span>
+            </div>
 
-            <section aria-labelledby="footer-contact-heading">
-                <h2 class="footer-heading" id="footer-contact-heading">Contact</h2>
-                <ul class="footer-contact-list">
-                    <li><i class="fas fa-map-marker-alt" aria-hidden="true"></i>TechPhile.ai, Bengaluru, India</li>
-                    <li><i class="fas fa-envelope" aria-hidden="true"></i><a href="mailto:techphile@techphile.in">techphile@techphile.in</a></li>
-                </ul>
-            </section>
-
-            <nav aria-labelledby="footer-services-heading">
-                <h2 class="footer-heading" id="footer-services-heading">Explore</h2>
-                <ul class="footer-service-list">
+            <!-- Links: Explore -->
+            <div class="col-6 col-lg-3 offset-lg-1">
+                <h5 class="site-footer-title">Explore</h5>
+                <ul class="site-footer-links">
                     <li><a href="{% url 'careers:role_list' %}">Career learning paths</a></li>
                     <li><a href="{% url 'exams:exam_list' %}">Subject exam practice</a></li>
-                    {% if features.coding %}<li><a href="{% url 'home_page_coding' %}">Coding practice</a></li>{% endif %}
+                    <li><a href="{% url 'services' %}">Services</a></li>
+                    {% if features.coding %}
+                    <li><a href="{% url 'home_page_coding' %}">Coding practice</a></li>
+                    {% endif %}
                     <li><a href="{% url 'about' %}">About TechPhile.ai</a></li>
                 </ul>
-            </nav>
+            </div>
+
+            <!-- Links: Contact -->
+            <div class="col-6 col-lg-3">
+                <h5 class="site-footer-title">Contact</h5>
+                <ul class="site-footer-links site-footer-contact">
+                    <li class="d-flex align-items-start gap-2">
+                        <i class="fas fa-map-marker-alt text-muted mt-1"></i>
+                        <span>TechPhile.ai<br>Bengaluru, India</span>
+                    </li>
+                    <li class="d-flex align-items-center gap-2">
+                        <i class="fas fa-envelope" aria-hidden="true"></i>
+                        <a href="mailto:techphile@techphile.in">techphile@techphile.in</a>
+                    </li>
+                </ul>
+            </div>
         </div>
-        <div class="footer-bottom">
-            <p>&copy; {% now "Y" %} TechPhile.ai. All rights reserved.</p>
+
+        <!-- Bottom Bar -->
+        <div class="site-footer-bottom">
+            <p class="mb-0">&copy; {% now "Y" %} TechPhile.ai. All rights reserved.</p>
+            <span>Learning for what comes next.</span>
         </div>
     </div>
 </footer>

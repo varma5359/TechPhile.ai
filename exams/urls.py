@@ -147,4 +147,6 @@ urlpatterns = [
     path('interviews/<int:pk>/cancel/', views.InterviewCancelView.as_view(), name='interview-cancel'),
     path('interviews/<int:pk>/reschedule/', views.InterviewRescheduleView.as_view(), name='interview-reschedule'),
     path('interviews/<uuid:interview_id>/join/', views.InterviewJoinView.as_view(), name='interview-join'),
+    # Keep this last so unmatched exam URLs get a learner-friendly message.
+    path('<path:unmatched_path>', views.exam_page_not_found, name='page_not_found'),
     ]

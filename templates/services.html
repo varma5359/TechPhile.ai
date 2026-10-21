@@ -1,351 +1,58 @@
 {% extends 'base.html' %}
-{% load static %}
 
-{% block contents %}
-<style>
-    /* Services Hero Section */
-    .services-hero {
-        background: linear-gradient(135deg, #4361ee, #3a0ca3);
-        padding: 120px 0 80px;
-        text-align: center;
-        color: white;
-        position: relative;
-        overflow: hidden;
-    }
-    
-    .services-hero h2 {
-        font-size: 3rem;
-        font-weight: 700;
-        margin-bottom: 20px;
-        text-shadow: 2px 2px 8px rgba(0, 0, 0, 0.3);
-    }
-    
-    .services-hero p {
-        font-size: 1.2rem;
-        max-width: 800px;
-        margin: 0 auto 30px;
-        opacity: 0.9;
-    }
-    
-    /* Services Section */
-    .services-section {
-        padding: 80px 0;
-        background-color: #f8f9fa;
-    }
-    
-    .service-card {
-        background: white;
-        border-radius: 12px;
-        padding: 30px;
-        margin-bottom: 30px;
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
-        transition: all 0.4s cubic-bezier(0.645, 0.045, 0.355, 1);
-        height: 100%;
-        border-left: 4px solid var(--primary-color);
-    }
-    
-    .service-card:hover {
-        transform: translateY(-10px);
-        box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
-    }
-    
-    .service-icon {
-        font-size: 2.5rem;
-        color: var(--primary-color);
-        margin-bottom: 20px;
-    }
-    
-    .service-card h3 {
-        color: var(--dark-color);
-        margin-bottom: 15px;
-        font-weight: 600;
-    }
-    
-    .service-card p {
-        color: #666;
-        margin-bottom: 20px;
-    }
-    
-    .service-features {
-        list-style: none;
-        padding: 0;
-        margin-bottom: 20px;
-    }
-    
-    .service-features li {
-        padding: 8px 0;
-        position: relative;
-        padding-left: 25px;
-    }
-    
-    .service-features li::before {
-        content: '\f00c';
-        font-family: 'Font Awesome 5 Free';
-        font-weight: 900;
-        position: absolute;
-        left: 0;
-        color: var(--success-color);
-    }
-    
-    /* Pricing Section */
-    .pricing-section {
-        padding: 80px 0;
-        background: linear-gradient(135deg, rgba(67, 97, 238, 0.05), rgba(63, 55, 201, 0.05));
-    }
-    
-    .pricing-card {
-        background: white;
-        border-radius: 12px;
-        padding: 40px 30px;
-        margin-bottom: 30px;
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
-        transition: all 0.4s cubic-bezier(0.645, 0.045, 0.355, 1);
-        text-align: center;
-        border-top: 4px solid var(--primary-color);
-    }
-    
-    .pricing-card.popular {
-        border-top: 4px solid var(--accent-color);
-        position: relative;
-        transform: scale(1.05);
-        z-index: 1;
-    }
-    
-    .pricing-card.popular::after {
-        content: 'Most Popular';
-        position: absolute;
-        top: -12px;
-        right: 20px;
-        background: var(--accent-color);
-        color: white;
-        padding: 5px 15px;
-        border-radius: 20px;
-        font-size: 0.8rem;
-        font-weight: 600;
-    }
-    
-    .pricing-card h3 {
-        color: var(--dark-color);
-        margin-bottom: 15px;
-        font-weight: 600;
-    }
-    
-    .price {
-        font-size: 2.5rem;
-        font-weight: 700;
-        color: var(--primary-color);
-        margin-bottom: 20px;
-    }
-    
-    .price span {
-        font-size: 1rem;
-        color: #666;
-    }
-    
-    .pricing-features {
-        list-style: none;
-        padding: 0;
-        margin-bottom: 30px;
-    }
-    
-    .pricing-features li {
-        padding: 10px 0;
-        border-bottom: 1px solid #eee;
-    }
-    
-    /* Testimonials Section */
-    .testimonials-section {
-        padding: 80px 0;
-        background-color: var(--dark-color);
-        color: white;
-    }
-    
-    .testimonial-card {
-        background: rgba(255, 255, 255, 0.1);
-        border-radius: 12px;
-        padding: 30px;
-        margin-bottom: 30px;
-        transition: all 0.4s cubic-bezier(0.645, 0.045, 0.355, 1);
-    }
-    
-    .testimonial-card:hover {
-        background: rgba(255, 255, 255, 0.15);
-    }
-    
-    .testimonial-text {
-        font-style: italic;
-        margin-bottom: 20px;
-        position: relative;
-    }
-    
-    .testimonial-text::before,
-    .testimonial-text::after {
-        content: '"';
-        font-size: 3rem;
-        color: rgba(255, 255, 255, 0.2);
-        position: absolute;
-    }
-    
-    .testimonial-text::before {
-        top: -20px;
-        left: -10px;
-    }
-    
-    .testimonial-text::after {
-        bottom: -40px;
-        right: -10px;
-    }
-    
-    .testimonial-author {
-        display: flex;
-        align-items: center;
-    }
-    
-    .testimonial-author img {
-        width: 50px;
-        height: 50px;
-        border-radius: 50%;
-        margin-right: 15px;
-        object-fit: cover;
-    }
-    
-    .author-info h5 {
-        margin-bottom: 5px;
-        color: white;
-    }
-    
-    .author-info p {
-        color: #bbb;
-        margin-bottom: 0;
-        font-size: 0.9rem;
-    }
-    
-    /* CTA Section */
-    .services-cta {
-        padding: 100px 0;
-        background: linear-gradient(135deg, var(--accent-color), var(--primary-color));
-        text-align: center;
-        color: white;
-    }
-    
-    .services-cta h2 {
-        font-size: 2.8rem;
-        font-weight: 700;
-        margin-bottom: 20px;
-    }
-    
-    .services-cta p {
-        font-size: 1.2rem;
-        max-width: 700px;
-        margin: 0 auto 40px;
-        opacity: 0.9;
-    }
+{% block title %}Learning Services | TechPhile.ai{% endblock %}
 
-  /*  Our Student Support Services*/
+{% block content %}
+<div class="public-page">
+    <section class="public-page-heading">
+        <div class="container">
+            <span class="public-eyebrow"><i class="fas fa-layer-group" aria-hidden="true"></i> Learn with TechPhile.ai</span>
+            <h1>Practical learning for your next IT career step.</h1>
+            <p>Explore a role, follow a learning plan, practise regularly, and check your progress. TechPhile.ai learning services are free to use.</p>
+        </div>
+    </section>
 
-  
-    /* Support Section Styles */
-    .support-section {
-        padding: 80px 0;
-        background: linear-gradient(135deg, rgba(76, 201, 240, 0.05), rgba(67, 97, 238, 0.05));
-    }
-    
-    .support-card {
-        background: white;
-        border-radius: 12px;
-        padding: 30px;
-        margin-bottom: 30px;
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
-        transition: all 0.4s cubic-bezier(0.645, 0.045, 0.355, 1);
-        height: 100%;
-        border-top: 4px solid var(--primary-color);
-        text-align: center;
-    }
-    
-    .support-card:hover {
-        transform: translateY(-10px);
-        box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
-    }
-    
-    .support-icon {
-        font-size: 2.5rem;
-        color: var(--primary-color);
-        margin-bottom: 20px;
-        display: inline-block;
-        width: 70px;
-        height: 70px;
-        line-height: 70px;
-        background: rgba(67, 97, 238, 0.1);
-        border-radius: 50%;
-    }
-    
-    .support-card h3 {
-        color: var(--dark-color);
-        margin-bottom: 15px;
-        font-weight: 600;
-    }
-    
-    .support-card p {
-        color: #666;
-        margin-bottom: 20px;
-    }
-    
-    .support-features {
-        list-style: none;
-        padding: 0;
-        margin-bottom: 20px;
-        text-align: left;
-    }
-    
-    .support-features li {
-        padding: 8px 0;
-        position: relative;
-        padding-left: 25px;
-    }
-    
-    .support-features li::before {
-        content: '\f00c';
-        font-family: 'Font Awesome 5 Free';
-        font-weight: 900;
-        position: absolute;
-        left: 0;
-        color: var(--success-color);
-    }
-    
-    .btn-custom {
-        background: var(--primary-color);
-        color: white;
-        border: none;
-        padding: 10px 25px;
-        border-radius: 30px;
-        font-weight: 500;
-        transition: all 0.3s;
-    }
-    
-    .btn-custom:hover {
-        background: var(--secondary-color);
-        color: white;
-        transform: translateY(-2px);
-        box-shadow: 0 5px 15px rgba(67, 97, 238, 0.3);
-    }
+    <section class="container public-content-section">
+        <div class="row g-4">
+            <div class="col-lg-6">
+                <article class="public-step-card d-flex flex-column">
+                    <span class="about-hero-icon mb-3"><i class="fas fa-route" aria-hidden="true"></i></span>
+                    <span class="public-eyebrow">Explore a role</span>
+                    <h2 class="h3 mt-2">Role-based career paths</h2>
+                    <p>Choose from the career paths currently available and work through focused learning topics designed to help you build relevant skills. Paths can support graduates preparing for IT and professionals planning their next move.</p>
+                    <a href="{% url 'careers:role_list' %}" class="edu-btn edu-btn-primary mt-auto align-self-start">View career paths <i class="fas fa-arrow-right ms-1" aria-hidden="true"></i></a>
+                </article>
+            </div>
+            <div class="col-lg-6">
+                <article class="public-step-card d-flex flex-column">
+                    <span class="about-hero-icon mb-3"><i class="fas fa-calendar-check" aria-hidden="true"></i></span>
+                    <span class="public-eyebrow">Learn day by day</span>
+                    <h2 class="h3 mt-2">Daily lessons and practice</h2>
+                    <p>Break a learning goal into daily topics, then answer practice questions to apply what you have studied. Available paths include focused preparation for specific roles, such as data science.</p>
+                    <a href="{% url 'careers:role_list' %}" class="edu-btn edu-btn-primary mt-auto align-self-start">Find a learning path <i class="fas fa-arrow-right ms-1" aria-hidden="true"></i></a>
+                </article>
+            </div>
+            <div class="col-lg-6">
+                <article class="public-step-card d-flex flex-column">
+                    <span class="about-hero-icon mb-3"><i class="fas fa-clipboard-check" aria-hidden="true"></i></span>
+                    <span class="public-eyebrow">Check your progress</span>
+                    <h2 class="h3 mt-2">Milestone assessments</h2>
+                    <p>Milestone tests, where included in a path, help you review what you have learned and spot strengths and areas that may need more practice. Some paths organize these checks after each five-day learning block.</p>
+                    <a href="{% url 'careers:role_list' %}" class="edu-btn edu-btn-primary mt-auto align-self-start">Explore paths <i class="fas fa-arrow-right ms-1" aria-hidden="true"></i></a>
+                </article>
+            </div>
+            <div class="col-lg-6">
+                <article class="public-step-card d-flex flex-column">
+                    <span class="about-hero-icon mb-3"><i class="fas fa-file-circle-check" aria-hidden="true"></i></span>
+                    <span class="public-eyebrow">Practise your knowledge</span>
+                    <h2 class="h3 mt-2">Subject exam practice</h2>
+                    <p>Use available subject exams to test your understanding, submit an attempt, and review the feedback and explanations provided.</p>
+                    <a href="{% url 'exams:exam_list' %}" class="edu-btn edu-btn-primary mt-auto align-self-start">Browse exams <i class="fas fa-arrow-right ms-1" aria-hidden="true"></i></a>
+                </article>
+            </div>
+        </div>
 
-</style>
-
-
-<section class="services-hero">
-    <div class="container">
-        <h1 class="animate__animated animate__fadeInDown">Learning and practice</h1>
-        <p class="animate__animated animate__fadeInUp">Explore the study tools currently available on TechPhile.ai.</p>
-    </div>
-</section>
-<section class="services-section">
-    <div class="container"><div class="row justify-content-center g-4">
-        <div class="col-md-6 col-lg-5"><article class="service-card h-100"><div class="service-icon"><i class="fas fa-route" aria-hidden="true"></i></div><h2 class="h3">Career preparation</h2><p>Follow a published role-based path with lessons, practice questions, progress tracking, and milestone assessments.</p><a class="btn btn-custom" href="{% url 'careers:role_list' %}">Explore career paths</a></article></div>
-        <div class="col-md-6 col-lg-5"><article class="service-card h-100"><div class="service-icon"><i class="fas fa-clipboard-check" aria-hidden="true"></i></div><h2 class="h3">Subject exams</h2><p>Browse the available subject exams and use practice attempts to review your understanding.</p><a class="btn btn-custom" href="{% url 'exams:exam_list' %}">Browse exams</a></article></div>
-    </div></div>
-</section>
-<section class="services-cta">
-    <div class="container"><h2>Ready to start learning?</h2><p>Choose a career path or explore the available exams.</p><a href="{% url 'careers:role_list' %}" class="btn btn-custom">Explore career paths</a></div>
-</section>
-
+        <div class="public-bottom-cta"><div><h2>Learning keeps moving forward</h2><p>We continue to improve TechPhile.ai as technology skills and role expectations evolve. AI-supported features are introduced as they become available.</p></div><a href="{% url 'contact' %}" class="edu-btn edu-btn-primary">Contact us <i class="fas fa-arrow-right ms-1" aria-hidden="true"></i></a></div>
+    </section>
+</div>
 {% endblock %}

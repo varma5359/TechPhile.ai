@@ -1,86 +1,32 @@
 {% extends 'base.html' %}
-
+{% load static %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/app-redesign.css' %}">{% endblock %}
 {% block contents %}
-<div class="container cp-page">
-    <div class="main-content">
-        {% include 'careers/_shared.html' %}
-        <div class="cp-breadcrumb">
-            <a href="{% url 'careers:role_list' %}">Career Preparation</a> /
-            <a href="{% url 'careers:level_role_detail' role.slug level %}">{{ role.title }}</a> / {{ level|title }} path / Day {{ day.day_number }} result
-        </div>
-        <h1>Day {{ day.day_number }}: {{ day.title }}</h1>
-
-        <div class="cp-panel">
-            <div class="cp-score">{{ attempt.score_percent|floatformat:0 }}%</div>
-            <p class="mb-1">{{ attempt.correct_marks }} of {{ attempt.total_marks }} marks &middot;
-                submitted {{ attempt.submitted_at|date:"j M Y, H:i" }}</p>
-            {% if solid %}
-                <span class="cp-badge completed">Day completed</span>
-            {% else %}
-                <span class="cp-badge revision_recommended">Revision recommended (below {{ role.pass_percent }}%)</span>
-            {% endif %}
-        </div>
-
-        <div class="row">
-            <div class="col-md-6">
-                <div class="cp-panel">
-                    <h2>Strengths</h2>
-                    {% if strengths %}
-                        <div class="cp-chips">{% for s in strengths %}<span class="cp-chip strong">{{ s.skill }} &middot; {{ s.correct }}/{{ s.total }}</span>{% endfor %}</div>
-                    {% else %}<p class="cp-muted mb-0">No skill reached {{ role.pass_percent }}% on this attempt.</p>{% endif %}
-                </div>
-            </div>
-            <div class="col-md-6">
-                <div class="cp-panel">
-                    <h2>Weak areas</h2>
-                    {% if weak %}
-                        <div class="cp-chips">{% for s in weak %}<span class="cp-chip weak">{{ s.skill }} &middot; {{ s.correct }}/{{ s.total }}</span>{% endfor %}</div>
-                    {% else %}<p class="cp-muted mb-0">No weak areas on this attempt.</p>{% endif %}
-                </div>
-            </div>
-        </div>
-
-        <div class="cp-panel">
-            <h2>Recommended next steps</h2>
-            <ul class="cp-list">
-                {% if recommendation.milestone_due %}
-                    <li><a href="{% url 'careers:level_milestone_detail' role.slug level recommendation.milestone_due.milestone.number %}">Take {{ recommendation.milestone_due.milestone.title }}</a>
-                        &ndash; you have finished its whole block.</li>
-                {% endif %}
-                {% if recommendation.next_day %}
-                    <li>Continue with <a href="{% url 'careers:level_day_detail' role.slug level recommendation.next_day.day_number %}">Day {{ recommendation.next_day.day_number }}: {{ recommendation.next_day.title }}</a>.</li>
-                {% endif %}
-                {% if not solid %}
-                    <li>Review the explanations below and <a href="{% url 'careers:level_day_detail' role.slug level day.day_number %}">retake this day</a>.</li>
-                {% endif %}
-                {% for item in recommendation.weak_skills %}
-                    <li>Revisit <strong>{{ item.skill }}</strong> ({{ item.percent }}% so far){% if item.days %}:
-                        {% for d in item.days %}<a href="{% url 'careers:level_day_detail' role.slug level d.day_number %}">Day {{ d.day_number }}</a>{% if not forloop.last %}, {% endif %}{% endfor %}{% endif %}.</li>
-                {% endfor %}
-                {% if not recommendation.next_day and not recommendation.milestone_due %}
-                    <li>You have submitted every published day. Check back for new content.</li>
-                {% endif %}
-            </ul>
-            <p class="cp-muted small mt-2 mb-0">Recommendations are rule based on your submitted answers.</p>
-        </div>
-
-        <h2>Answer review</h2>
-        {% include 'careers/_review.html' %}
-
-        {% if history|length > 1 %}
-            <div class="cp-panel">
-                <h2>Attempt history</h2>
-                <ul class="cp-list">
-                    {% for h in history %}
-                        <li>{{ h.submitted_at|date:"j M Y, H:i" }} &ndash; {{ h.score_percent|floatformat:0 }}%
-                            {% if h.pk == attempt.pk %}<em>(this attempt)</em>{% else %}
-                                <a href="{% url 'careers:level_day_result' role.slug level day.day_number h.pk %}">view</a>{% endif %}</li>
-                    {% endfor %}
-                </ul>
-            </div>
-        {% endif %}
-
-        <a class="cp-btn" href="{% url 'careers:level_role_detail' role.slug level %}">Back to plan</a>
-    </div>
+<div class="container cp-page cp-result-page career-workspace">
+  <div class="cp-result-content">
+    {% include 'careers/_shared.html' %}
+    <nav class="cp-breadcrumb" aria-label="Breadcrumb"><a href="{% url 'careers:role_list' %}">Career Preparation</a> / <a href="{% url 'careers:level_role_detail' role.slug level %}">{{ role.title }}</a> / Day {{ day.day_number }} result</nav>
+    <header class="cp-result-hero {% if solid %}is-passed{% else %}needs-review{% endif %}">
+      <div><p class="cp-result-eyebrow">{{ role.title }} · {{ level|title }} path · Day {{ day.day_number }}</p><h1>{{ day.title }}</h1>
+        <p>{% if solid %}Day completed. Your next activity is ready below.{% else %}Review the feedback and revisit the topics that need more practice.{% endif %}</p>
+        <span class="cp-badge {% if solid %}completed{% else %}revision_recommended{% endif %}">{% if solid %}Day completed{% else %}Revision recommended · {{ role.pass_percent }}% pass mark{% endif %}</span>
+      </div>
+      <div class="cp-result-score"><strong>{{ attempt.score_percent|floatformat:0 }}%</strong><span>{{ attempt.correct_marks }} of {{ attempt.total_marks }} marks</span><small>Submitted {{ attempt.submitted_at|date:"j M Y, H:i" }}</small></div>
+    </header>
+    <section class="cp-result-grid" aria-label="Skill summary">
+      <article class="cp-panel"><h2>Strengths</h2>{% if strengths %}<div class="cp-chips">{% for s in strengths %}<span class="cp-chip strong">{{ s.skill }} · {{ s.correct }}/{{ s.total }}</span>{% endfor %}</div>{% else %}<p class="cp-muted mb-0">No skill reached {{ role.pass_percent }}% on this attempt.</p>{% endif %}</article>
+      <article class="cp-panel"><h2>Focus areas</h2>{% if weak %}<div class="cp-chips">{% for s in weak %}<span class="cp-chip weak">{{ s.skill }} · {{ s.correct }}/{{ s.total }}</span>{% endfor %}</div>{% else %}<p class="cp-muted mb-0">No weak areas on this attempt.</p>{% endif %}</article>
+    </section>
+    <section class="cp-panel cp-result-next"><div><p class="cp-result-eyebrow">Your next step</p><h2>Keep your learning moving</h2><p class="cp-muted">Recommendations are based on your submitted answers.</p></div><ul class="cp-list">
+      {% if recommendation.milestone_due %}<li><a href="{% url 'careers:level_milestone_detail' role.slug level recommendation.milestone_due.milestone.number %}">Take {{ recommendation.milestone_due.milestone.title }}</a> · this learning block is complete.</li>{% endif %}
+      {% if recommendation.next_day %}<li>Continue with <a href="{% url 'careers:level_day_detail' role.slug level recommendation.next_day.day_number %}">Day {{ recommendation.next_day.day_number }}: {{ recommendation.next_day.title }}</a>.</li>{% endif %}
+      {% if not solid %}<li>Review the answers below and <a href="{% url 'careers:level_day_detail' role.slug level day.day_number %}">try this day again</a>.</li>{% endif %}
+      {% for item in recommendation.weak_skills %}<li>Revisit <strong>{{ item.skill }}</strong> ({{ item.percent }}%){% if item.days %}: {% for d in item.days %}<a href="{% url 'careers:level_day_detail' role.slug level d.day_number %}">Day {{ d.day_number }}</a>{% if not forloop.last %}, {% endif %}{% endfor %}{% endif %}.</li>{% endfor %}
+      {% if not recommendation.next_day and not recommendation.milestone_due %}<li>You have submitted every published day. Check back for new content.</li>{% endif %}
+    </ul></section>
+    <section class="cp-review-section"><div class="cp-section-heading"><div><p class="cp-result-eyebrow">Learn from each answer</p><h2>Answer review</h2></div></div>{% include 'careers/_review.html' %}</section>
+    {% if history|length > 1 %}<details class="cp-panel cp-attempt-history"><summary>Attempt history <span>{{ history|length }} attempts</span></summary><ul class="cp-list">{% for h in history %}<li>{{ h.submitted_at|date:"j M Y, H:i" }} · {{ h.score_percent|floatformat:0 }}% {% if h.pk == attempt.pk %}<strong>(this attempt)</strong>{% else %}<a href="{% url 'careers:level_day_result' role.slug level day.day_number h.pk %}">View attempt</a>{% endif %}</li>{% endfor %}</ul></details>{% endif %}
+    <a class="cp-btn" href="{% url 'careers:level_role_detail' role.slug level %}">Back to learning plan</a>
+  </div>
 </div>
 {% endblock %}

@@ -1,31 +1,18 @@
 {% extends 'base.html' %}
-
+{% load static %}
+{% block title %}Message Sent | TechPhile.ai{% endblock %}
 {% block contents %}
-<div class="popup-overlay" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); display: flex; justify-content: center; align-items: center; z-index: 1000;">
-    <div class="popup-content" style="background: white; padding: 30px; border-radius: 10px; text-align: center; max-width: 500px; animation: fadeIn 0.3s ease-out;">
-        <svg width="50" height="50" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="margin-bottom: 15px;">
-            <path d="M22 11.08V12C21.9988 14.1564 21.3005 16.2547 20.0093 17.9818C18.7182 19.709 16.9033 20.9725 14.8354 21.5839C12.7674 22.1953 10.5573 22.1219 8.53447 21.3746C6.51168 20.6273 4.78465 19.2461 3.61096 17.4371C2.43727 15.628 1.87979 13.4881 2.02168 11.3363C2.16356 9.18455 2.99721 7.13631 4.39828 5.49706C5.79935 3.85781 7.69279 2.71537 9.79619 2.24013C11.8996 1.7649 14.1003 1.98232 16.07 2.86" stroke="#4BB543" stroke-width="2" stroke-linecap="round"/>
-            <path d="M22 4L12 14.01L9 11.01" stroke="#4BB543" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-        <h3 style="color: #4BB543; margin-bottom: 15px;">Message Sent Successfully!</h3>
-        <p style="margin-bottom: 20px;">Thank you for contacting us. We'll get back to you soon.</p>
-        <a href="{% url 'contact' %}" style="display: inline-block; padding: 10px 25px; background: #4361ee; color: white; text-decoration: none; border-radius: 5px; transition: all 0.3s;">
-            Return to Contact Page
-        </a>
+<div class="tp-container py-5 d-flex justify-content-center align-items-center" style="min-height: 60vh;">
+    <div class="tp-card p-5 text-center shadow-sm border-0" style="max-width: 500px;">
+        <div class="bg-success bg-opacity-10 text-success rounded-circle d-inline-flex align-items-center justify-content-center mb-4" style="width: 64px; height: 64px;">
+            <i class="fas fa-check fs-2"></i>
+        </div>
+        <h1 class="h3 fw-bold mb-2">Message received</h1>
+        <p class="text-muted mb-4">Thank you for reaching out. Your message has been sent to the TechPhile.ai team.</p>
+        <a href="{% url 'home' %}" class="tp-btn tp-btn-primary">Return home</a>
     </div>
 </div>
-
-<style>
-    @keyframes fadeIn {
-        from { opacity: 0; transform: translateY(20px); }
-        to { opacity: 1; transform: translateY(0); }
-    }
-</style>
-
 <script>
-    // Automatically close after 5 seconds
-    setTimeout(function() {
-        window.location.href = "{% url 'contact' %}";
-    }, 5000);
+    setTimeout(function(){ window.location.href="{% url 'contact' %}"; }, 5000);
 </script>
 {% endblock %}

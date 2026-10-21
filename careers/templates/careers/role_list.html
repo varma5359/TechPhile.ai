@@ -1,59 +1,13 @@
 {% extends 'base.html' %}
-
-{% block contents %}
-<div class="container cp-page cp-role-list-page">
-    <div class="main-content">
-        {% include 'careers/_shared.html' %}
-        <div class="cp-role-hero">
-            <span class="cp-badge mb-2">CAREER PREP &middot; YOUR NEXT CHAPTER</span>
-            <h1>Build skills for the role you want.</h1>
-            <p class="mb-0">Choose a career track and follow a practical, day-by-day plan with interview-style questions and milestone check-ins.</p>
-        </div>
-        <div class="cp-panel cp-settings-panel d-flex flex-wrap align-items-center justify-content-between">
-            <div>
-                <strong><i class="fas fa-sliders-h mr-1" aria-hidden="true"></i> Your learning settings</strong>
-                <div class="cp-muted small">{{ experience_label }} experience &middot; {{ selected_path_label }} path</div>
-                {% if preferred_role %}
-                    <div class="cp-muted small">Your selected role is highlighted below.</div>
-                {% else %}
-                    <div class="cp-muted small">Choose a career role to personalize your plan.</div>
-                {% endif %}
-            </div>
-            <div class="d-flex flex-wrap gap-2">
-                {% if preferred_role %}<a class="cp-btn" href="{% url 'careers:level_role_detail' preferred_role.slug level %}">Continue {{ preferred_role.title }} plan</a>{% endif %}
-                <a class="cp-btn outline" href="{% url 'exams:profile_settings' %}?tab=career">Edit career preferences</a>
-            </div>
-        </div>
-
-        {% if cards %}
-            <div class="cp-section-heading">
-                <div><span class="cp-section-kicker">Explore career tracks</span><h2>Choose your starting point</h2></div>
-                <span class="cp-muted small">{{ cards|length }} learning track{{ cards|length|pluralize }}</span>
-            </div>
-            <div class="cp-grid">
-                {% for card in cards %}
-                    <article class="cp-card">
-                        <div class="cp-role-icon" aria-hidden="true"><i class="fas fa-laptop-code"></i></div>
-                        <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2 cp-role-card-title">
-                            <h3 class="mb-0">{{ card.role.title }}</h3>
-                            {% if card.is_preferred_role %}<span class="cp-badge completed">Your selected role</span>{% endif %}
-                        </div>
-                        <p class="cp-muted cp-role-card-summary flex-grow-1">{{ card.role.summary|truncatewords:28 }}</p>
-                        <p class="cp-role-card-meta mb-2"><i class="fas fa-calendar-alt mr-1" aria-hidden="true"></i>{{ card.role.duration_days }}-day learning paths</p>
-                        {% for path in card.paths %}
-                            <div class="cp-role-card-path">
-                                <p class="cp-muted small mb-1">{{ path.label }} &middot; {{ path.done }} of {{ path.total }} days completed</p>
-                                <a class="cp-btn {% if not path.is_selected %}outline{% endif %}" href="{% url 'careers:level_role_detail' card.role.slug path.level %}">
-                                    {% if path.is_selected %}Open your {{ path.label }} path{% else %}Open {{ path.label }} path{% endif %}
-                                </a>
-                            </div>
-                        {% endfor %}
-                    </article>
-                {% endfor %}
-            </div>
-        {% else %}
-            <div class="cp-panel">No career roles are published yet. Please check back soon.</div>
-        {% endif %}
-    </div>
+{% load static %}
+{% block title %}Career paths | TechPhile.ai{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/app-redesign.css' %}">{% endblock %}
+{% block content %}
+<div class="career-workspace">
+  <header class="cw-page-head"><div><p class="cw-eyebrow">CAREER PREPARATION</p><h1>Choose your career path</h1><p>Explore structured learning paths with lessons, scenario practice, and milestone assessments.</p></div><a href="{% url 'exams:profile_settings' %}?tab=career" class="edu-btn edu-btn-outline"><i class="fas fa-sliders" aria-hidden="true"></i> Edit preferences</a></header>
+  <section class="cw-preference"><div><span class="cw-preference-icon"><i class="fas fa-bullseye" aria-hidden="true"></i></span><div><strong>Your learning settings</strong><p>{{ experience_label }} experience <span aria-hidden="true">·</span> {{ selected_path_label }} path</p></div></div>{% if preferred_role %}<a href="{% url 'careers:level_role_detail' preferred_role.slug level %}" class="edu-btn edu-btn-primary">Continue {{ preferred_role.title }} <span aria-hidden="true">→</span></a>{% endif %}</section>
+  <section aria-labelledby="career-path-heading"><div class="cw-section-heading"><div><p class="cw-eyebrow">AVAILABLE PATHS</p><h2 id="career-path-heading">Find a role to prepare for</h2><p>Compare available paths and pick up where you left off.</p></div></div>
+  {% if cards %}<div class="cw-role-grid">{% for card in cards %}<article class="cw-role-card"><div class="cw-role-card-head"><span class="cw-role-icon"><i class="fas fa-laptop-code" aria-hidden="true"></i></span>{% if card.is_preferred_role %}<span class="edu-badge edu-badge-success">Your role</span>{% endif %}</div><h3>{{ card.role.title }}</h3><p class="cw-role-summary">{{ card.role.summary|truncatewords:25 }}</p><div class="cw-role-duration"><i class="far fa-calendar" aria-hidden="true"></i> {{ card.role.duration_days }}-day learning path</div><div class="cw-path-options">{% for path in card.paths %}<div class="cw-path-option"><div class="cw-path-meta"><strong>{{ path.label }} path</strong><span>{{ path.done }} of {{ path.total }} days</span></div><div class="cw-progress"><span style="width:{% widthratio path.done path.total 100 %}%"></span></div><a class="edu-btn {% if path.is_selected %}edu-btn-primary{% else %}edu-btn-outline{% endif %}" href="{% url 'careers:level_role_detail' card.role.slug path.level %}">{% if path.is_selected %}Continue learning{% else %}View path{% endif %}<span aria-hidden="true">→</span></a></div>{% endfor %}</div></article>{% endfor %}</div>{% else %}<div class="cw-empty"><span><i class="fas fa-route" aria-hidden="true"></i></span><h2>No career roles published yet</h2><p>Check back later for available learning paths.</p></div>{% endif %}
+  </section>
 </div>
 {% endblock %}
