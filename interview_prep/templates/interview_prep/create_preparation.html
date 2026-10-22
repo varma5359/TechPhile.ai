@@ -1,0 +1,127 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}Create interview preparation | TechPhile.ai{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/interview-prep.css' %}">{% endblock %}
+{% block content %}
+<main class="ipp-page ipp-create-page">
+  <section class="ipp-hero">
+    <div class="container ipp-container ipp-create-hero">
+      <a class="ipp-back-link" href="{% url 'interview_prep:monthly_plan' %}"><i class="fa-solid fa-arrow-left" aria-hidden="true"></i> Interview prep</a>
+      <div class="ipp-create-heading">
+        <div>
+          <span class="ipp-eyebrow"><i class="fa-solid fa-sparkles" aria-hidden="true"></i> PREMIUM PREPARATION</span>
+          <h1>Check your role fit, then prepare</h1>
+          <p>Review your resume-to-job fit, then practise for your selected role with questions focused on its requirements and skill gaps.</p>
+        </div>
+        <div class="ipp-usage-card" aria-label="Monthly preparation usage">
+          <span class="ipp-usage-label">THIS MONTH</span>
+          <strong>{{ access.sets_remaining }} <small>of {{ access.set_limit }} sets left</small></strong>
+          <span>{{ access.sets_used }} used in your active plan</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="container ipp-container ipp-create-content">
+    <div class="ipp-form-column">
+      {% if previous_sets %}
+        <section class="ipp-previous-card" aria-labelledby="previous-preparations-heading">
+          <div class="ipp-section-heading">
+            <span class="ipp-step-number">01</span>
+            <div><h2 id="previous-preparations-heading">Your recent preparations</h2><p>Open a saved set to continue practising.</p></div>
+          </div>
+          <ul class="ipp-previous-list">
+            {% for item in previous_sets %}
+              <li><a href="{% url 'interview_prep:preparation_detail' item.pk %}"><span>{{ item.company_name|default:'Interview practice' }} · {{ item.job_title }}</span><i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i></a><small>Set {{ item.set_number }}</small></li>
+            {% endfor %}
+          </ul>
+        </section>
+      {% endif %}
+
+      {% if not generation_configured %}
+        <div class="ipp-not-ready" role="status"><i class="fa-solid fa-circle-info" aria-hidden="true"></i><div><strong>AI preparation is not configured yet.</strong><br>Set an API key for the selected provider before generating a set.</div></div>
+      {% elif access.sets_remaining == 0 %}
+        <div class="ipp-not-ready" role="status"><i class="fa-solid fa-circle-info" aria-hidden="true"></i><div>You have used both preparation sets for this subscription month.</div></div>
+      {% endif %}
+      {% if form.non_field_errors %}<div class="ipp-form-errors" role="alert">{{ form.non_field_errors }}</div>{% endif %}
+
+      <form method="post" class="ipp-preparation-form">
+        {% csrf_token %}{{ form.request_reference }}
+        <section class="ipp-form-section" aria-labelledby="role-details-heading">
+          <div class="ipp-section-heading">
+            <span class="ipp-step-number">01</span>
+            <div><h2 id="role-details-heading">Role details</h2><p>Choose the role and experience level you’re targeting.</p></div>
+          </div>
+          <div class="ipp-field-grid ipp-field-grid-two">
+            {% for field in form.visible_fields %}
+              {% if field.name == 'job_title' or field.name == 'company_name' or field.name == 'role_family' or field.name == 'seniority' %}
+                <div class="ipp-field{% if field.errors %} ipp-field-error{% endif %}">
+                  <label for="{{ field.id_for_label }}">{{ field.label }}{% if field.field.required %}<span aria-hidden="true">*</span>{% endif %}</label>
+                  {{ field }}
+                  {% if field.help_text %}<small class="ipp-field-help">{{ field.help_text }}</small>{% endif %}
+                  {% for error in field.errors %}<small class="ipp-error-text" role="alert">{{ error }}</small>{% endfor %}
+                </div>
+              {% endif %}
+            {% endfor %}
+          </div>
+        </section>
+
+        <section class="ipp-form-section" aria-labelledby="materials-heading">
+          <div class="ipp-section-heading">
+            <span class="ipp-step-number">02</span>
+            <div><h2 id="materials-heading">Add your materials</h2><p>Paste the job description and the relevant parts of your resume.</p></div>
+          </div>
+          <div class="ipp-field-grid ipp-field-grid-two ipp-material-grid">
+            {% for field in form.visible_fields %}
+              {% if field.name == 'job_description' or field.name == 'resume_text' %}
+                <div class="ipp-field ipp-material-field{% if field.errors %} ipp-field-error{% endif %}">
+                  <label for="{{ field.id_for_label }}">{{ field.label }}<span aria-hidden="true">*</span></label>
+                  {{ field }}
+                  {% if field.help_text %}<small class="ipp-field-help">{{ field.help_text }}</small>{% endif %}
+                  {% for error in field.errors %}<small class="ipp-error-text" role="alert">{{ error }}</small>{% endfor %}
+                </div>
+              {% endif %}
+            {% endfor %}
+          </div>
+        </section>
+
+        <section class="ipp-consent-section" aria-labelledby="privacy-heading">
+          <div class="ipp-privacy-icon"><i class="fa-solid fa-shield-halved" aria-hidden="true"></i></div>
+          <div class="ipp-privacy-copy">
+            <h2 id="privacy-heading">Your information and consent</h2>
+            <p>Your resume text is sent to the selected AI provider to create this set and is not saved in your TechPhile account. Remove contact details or other private information before pasting.</p>
+            {% for field in form.visible_fields %}
+              {% if field.name == 'consent_to_ai_provider' %}
+                <div class="ipp-consent-check{% if field.errors %} ipp-field-error{% endif %}">
+                  {{ field }}<label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                </div>
+                {% for error in field.errors %}<small class="ipp-error-text" role="alert">{{ error }}</small>{% endfor %}
+              {% endif %}
+            {% endfor %}
+          </div>
+        </section>
+
+        <div class="ipp-form-submit">
+          <button type="submit" class="ipp-primary-button" {% if not generation_configured or access.sets_remaining == 0 %}disabled{% endif %}>
+            <i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true"></i> Generate my question sets
+          </button>
+          <span><i class="fa-solid fa-layer-group" aria-hidden="true"></i> 2 rounds · 30 questions each · 1 monthly set</span>
+        </div>
+      </form>
+    </div>
+
+    <aside class="ipp-create-aside" aria-label="What you will receive">
+      <div class="ipp-aside-icon"><i class="fa-solid fa-list-check" aria-hidden="true"></i></div>
+      <span class="ipp-eyebrow">YOUR PRACTICE SET</span>
+      <h2>Practice with a clear plan</h2>
+      <p>Questions are tailored to your target role, experience level, resume and the requirements in the job description.</p>
+      <ol class="ipp-step-list">
+        <li><span>1</span><div><strong>Role fit summary</strong><small>See how your experience maps to the role.</small></div></li>
+        <li><span>2</span><div><strong>Two practice rounds</strong><small>30 questions in each round, with answer guidance.</small></div></li>
+        <li><span>3</span><div><strong>Track your practice</strong><small>Save questions and mark them practised.</small></div></li>
+      </ol>
+      <div class="ipp-aside-footnote"><i class="fa-solid fa-circle-info" aria-hidden="true"></i><span>Review AI-generated guidance and adapt it to your own experience.</span></div>
+    </aside>
+  </section>
+</main>
+{% endblock %}

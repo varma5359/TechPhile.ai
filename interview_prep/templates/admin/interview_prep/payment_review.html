@@ -1,0 +1,52 @@
+{% extends "admin/base_site.html" %}
+{% load i18n %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+    <a href="{% url 'admin:index' %}">{% translate 'Home' %}</a>
+    &rsaquo; <a href="{% url 'admin:interview_prep_paymentsubmission_changelist' %}">Payment submissions</a>
+    &rsaquo; Review payment
+</div>
+{% endblock %}
+
+{% block content %}
+<div id="content-main">
+    <div class="module">
+        <h2>Payment submission</h2>
+        <table>
+            <tbody>
+                <tr><th>Order reference</th><td>{{ submission.order.public_reference }}</td></tr>
+                <tr><th>Learner</th><td>{{ submission.order.user.email }}</td></tr>
+                <tr><th>Plan</th><td>Premium monthly access</td></tr>
+                <tr><th>Amount</th><td>{{ submission.order.currency }} {{ submission.order.amount }}</td></tr>
+                <tr><th>Transaction reference</th><td>{{ submission.transaction_reference }}</td></tr>
+                <tr><th>Submitted</th><td>{{ submission.submitted_at }}</td></tr>
+                <tr><th>Current order status</th><td>{{ submission.order.get_status_display }}</td></tr>
+                {% if receipt_url %}<tr><th>Receipt</th><td><a href="{{ receipt_url }}">Download private receipt</a></td></tr>{% endif %}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="messagelist" role="note">
+        <div class="warning">Verify the transaction in the authorized receiving bank or UPI account before approving. A receipt image or transaction reference alone is not proof of payment.</div>
+    </div>
+
+    {% if can_review %}
+        <form method="post" class="module aligned">
+            {% csrf_token %}
+            {{ form.non_field_errors }}
+            <fieldset class="module aligned">
+                <h2>Record decision</h2>
+                <div class="form-row"><div>{{ form.decision.errors }}{{ form.decision.label_tag }}{{ form.decision }}</div></div>
+                <div class="form-row"><div>{{ form.notes.errors }}{{ form.notes.label_tag }}{{ form.notes }}<p class="help">{{ form.notes.help_text }}</p></div></div>
+            </fieldset>
+            <div class="submit-row"><input type="submit" class="default" value="Save payment decision"></div>
+        </form>
+    {% else %}
+        <div class="module"><p>This submission cannot be reviewed by your account. It may already have a decision, may no longer be pending, or it may belong to you.</p></div>
+        {% if submission.review %}
+            <div class="module"><h2>Recorded decision</h2><p>{{ submission.review.get_decision_display }} by {{ submission.review.reviewer }} on {{ submission.review.reviewed_at }}</p><p>{{ submission.review.notes|default:'No review note was recorded.' }}</p></div>
+        {% endif %}
+    {% endif %}
+</div>
+{% endblock %}

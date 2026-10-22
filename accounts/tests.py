@@ -14,14 +14,14 @@ class LoginFlowTests(TestCase):
             password='Safe-test-password-123!',
         )
 
-    def test_signup_and_login_pages_link_to_each_other(self):
+    def test_signup_and_login_routes_use_the_same_google_auth_flow(self):
         signup_response = self.client.get(reverse('signup'))
         login_response = self.client.get(reverse('login'))
 
         self.assertEqual(signup_response.status_code, 200)
-        self.assertContains(signup_response, reverse('login'))
+        self.assertContains(signup_response, 'Sign in or create your account securely with Google')
         self.assertEqual(login_response.status_code, 200)
-        self.assertContains(login_response, reverse('signup'))
+        self.assertContains(login_response, 'Sign in or create your account securely with Google')
 
     def test_successful_login_redirects_to_safe_next_url(self):
         response = self.client.post(

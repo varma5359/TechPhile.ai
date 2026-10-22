@@ -24,6 +24,7 @@
 
 
 from django.contrib import admin
+from unfold.admin import ModelAdmin
 from .models import Problem, Submission, UserProfile
 from django.utils.html import format_html
 from django.urls import reverse
@@ -55,7 +56,7 @@ class SubmissionStatusFilter(admin.SimpleListFilter):
         return queryset
 
 @admin.register(Problem)
-class ProblemAdmin(admin.ModelAdmin):
+class ProblemAdmin(ModelAdmin):
     list_display = ['title', 'difficulty', 'category', 'created_at', 'submission_count', 'acceptance_rate']
     list_filter = [DifficultyFilter, 'category', 'created_at']
     search_fields = ['title', 'description', 'category']
@@ -114,7 +115,7 @@ class ProblemAdmin(admin.ModelAdmin):
     acceptance_rate.short_description = 'Acceptance Rate'
 
 @admin.register(Submission)
-class SubmissionAdmin(admin.ModelAdmin):
+class SubmissionAdmin(ModelAdmin):
     list_display = ['id', 'user_link', 'problem_link', 'language', 'status_badge', 'execution_time', 'memory_used', 'submitted_at']
     list_filter = [SubmissionStatusFilter, 'language', 'submitted_at']
     search_fields = ['user__username', 'problem__title', 'code']
@@ -166,7 +167,7 @@ class SubmissionAdmin(admin.ModelAdmin):
     status_badge.admin_order_field = 'status'
 
 @admin.register(UserProfile)
-class UserProfileAdmin(admin.ModelAdmin):
+class UserProfileAdmin(ModelAdmin):
     list_display = ['user_link', 'avatar_thumbnail', 'total_solved', 'easy_solved', 'medium_solved', 'hard_solved', 'ranking']
     list_filter = ['created_at']
     search_fields = ['user__username', 'user__email']

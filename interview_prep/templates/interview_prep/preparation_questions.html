@@ -1,0 +1,75 @@
+{% extends 'base.html' %}
+{% load static interview_prep_markdown %}
+{% block title %}Learn and practise: {{ preparation.job_title }} | TechPhile.ai{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/interview-prep.css' %}">{% endblock %}
+{% block content %}
+<main class="ipp-page ipp-questions-page">
+  <section class="ipp-hero ipp-result-hero"><div class="container ipp-container">
+    <a class="ipp-back-link" href="{% url 'interview_prep:preparation_detail' preparation.pk %}"><i class="fa-solid fa-arrow-left" aria-hidden="true"></i> Back to resume scan</a>
+    <div class="ipp-result-title-row"><div><span class="ipp-eyebrow">STEP 2 OF 2: LEARN AND PRACTISE</span><h1>{{ preparation.job_title }}</h1><p>{% if preparation.company_name %}{{ preparation.company_name }} | {% endif %}Work through one question at a time. Your practice progress is saved.</p><span class="ipp-progress-pill">{{ completed_question_ids|length }} of {{ total_question_count }} practised</span></div></div>
+    <div class="ipp-learning-intro"><strong>How to use each question</strong><span>Understand the idea <b>&rarr;</b> follow the answer path <b>&rarr;</b> adapt it to your experience <b>&rarr;</b> practise aloud</span><p><b>Save for later</b> adds a question to the saved list on this page so you can review it again. <b>Mark practised</b> updates your progress count; it does not grade your answer. Both stay saved when you return to this preparation.</p></div>
+  </div></section>
+  <section class="container ipp-container ipp-questions-content">
+    <div class="ipp-questions-main">
+      {% for question_round in question_rounds %}
+      <details class="ipp-round-panel" {% if forloop.first %}open{% endif %}>
+        <summary class="ipp-round-summary-row"><span class="ipp-round-number">0{{ forloop.counter }}</span><span class="ipp-round-title"><strong>{{ question_round.title }}</strong><small>Open a question to learn and practise</small></span><span class="ipp-round-count">{{ question_round.questions|length }} questions</span><i class="fa-solid fa-chevron-down ipp-round-chevron" aria-hidden="true"></i></summary>
+        <div class="ipp-round-questions">
+          {% for question in question_round.questions %}
+          <details class="ipp-learning-question" id="{{ question.id }}" {% if forloop.first and forloop.parentloop.first %}open{% endif %}>
+            <summary><span class="ipp-question-number">{{ forloop.counter|stringformat:'02d' }}</span><span class="ipp-learning-question-title">{{ question.question }}</span><span class="ipp-plan-badge">{{ question.category }}</span></summary>
+            <div class="ipp-learning-answer">
+              {% if question.learning_aid.kind == 'model' %}
+              <section class="ipp-answer-guidance ipp-model-answer"><h3>Learn it and build your answer</h3><div class="ipp-markdown-guidance">{{ question.answer_guidance|safe_markdown }}</div></section>
+              {% else %}
+              <section class="ipp-learning-guide"><h3>{{ question.learning_aid.title }}</h3><p class="ipp-learning-explanation">{{ question.learning_aid.simple_explanation }}</p>
+                {% if question.learning_aid.kind == 'table' %}<div class="ipp-learning-table-wrap"><table class="ipp-learning-table"><thead><tr><th>Choice</th><th>What it helps</th><th>What to consider</th></tr></thead><tbody>{% for option in question.learning_aid.options %}<tr><th>{{ option.name }}</th><td>{{ option.benefit }}</td><td>{{ option.risk }}</td></tr>{% endfor %}</tbody></table></div>
+                {% elif question.learning_aid.kind == 'star' %}<div class="ipp-star-grid">{% for step in question.learning_aid.steps %}<div class="ipp-learning-step"><b>{{ step.label }}</b><span>{{ step.hint }}</span></div>{% endfor %}</div>
+                {% else %}<div class="ipp-learning-diagram">{% for step in question.learning_aid.steps %}<div class="ipp-learning-step"><b>{{ forloop.counter|stringformat:'02d' }}</b><span>{{ step }}</span></div>{% if not forloop.last %}<span class="ipp-learning-arrow" aria-hidden="true">&rarr;</span>{% endif %}{% endfor %}</div>{% endif %}
+                <div class="ipp-learning-example"><strong>Example answer</strong><p>{{ question.learning_aid.example }}</p></div>
+                <div class="ipp-practice-prompt"><strong>Now try it</strong><span>Cover the example and explain the same idea in your own words. For experience questions, use a real work, coursework, or personal project example.</span></div>
+              </section>
+              {% if question.answer_guidance %}<details class="ipp-original-tip"><summary>Extra tip for this question</summary><div class="ipp-markdown-guidance">{{ question.answer_guidance|safe_markdown }}</div></details>{% endif %}
+              {% endif %}
+              {% if question.explanation %}<details class="ipp-answer-assesses"><summary>What the interviewer is checking</summary><div class="ipp-markdown-guidance">{{ question.explanation|safe_markdown }}</div></details>{% endif %}
+              <details class="ipp-evidence-details"><summary>Why this question is included</summary><p>It relates to your selected role, job description, or resume evidence. Evidence references: {{ question.evidence_refs|join:', '|default:'role and job requirements' }}</p></details>
+              <div class="ipp-question-actions">
+                <form method="post" action="{% url 'interview_prep:preparation_question_action' preparation.pk 'save' %}">{% csrf_token %}<input type="hidden" name="question_id" value="{{ question.id }}"><button type="submit" class="ipp-action-button{% if question.id in saved_question_ids %} is-active{% endif %}"><i class="fa-{% if question.id in saved_question_ids %}solid{% else %}regular{% endif %} fa-bookmark" aria-hidden="true"></i>{% if question.id in saved_question_ids %}Saved for later{% else %}Save for later{% endif %}</button></form>
+                <form method="post" action="{% url 'interview_prep:preparation_question_action' preparation.pk 'complete' %}">{% csrf_token %}<input type="hidden" name="question_id" value="{{ question.id }}"><input type="hidden" name="completed" value="{% if question.id in completed_question_ids %}false{% else %}true{% endif %}"><button type="submit" class="ipp-action-button{% if question.id in completed_question_ids %} is-active{% endif %}"><i class="fa-{% if question.id in completed_question_ids %}solid{% else %}regular{% endif %} fa-circle-check" aria-hidden="true"></i>{% if question.id in completed_question_ids %}Practised{% else %}Mark practised{% endif %}</button></form>
+              </div>
+            </div>
+          </details>
+          {% endfor %}
+        </div>
+      </details>
+      {% empty %}<section class="ipp-summary-card"><h2>No questions are available</h2><p>Return to your resume scan or contact support if this continues.</p></section>{% endfor %}
+    </div>
+    <aside class="ipp-questions-sidebar">
+      <section class="ipp-question-index"><h2>Jump to a question</h2><p>Select a number to open it directly.</p>
+        {% for question_round in question_rounds %}<div class="ipp-index-round"><h3>Round {{ forloop.counter }}</h3><div class="ipp-index-grid">{% for question in question_round.questions %}<a href="#{{ question.id }}" data-question-jump aria-label="Open round {{ forloop.parentloop.counter }}, question {{ forloop.counter }}" class="ipp-question-jump{% if question.id in saved_question_ids %} is-saved{% endif %}{% if question.id in completed_question_ids %} is-complete{% endif %}">{{ forloop.counter }}</a>{% endfor %}</div></div>{% endfor %}
+        <div class="ipp-index-legend"><span><i class="ipp-legend-dot is-saved"></i>Saved</span><span><i class="ipp-legend-dot is-complete"></i>Practised</span></div>
+      </section>
+      <section class="ipp-saved-list"><h2>Saved for later <span>{{ saved_questions|length }}</span></h2>{% if saved_questions %}<p>These are the questions you saved in this preparation. Select one to review it.</p><ul>{% for question in saved_questions %}<li><a href="#{{ question.id }}" data-question-jump><small>Round {{ question.round_number }} · Question {{ question.question_number }}</small><span>{{ question.question|truncatewords:12 }}</span></a></li>{% endfor %}</ul>{% else %}<p>Use “Save for later” on a question and it will appear here.</p>{% endif %}</section>
+      <a class="ipp-secondary-button ipp-fit-link" href="{% url 'interview_prep:preparation_detail' preparation.pk %}">View resume scan</a>
+    </aside>
+  </section>
+</main>
+{% endblock %}
+{% block extra_js %}<script>
+document.querySelectorAll('[data-question-jump]').forEach(function (link) {
+  link.addEventListener('click', function (event) {
+    var target = document.getElementById(link.getAttribute('href').slice(1));
+    if (!target) return;
+    event.preventDefault();
+    var round = target.closest('.ipp-round-panel');
+    document.querySelectorAll('.ipp-round-panel').forEach(function (item) { item.open = item === round; });
+    document.querySelectorAll('.ipp-learning-question').forEach(function (item) { item.open = item === target; });
+    target.open = true;
+    history.replaceState(null, '', '#' + target.id);
+    requestAnimationFrame(function () {
+      target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      target.querySelector('summary').focus({ preventScroll: true });
+    });
+  });
+});
+</script>{% endblock %}

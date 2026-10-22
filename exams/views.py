@@ -1210,7 +1210,7 @@ from .utils import get_active_sessions, terminate_active_session
 def profile_settings(request):
     requested_tab = request.GET.get('tab', 'basic')
     active_tab = requested_tab if requested_tab in {
-        'basic', 'notifications', 'career'
+        'basic', 'notifications', 'career', 'preferences'
     } else 'basic'
     user_profile = request.user.profile
     # Initialize forms with instance

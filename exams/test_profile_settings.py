@@ -47,7 +47,7 @@ class ProfileSettingsEndpointTests(TestCase):
         self.assertContains(response, 'value="+91 9876543210"')
         self.assertContains(response, 'id="id_exam_notifications"')
         self.assertContains(response, 'name="language"')
-        self.assertContains(response, 'Automated email and push delivery is not connected')
+        self.assertContains(response, 'Get updates related to exams, quizzes, and practice.')
 
     def test_basic_profile_update_persists_names_and_phone_but_ignores_email(self):
         response = self.client.post(reverse('exams:update_profile'), {

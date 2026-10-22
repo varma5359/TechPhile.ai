@@ -1,0 +1,116 @@
+/* Shared refinements for Django Unfold model pages. */
+body.change-list #changelist,
+body.change-form #content-main {
+    color: var(--color-font-default-light, #17243a);
+}
+
+body.change-list #changelist .result-list-wrapper {
+    min-width: 0;
+}
+
+body.change-list #result_list {
+    border-collapse: separate;
+    border-spacing: 0;
+    min-width: 100%;
+    table-layout: auto;
+    width: max-content;
+}
+
+body.change-list #result_list thead th {
+    background: #f7f9fc;
+    color: #53647c;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .035em;
+    padding: 12px 15px;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+body.change-list #result_list tbody tr.data-row td {
+    border-color: #e8edf4;
+    font-size: 13px;
+    line-height: 1.45;
+    padding: 11px 15px;
+    vertical-align: middle;
+    white-space: nowrap;
+}
+
+body.change-list #result_list tbody tr.data-row:hover td {
+    background: #f4f8ff;
+}
+
+body.change-list #result_list tbody tr.data-row td a {
+    font-weight: 600;
+    text-decoration: none;
+}
+
+body.change-list #result_list tbody tr.data-row td a:hover {
+    text-decoration: underline;
+    text-underline-offset: 3px;
+}
+
+/* Keep descriptive fields readable while preventing every short value from wrapping. */
+body.change-list #result_list td.field-title,
+body.change-list #result_list td.field-question_text_short,
+body.change-list #result_list td.field-description,
+body.change-list #result_list td.field-answer_text_short,
+body.change-list #result_list td.field-question_short {
+    max-width: 300px;
+    min-width: 200px;
+    white-space: normal;
+}
+
+body.change-list #result_list td.field-title a,
+body.change-list #result_list td.field-question_text_short,
+body.change-list #result_list td.field-description,
+body.change-list #result_list td.field-answer_text_short,
+body.change-list #result_list td.field-question_short {
+    display: -webkit-box;
+    overflow: hidden;
+    overflow-wrap: anywhere;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+}
+
+body.change-list #result_list input[type="checkbox"] {
+    accent-color: #2563eb;
+    height: 16px;
+    width: 16px;
+}
+
+body.change-list #changelist .changelist-form-container > .grow > div:first-child {
+    border-radius: 12px 12px 0 0;
+}
+
+body.change-list #changelist-form .actions select,
+body.change-list #changelist-form .actions button,
+body.change-list #changelist-form .actions input,
+body.change-list #changelist .result-list-wrapper a,
+body.change-form #content-main button,
+body.change-form #content-main input[type="submit"] {
+    border-radius: 8px;
+}
+
+body.change-form #content-main fieldset {
+    border-radius: 12px;
+}
+
+html.dark body.change-list #result_list thead th {
+    background: #152238;
+    color: #b3c1d5;
+}
+
+html.dark body.change-list #result_list tbody tr.data-row td {
+    border-color: #26364d;
+}
+
+html.dark body.change-list #result_list tbody tr.data-row:hover td {
+    background: #1a2b43;
+}
+
+@media (max-width: 1023px) {
+    body.change-list #result_list {
+        min-width: 1050px;
+    }
+}

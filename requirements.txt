@@ -6,7 +6,7 @@ python-decouple==3.8
 django-debug-toolbar
 django-extensions
 django-ipware
-django-jazzmin
+django-unfold==0.89.0
 djangorestframework-simplejwt
 google-api-python-client
 jsonschema

@@ -8,6 +8,8 @@ debug.log
 db.sqlite3
 staticfiles/
 media/
+private_uploads/
+private_uploads_validation/
 get-pip.py
 .vscode/
 .idea/

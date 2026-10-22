@@ -1,0 +1,65 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Premium Interview Preparation | TechPhile.ai{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/interview-prep-payment.css' %}">
+{% endblock %}
+
+{% block content %}
+<main class="ipp-page">
+    <section class="ipp-hero">
+        <div class="container ipp-container">
+            <span class="public-eyebrow"><i class="fas fa-sparkles" aria-hidden="true"></i> Interview preparation</span>
+            <h1>Prepare for your next opportunity, one focused step at a time.</h1>
+            <p>One monthly plan for your account, across companies and job descriptions. Choose the roles you want to prepare for during your active month.</p>
+        </div>
+    </section>
+
+    <section class="container ipp-container ipp-plan-layout">
+        <article class="ipp-plan-card">
+            <div class="ipp-plan-topline"><span class="ipp-plan-badge">INDIVIDUAL MONTHLY ACCESS</span><span class="ipp-plan-price">{% if currency == 'INR' %}₹{% else %}{{ currency }} {% endif %}{{ monthly_price|floatformat:'-2' }}<small> / month</small></span></div>
+            <h2>Premium Interview Preparation</h2>
+            {% if access.plan == 'local_test_monthly' %}<p class="ipp-payment-note" role="status">Local test access is active. No payment was made; this access is only available while development mode is enabled.</p>{% endif %}
+            <p class="ipp-plan-intro">A monthly subscription for one learner. Access applies to your account rather than a single company purchase.</p>
+            <ul class="ipp-feature-list">
+                <li><i class="fas fa-check" aria-hidden="true"></i><span>Up to {{ preparation_set_limit }} preparation sets total per subscription month</span></li>
+                <li><i class="fas fa-check" aria-hidden="true"></i><span>Use your sets for the companies and job descriptions you choose</span></li>
+                <li><i class="fas fa-check" aria-hidden="true"></i><span>Resume and job description based preparation</span></li>
+                <li><i class="fas fa-check" aria-hidden="true"></i><span>Technical and scenario questions with answer guidance</span></li>
+            </ul>
+            <div class="ipp-payment-note"><i class="fas fa-shield-halved" aria-hidden="true"></i><span>UPI payments are checked by a TechPhile.ai administrator. Submitting a transaction reference does not activate Premium; access starts only after approval.</span></div>
+            {% if access.premium_active %}
+                <p class="ipp-payment-note">Your monthly plan is active. {{ access.sets_remaining }} of {{ access.set_limit }} preparation sets remain.</p>
+                <a class="edu-btn edu-btn-primary ipp-cta" href="{% url 'interview_prep:create_preparation' %}">Create interview preparation <i class="fas fa-arrow-right ms-1" aria-hidden="true"></i></a>
+            {% elif payments_ready %}
+                {% if user.is_authenticated %}
+                    <form method="post" action="{% url 'interview_prep:start_order' %}">
+                        {% csrf_token %}
+                        <button class="edu-btn edu-btn-primary ipp-cta" type="submit">Continue to UPI payment <i class="fas fa-arrow-right ms-1" aria-hidden="true"></i></button>
+                    </form>
+                {% else %}
+                    {% url 'login' as login_url %}
+                    <a class="edu-btn edu-btn-primary ipp-cta" href="{{ login_url }}?next={{ request.path|urlencode }}">Sign in to continue <i class="fas fa-arrow-right ms-1" aria-hidden="true"></i></a>
+                {% endif %}
+            {% else %}
+                <div class="ipp-not-ready" role="status"><i class="fas fa-circle-info" aria-hidden="true"></i><span>Monthly payments are not open yet. The verified payment details and preparation service must be ready before payment can be submitted.</span></div>
+            {% endif %}
+        </article>
+
+        <aside class="ipp-how-card">
+            <span class="ipp-side-icon"><i class="fas fa-qrcode" aria-hidden="true"></i></span>
+            <h2>How payment works</h2>
+            <ol>
+                <li>Sign in and open your monthly order.</li>
+                <li>Scan the verified TechPhile.ai UPI QR and pay the exact amount shown.</li>
+                <li>Submit the transaction reference. A receipt is optional.</li>
+                <li>Wait for an administrator to verify the transaction.</li>
+            </ol>
+            <p class="ipp-security-copy">Never share your UPI PIN, OTP, banking password, or card details. TechPhile.ai will not ask for them.</p>
+            <a href="mailto:techphile@techphile.in">Questions? Contact support</a>
+        </aside>
+    </section>
+</main>
+{% endblock %}

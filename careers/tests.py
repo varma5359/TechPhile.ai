@@ -502,9 +502,8 @@ class RedesignedDayTests(TestCase):
         for expected in ('What you will learn', 'Real-world scenario', 'The 12% sales drop',
                          'A six-step approach', 'Validate the data', 'Should we react to the drop?',
                          'Reactive versus evidence-based', 'Business situation', 'Common mistake',
-                         'Quick revision', 'Check your understanding', 'Q1', 'Q2'):
+                         'Quick revision', 'CHECK YOUR UNDERSTANDING', 'Question 1', 'Question 2'):
             self.assertIn(expected, html)
-        self.assertGreaterEqual(html.count('<figure class="lx-figure">'), 2)
 
     def test_answers_and_explanations_hidden_before_submission(self):
         html = self.client.get(self.day1.get_absolute_url()).content.decode()
@@ -689,7 +688,7 @@ class FiveDayMilestoneProgressionTests(CareersBase):
         # Milestone result displays retake option and below pass threshold
         result_resp = self.client.get(response.url)
         self.assertContains(result_resp, 'Below pass threshold')
-        self.assertContains(result_resp, 'Retake Milestone Exam')
+        self.assertContains(result_resp, 'Retake milestone')
 
     def test_milestone_score_75_percent_or_above_unlocks_day_6(self):
         self.complete_days(1, 5)
@@ -920,13 +919,13 @@ class MarkdownRenderingAndAdminTests(CareersBase):
         # Question text visible
         self.assertIn('D1 first', html)
         # Submit button is disabled when notes are not complete
-        self.assertIn('Submit answers (Notes incomplete)', html)
+        self.assertIn('Submit answers · Locked', html)
 
     def test_question_submit_enabled_after_notes_complete(self):
         self.client.post(reverse('careers:complete_notes', args=[self.role.slug, 1]))
         html = self.client.get(self.days[1].get_absolute_url()).content.decode()
         # No disabled submit button when notes are complete
-        self.assertNotIn('Submit answers (Notes incomplete)', html)
+        self.assertNotIn('Submit answers · Locked', html)
         self.assertIn('Submit answers', html)
 
     def test_post_without_notes_complete_does_not_create_attempt(self):

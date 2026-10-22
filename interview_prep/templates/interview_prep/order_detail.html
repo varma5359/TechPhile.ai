@@ -1,0 +1,57 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Monthly Premium Order | TechPhile.ai{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/interview-prep-payment.css' %}">
+{% endblock %}
+
+{% block content %}
+<main class="ipp-page">
+    <section class="ipp-order-header">
+        <div class="container ipp-container">
+            <a class="ipp-back-link" href="{% url 'interview_prep:monthly_plan' %}"><i class="fas fa-arrow-left" aria-hidden="true"></i> Monthly plan</a>
+            <span class="public-eyebrow">UPI payment</span>
+            <h1>Complete your monthly order</h1>
+            <div class="ipp-order-meta"><span>Order reference</span><code>{{ order.public_reference }}</code></div>
+        </div>
+    </section>
+
+    <section class="container ipp-container ipp-order-layout">
+        <article class="ipp-payment-card">
+            <div class="ipp-order-summary"><div><span>Individual monthly access</span><strong>{% if order.currency == 'INR' %}₹{% else %}{{ order.currency }} {% endif %}{{ order.amount|floatformat:'-2' }} <small>{{ order.currency }} / month</small></strong></div><span class="ipp-status ipp-status-{{ order.status }}">{{ order.get_status_display }}</span></div>
+
+            {% if order.status == 'pending_payment' %}
+                {% if payment_configured %}
+                    <div class="ipp-merchant-row"><span>Pay to</span><strong>{{ merchant_name }}</strong><code>{{ upi_id }}</code></div>
+                    <div class="ipp-qr-wrap"><img src="{% static qr_image %}" alt="Verified TechPhile.ai UPI payment QR code"><p>Before paying, confirm your UPI app shows <strong>{{ merchant_name }}</strong> as the recipient.</p></div>
+                    <ol class="ipp-instructions"><li>Scan the QR using your UPI app.</li><li>Pay exactly <strong>{% if order.currency == 'INR' %}₹{% else %}{{ order.currency }} {% endif %}{{ order.amount|floatformat:2 }}</strong>.</li><li>Return here and submit the transaction or UTR reference.</li></ol>
+                    <div class="ipp-payment-note"><i class="fas fa-user-shield" aria-hidden="true"></i><span>Payment is manually verified. Your reference and optional receipt are not proof of approval and do not unlock access by themselves.</span></div>
+                    <form method="post" enctype="multipart/form-data" class="ipp-submission-form" novalidate>
+                        {% csrf_token %}
+                        {% if form.non_field_errors %}<div class="alert alert-danger" role="alert">{{ form.non_field_errors }}</div>{% endif %}
+                        <div class="mb-3"><label for="{{ form.transaction_reference.id_for_label }}" class="form-label">{{ form.transaction_reference.label }} <span>(required)</span></label>{{ form.transaction_reference }}{{ form.transaction_reference.errors }}</div>
+                        <div class="mb-3"><label for="{{ form.receipt_file.id_for_label }}" class="form-label">{{ form.receipt_file.label }} <span>(optional)</span></label>{{ form.receipt_file }}{{ form.receipt_file.errors }}<small class="form-text">PNG, JPEG, or PDF. Maximum 5 MB. The receipt is private and only available to authorized reviewers.</small></div>
+                        <button class="edu-btn edu-btn-primary" type="submit">Submit for verification <i class="fas fa-arrow-right ms-1" aria-hidden="true"></i></button>
+                    </form>
+                {% else %}
+                    <div class="ipp-qr-placeholder" role="status"><i class="fas fa-qrcode" aria-hidden="true"></i><h2>Verified payment details are not configured</h2><p>Do not send payment to an unverified QR or UPI ID. This order cannot accept a payment submission yet.</p><a href="mailto:techphile@techphile.in">Contact TechPhile.ai</a></div>
+                {% endif %}
+            {% elif order.status == 'submitted' %}
+                <div class="ipp-state-card ipp-state-pending"><span><i class="fas fa-hourglass-half" aria-hidden="true"></i></span><div><h2>Waiting for payment verification</h2><p>Your transaction details were received. An administrator will check the payment in the authorized receiving account. Premium access remains locked until approval.</p></div></div>
+                {% with submission=order.payment_submissions.first %}{% if submission %}<p class="ipp-submitted-ref"><span>Submitted reference</span><code>{{ submission.transaction_reference }}</code><small>{{ submission.submitted_at|date:'M j, Y, g:i a' }}</small></p>{% endif %}{% endwith %}
+            {% elif order.status == 'approved' %}
+                <div class="ipp-state-card ipp-state-approved"><span><i class="fas fa-circle-check" aria-hidden="true"></i></span><div><h2>Payment approved</h2><p>Your monthly access has been approved.</p>{% if order.access_period %}<p>Access period: {{ order.access_period.starts_at|date:'M j, Y' }} to {{ order.access_period.ends_at|date:'M j, Y' }}.</p>{% endif %}</div></div>
+            {% elif order.status == 'rejected' %}
+                <div class="ipp-state-card ipp-state-rejected"><span><i class="fas fa-circle-exclamation" aria-hidden="true"></i></span><div><h2>Payment needs attention</h2><p>The submitted payment was not approved. Contact support if you think this is a mistake. If you pay again, create a new order and use the new transaction reference.</p></div></div>
+                {% if payment_configured %}<form method="post" action="{% url 'interview_prep:start_order' %}">{% csrf_token %}<button class="edu-btn edu-btn-primary" type="submit">Start a new order</button></form>{% endif %}
+            {% elif order.status == 'cancelled' %}
+                <div class="ipp-state-card"><span><i class="fas fa-ban" aria-hidden="true"></i></span><div><h2>This order was cancelled</h2><p>You can start a new order if monthly payments are open.</p></div></div>
+                {% if payment_configured %}<form method="post" action="{% url 'interview_prep:start_order' %}">{% csrf_token %}<button class="edu-btn edu-btn-primary" type="submit">Start a new order</button></form>{% endif %}
+            {% endif %}
+            <p class="ipp-safety-footnote">TechPhile.ai will never ask for your UPI PIN, OTP, banking password, or card details.</p>
+        </article>
+    </section>
+</main>
+{% endblock %}

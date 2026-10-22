@@ -1,0 +1,190 @@
+{% extends "admin/index.html" %}
+{% load i18n static log %}
+
+{% block bodyclass %}tp-admin-dashboard-page{% endblock %}
+
+{% block extrastyle %}
+    {{ block.super }}
+    <link rel="stylesheet" href="{% static 'css/techphile-admin-dashboard.css' %}?v=9">
+{% endblock %}
+
+{% block extrahead %}
+    {{ block.super }}
+    <script src="{% static 'js/techphile-admin-dashboard.js' %}?v=6" defer></script>
+{% endblock %}
+
+{% block header %}
+    <header class="tp-topbar">
+        <button class="tp-top-search" type="button" x-on:click="$dispatch('opencommand')" aria-label="Search admin records">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.8"></circle><path d="m16 16 4.5 4.5"></path></svg>
+            <span>Search roles, days, skills, users</span><kbd>Ctrl K</kbd>
+        </button>
+        <div class="tp-topbar-actions">
+            <button class="tp-theme-toggle" id="tp-theme-toggle" type="button" aria-pressed="false">Dark mode</button>
+            <a class="tp-top-link" href="{{ site_url|default:'/' }}">View site</a>
+            {% if perms.careers.add_learningday %}<a class="tp-top-add" href="{% url 'admin:careers_learningday_add' %}"><span aria-hidden="true">+</span> Add learning day</a>{% endif %}
+            <a class="tp-avatar" href="{% url 'admin:password_change' %}" aria-label="Account settings for {{ user.get_username }}">{{ user.get_username|first|upper }}</a>
+        </div>
+    </header>
+{% endblock %}
+
+{% block content_title %}Analytics overview{% endblock %}
+
+{% block content %}
+    <main class="tp-dashboard" aria-label="Analytics overview">
+        <header class="tp-page-heading">
+            <div>
+                <p class="tp-eyebrow">TechPhile / Administration</p>
+                <h1>Analytics overview</h1>
+                <p>Monitor learning activity and content quality.</p>
+            </div>
+            {% if has_activity_chart %}
+                <form class="tp-period-form" method="get" action="{% url 'admin:index' %}" aria-label="Activity period">
+                    <span>Activity period</span>
+                    <div class="tp-period-segment" role="group" aria-label="Choose activity period">
+                        {% for days in activity_ranges %}
+                            <button type="submit" name="days" value="{{ days }}" class="{% if days == selected_activity_range %}is-active{% endif %}" {% if days == selected_activity_range %}aria-pressed="true"{% else %}aria-pressed="false"{% endif %}>Last {{ days }} days</button>
+                        {% endfor %}
+                    </div>
+                </form>
+            {% endif %}
+            <div class="tp-layout-control-wrap">
+                <div class="tp-layout-tools" role="group" aria-label="Dashboard layout controls">
+                    <button class="tp-layout-button" id="tp-layout-toggle" type="button" aria-pressed="false">Customize layout</button>
+                    <button class="tp-layout-button" id="tp-layout-reset" type="button">Reset layout</button>
+                </div>
+                <span class="tp-layout-hint">Rearrange cards and save your dashboard view</span>
+            </div>
+        </header>
+
+        {% if dashboard_primary_kpis %}
+            <section class="tp-kpi-grid tp-sortable" data-layout-key="kpis" aria-label="Platform metrics">
+                {% for kpi in dashboard_primary_kpis %}
+                    <article class="tp-card tp-kpi" data-layout-id="kpi-{{ forloop.counter }}">
+                        <div class="tp-kpi-label"><span>{{ kpi.label }}</span><span class="tp-kpi-icon tone-{{ forloop.counter }} material-symbols-outlined" aria-hidden="true">{{ kpi.icon }}</span></div>
+                        {% if kpi.url %}<a class="tp-kpi-value" href="{{ kpi.url }}">{{ kpi.value }}</a>{% else %}<strong class="tp-kpi-value">{{ kpi.value }}</strong>{% endif %}
+                        <p>{{ kpi.description }}</p>
+                    </article>
+                {% endfor %}
+            </section>
+        {% endif %}
+
+        <section class="tp-grid tp-overview-grid tp-sortable" data-layout-key="overview" aria-label="Learning activity and publishing status">
+            {% if has_activity_chart %}
+                <article class="tp-card tp-activity-card" data-layout-id="activity" aria-labelledby="tp-activity-title">
+                    <div class="tp-card-heading">
+                        <div><h2 id="tp-activity-title">Learning activity</h2><p>Submitted attempts per day | {{ activity_date_range }} | {{ activity_timezone }}</p></div>
+                        <a href="{% url 'admin:careers_dayattempt_changelist' %}">Review attempts <span aria-hidden="true">&rarr;</span></a>
+                    </div>
+                    {% if activity_total %}
+                        <div class="tp-chart-canvas-wrap"><canvas id="tp-activity-chart" role="img" aria-label="Submitted day and milestone attempts from {{ activity_date_range }}. {{ activity_total }} total."></canvas></div>
+                        {{ activity_chart_data|json_script:"tp-activity-data" }}
+                    {% else %}
+                        <p class="tp-empty-state">No learning attempts were submitted during this period.</p>
+                    {% endif %}
+                    {% if activity_chart %}
+                        <details class="tp-data-details">
+                            <summary>View daily values</summary>
+                            <div class="tp-data-table-wrap">
+                                <table class="tp-chart-data-table">
+                                    <caption>Submitted attempts by date, in {{ activity_timezone }}</caption>
+                                    <thead><tr><th scope="col">Date</th><th scope="col">Attempts</th></tr></thead>
+                                    <tbody>{% for point in activity_chart %}<tr><th scope="row">{{ point.date|date:'M j, Y' }}</th><td>{{ point.count }}</td></tr>{% endfor %}</tbody>
+                                </table>
+                            </div>
+                        </details>
+                    {% endif %}
+                    <div class="tp-chart-legend"><span><i></i>Submitted attempts</span><strong>{{ activity_total }} total in period</strong></div>
+                </article>
+            {% endif %}
+
+            {% if publishing_status %}
+                {% with publish=publishing_status.0 %}
+                    <article class="tp-card tp-publishing-card" data-layout-id="publishing" aria-labelledby="tp-publishing-title">
+                        <div class="tp-card-heading"><div><h2 id="tp-publishing-title">Publishing status</h2><p>{{ publish.label }}</p></div>
+                            {% if publish.published_url %}<a href="{{ publish.published_url }}">Open <span aria-hidden="true">&rarr;</span></a>{% endif %}
+                        </div>
+                        <div class="tp-publishing-summary">
+                            <div class="tp-donut" style="--published: {{ publish.published_percent }}%" role="img" aria-label="{{ publish.published }} published and {{ publish.draft }} draft out of {{ publish.total }}">
+                                <div><strong>{{ publish.total }}</strong><span>{% if 'days' in publish.label %}days{% else %}roles{% endif %}</span></div>
+                            </div>
+                            <div class="tp-status-rows">
+                                <div><span><i class="tp-status-dot is-published"></i>Published</span><strong>{{ publish.published }}</strong></div>
+                                <div><span><i class="tp-status-dot is-draft"></i>Draft</span><strong>{{ publish.draft }}</strong></div>
+                                {% for role_status in publishing_status %}{% if role_status.label == 'Career roles' %}<div><span>Roles published</span><strong>{{ role_status.published }} / {{ role_status.total }}</strong></div>{% endif %}{% endfor %}
+                            </div>
+                        </div>
+                    </article>
+                {% endwith %}
+            {% endif %}
+        </section>
+
+        <section class="tp-grid tp-secondary-grid tp-sortable" data-layout-key="insights" aria-label="Content insights">
+            {% if can_view_skill_coverage %}
+                <article class="tp-card" data-layout-id="coverage" aria-labelledby="tp-coverage-title">
+                    <div class="tp-card-heading"><div><h2 id="tp-coverage-title">Lowest question coverage</h2><p>Published questions by skill | lowest first</p></div>
+                        <a href="{% url 'admin:careers_skill_changelist' %}">All skills <span aria-hidden="true">&rarr;</span></a>
+                    </div>
+                    {% if skill_coverage_preview %}
+                        <div class="tp-coverage-bars">
+                            {% for skill in skill_coverage_preview %}
+                                <a href="{{ skill.url }}" class="tp-coverage-row {% if skill.count <= 1 %}is-low{% endif %}">
+                                    <span class="tp-coverage-name">{{ skill.name }}</span>
+                                    <span class="tp-coverage-track"><span style="width: {{ skill.width }}%"></span></span>
+                                    <strong>{{ skill.count }}</strong>
+                                </a>
+                            {% endfor %}
+                        </div>
+                        <p class="tp-coverage-note">Showing {{ skill_coverage_preview|length }} of {{ skill_total }} skills. {{ skills_with_one_question }} skills have one published question.</p>
+                    {% else %}<p class="tp-empty-state">No skills are available to compare.</p>{% endif %}
+                </article>
+            {% endif %}
+
+            {% if can_view_content_insights %}
+                <article class="tp-card" data-layout-id="review" aria-labelledby="tp-review-title">
+                    <div class="tp-card-heading"><div><h2 id="tp-review-title">Content to review</h2><p>Potential gaps in published learning content</p></div></div>
+                    {% for insight in dashboard_insights %}
+                        <div class="tp-alert {% if insight.kind == 'suggestion' %}is-info{% endif %}">
+                            <div><strong>{{ insight.title }}</strong><small>{{ insight.detail }}</small></div>
+                            {% if insight.questions_url %}<a class="tp-button" href="{{ insight.questions_url }}">Inspect</a>{% elif insight.url %}<a class="tp-button" href="{{ insight.url }}">Review</a>{% endif %}
+                        </div>
+                    {% empty %}
+                        <p class="tp-empty-state">No content gaps were found in the areas you can review.</p>
+                    {% endfor %}
+                    {% if publishing_status %}
+                        {% with publish=publishing_status.0 %}
+                            {% if not publish.draft %}<div class="tp-alert is-info"><div><strong>No draft content is waiting for publication</strong><small>All {{ publish.total }} records in this publishing group are published.</small></div><a class="tp-button" href="{{ publish.published_url }}">Open</a></div>{% endif %}
+                        {% endwith %}
+                    {% endif %}
+                </article>
+            {% endif %}
+        </section>
+
+        {% if dashboard_quick_actions %}
+            <section class="tp-card tp-quick-card" aria-labelledby="tp-quick-title" data-layout-item="quick-actions">
+                <div class="tp-card-heading"><div><h2 id="tp-quick-title">Quick actions</h2><p>Go directly to frequently used records</p></div></div>
+                <nav class="tp-quick-grid tp-sortable" data-layout-key="quick-actions" aria-label="Quick actions">
+                    {% for action in dashboard_quick_actions %}
+                        <a href="{{ action.url }}" data-layout-id="quick-{{ forloop.counter }}"><span class="tp-quick-icon material-symbols-outlined" aria-hidden="true">{% if action.title == 'Career roles' %}work{% elif action.title == 'Learning days' %}calendar_month{% elif action.title == 'Scenario questions' %}quiz{% elif action.title == 'Skills' %}auto_awesome{% elif action.title == 'Milestones' %}flag{% elif action.title == 'Day attempts' %}task_alt{% elif action.title == 'Learner progress' %}monitoring{% else %}group{% endif %}</span><span>{{ action.title }}<small>{{ action.verb }}</small></span></a>
+                    {% endfor %}
+                </nav>
+            </section>
+        {% endif %}
+
+        <section class="tp-card tp-feed-card" aria-labelledby="tp-feed-title" data-layout-item="activity-feed">
+            <div class="tp-card-heading"><div><h2 id="tp-feed-title">Recent administrative activity</h2><p>Your latest changes in the admin</p></div><a href="{% url 'admin:password_change' %}">Account settings <span aria-hidden="true">&rarr;</span></a></div>
+            {% get_admin_log 8 as admin_log for_user user %}
+            {% if admin_log %}
+                <div class="tp-feed">
+                    {% for entry in admin_log %}
+                        <div class="tp-feed-entry">
+                            <span class="tp-pill {% if entry.is_addition %}is-green{% elif entry.is_deletion %}is-red{% else %}is-blue{% endif %}">{% if entry.is_addition %}Added{% elif entry.is_deletion %}Deleted{% else %}Updated{% endif %}</span>
+                            {% if entry.is_deletion or not entry.get_admin_url %}<strong class="tp-feed-name">{{ entry.object_repr }}</strong>{% else %}<a class="tp-feed-name" href="{{ entry.get_admin_url }}">{{ entry.object_repr }}</a>{% endif %}
+                            <small>{{ entry.action_time|timesince }} ago</small>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}<p class="tp-empty-state">No recent administrative activity.</p>{% endif %}
+        </section>
+    </main>
+{% endblock %}

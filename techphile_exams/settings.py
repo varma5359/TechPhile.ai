@@ -4,6 +4,7 @@ Django settings for Techphile Educational Platform.
 
 import os
 from pathlib import Path
+from decimal import Decimal
 
 from decouple import config
 
@@ -12,12 +13,17 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 # Security (secrets are read from the environment or a local .env file)
 SECRET_KEY = config('SECRET_KEY', default='django-insecure-change-me')
-DEBUG = config('DEBUG', default=True, cast=bool)
+DEBUG = config(
+    'DEBUG',
+    default=True,
+    cast=lambda value: str(value).strip().lower() in {'1', 'true', 'yes', 'on'},
+)
 ALLOWED_HOSTS = ['localhost', '127.0.0.1']
 
 # Application definition
 DJANGO_APPS = [
-    'django.contrib.admin',
+    'unfold',
+    'techphile_exams.apps.TechPhileAdminConfig',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
@@ -27,7 +33,6 @@ DJANGO_APPS = [
 ]
 
 THIRD_PARTY_APPS = [
-    'jazzmin',
     'rest_framework',
     'rest_framework.authtoken',
     'corsheaders',
@@ -44,6 +49,7 @@ LOCAL_APPS = [
     'coding',
     'core',
     'careers',
+    'interview_prep',
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
@@ -68,10 +74,19 @@ INTERNAL_IPS = [
     '127.0.0.1',
 ]
 
+
+def show_debug_toolbar(request):
+    """Keep development diagnostics off the admin workspace UI."""
+    from debug_toolbar.middleware import show_toolbar
+
+    is_admin_request = request.path_info == '/admin' or request.path_info.startswith('/admin/')
+    return not is_admin_request and show_toolbar(request)
+
 # Let the browser follow normal form redirects while developing. The toolbar
 # otherwise pauses the user at the 302 response instead of showing saved state.
 DEBUG_TOOLBAR_CONFIG = {
     'INTERCEPT_REDIRECTS': False,
+    'SHOW_TOOLBAR_CALLBACK': 'techphile_exams.settings.show_debug_toolbar',
 }
 
 ROOT_URLCONF = 'techphile_exams.urls'
@@ -137,10 +152,39 @@ USE_TZ = True
 STATIC_URL = '/static/'
 STATICFILES_DIRS = [BASE_DIR / 'static']
 STATIC_ROOT = BASE_DIR / 'staticfiles'
-STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+STATICFILES_STORAGE = (
+    'whitenoise.storage.CompressedManifestStaticFilesStorage'
+    if not DEBUG
+    else 'django.contrib.staticfiles.storage.StaticFilesStorage'
+)
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
+PRIVATE_UPLOAD_ROOT = Path(config('PRIVATE_UPLOAD_ROOT', default=str(BASE_DIR / 'private_uploads')))
+
+# Premium billing is a manual, account-level monthly plan. Order amounts are
+# copied from these server settings when an order is created.
+INTERVIEW_PREP_MONTHLY_PRICE = Decimal(config('INTERVIEW_PREP_MONTHLY_PRICE', default='49.00'))
+INTERVIEW_PREP_CURRENCY = config('INTERVIEW_PREP_CURRENCY', default='INR')
+INTERVIEW_PREP_UPI_QR_IMAGE = config('INTERVIEW_PREP_UPI_QR_IMAGE', default='').strip()
+INTERVIEW_PREP_MERCHANT_NAME = config('INTERVIEW_PREP_MERCHANT_NAME', default='').strip()
+INTERVIEW_PREP_UPI_ID = config('INTERVIEW_PREP_UPI_ID', default='').strip()
+INTERVIEW_PREP_PAYMENTS_ENABLED = config('INTERVIEW_PREP_PAYMENTS_ENABLED', default=False, cast=bool)
+INTERVIEW_PREP_AI_PROVIDER = config('INTERVIEW_PREP_AI_PROVIDER', default='groq').strip().lower()
+INTERVIEW_PREP_OPENAI_API_KEY = config('INTERVIEW_PREP_OPENAI_API_KEY', default='').strip()
+INTERVIEW_PREP_OPENAI_MODEL = config('INTERVIEW_PREP_OPENAI_MODEL', default='gpt-4o-mini').strip()
+INTERVIEW_PREP_GROQ_API_KEY = config('INTERVIEW_PREP_GROQ_API_KEY', default='').strip()
+INTERVIEW_PREP_GROQ_MODEL = config('INTERVIEW_PREP_GROQ_MODEL', default='openai/gpt-oss-20b').strip()
+INTERVIEW_PREP_MARKET_RESEARCH_PROVIDER = config('INTERVIEW_PREP_MARKET_RESEARCH_PROVIDER', default='none').strip().lower()
+INTERVIEW_PREP_MARKET_RESEARCH_CACHE_HOURS = config('INTERVIEW_PREP_MARKET_RESEARCH_CACHE_HOURS', default=24, cast=int)
+INTERVIEW_PREP_STANDARD_QUESTION_RATIO = config('INTERVIEW_PREP_STANDARD_QUESTION_RATIO', default=0.70, cast=float)
+INTERVIEW_PREP_FOUNDATION_MATCH_SCORE = config('INTERVIEW_PREP_FOUNDATION_MATCH_SCORE', default=50, cast=int)
+INTERVIEW_PREP_MINIMUM_JD_MATCH_SCORE = config('INTERVIEW_PREP_MINIMUM_JD_MATCH_SCORE', default=75, cast=int)
+INTERVIEW_PREP_INPUT_USD_PER_MILLION_TOKENS = config('INTERVIEW_PREP_INPUT_USD_PER_MILLION_TOKENS', default=0.0, cast=float)
+INTERVIEW_PREP_OUTPUT_USD_PER_MILLION_TOKENS = config('INTERVIEW_PREP_OUTPUT_USD_PER_MILLION_TOKENS', default=0.0, cast=float)
+# This switch can grant a clearly marked local test entitlement without a
+# payment. It is forcibly unavailable whenever DEBUG is disabled.
+INTERVIEW_PREP_TEST_ACCESS = DEBUG and config('INTERVIEW_PREP_TEST_ACCESS', default=False, cast=bool)
 
 # Default primary key field
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
@@ -217,48 +261,40 @@ DATA_UPLOAD_MAX_MEMORY_SIZE = 100 * 1024 * 1024
 DATASET_UPLOAD_PATH = 'datasets/'
 CODE_EXECUTION_TIMEOUT = 60  # seconds
 
-# Jazzmin Admin UI Settings
-JAZZMIN_SETTINGS = {
-    "site_title": "Techphile Admin",
-    "site_header": "Techphile Administration",
-    "site_brand": "Techphile",
-    "site_logo": "images/logo.png",
-    "site_icon": "images/favicon.ico",
-    "login_logo": "images/logo-nav.png",
-    "login_logo_dark": "images/logo.png",
-    "welcome_sign": "Welcome to Techphile Administration",
-    "copyright": "Techphile © 2025",
-    "topmenu_links": [
-        {"name": "Home", "url": "admin:index", "permissions": ["auth.view_user"]},
-        {"name": "Support", "url": "https://support.techphile.com", "new_window": True},
-        {"name": "Live Site", "url": "/", "new_window": True},
-        {"app": "exams"},
-        {"model": "auth.User"},
-        {"model": "exams.Interviewer"},
-    ],
-    "usermenu_links": [
-        {"name": "Analytics", "url": "/admin/analytics", "icon": "fas fa-chart-line"},
-        {"name": "Documentation", "url": "/admin/docs", "icon": "fas fa-book"},
-        {"name": "Support", "url": "https://support.techphile.com", "new_window": True, "icon": "fas fa-life-ring"},
-    ],
-    "theme": "litera",
-    "dark_mode_theme": "darkly",
-    "icons": {
-        "auth": "fas fa-users-cog",
-        "auth.user": "fas fa-user-tie",
-        "auth.Group": "fas fa-users",
-        "exams.Applicant": "fas fa-user-graduate",
-        "exams.Interviewer": "fas fa-chalkboard-teacher",
-        "exams.Exam": "fas fa-file-alt",
-        "exams.Question": "fas fa-question-circle",
-        "exams.Answer": "fas fa-check-circle",
-        "exams.ExamAttempt": "fas fa-clipboard-check",
-        "exams.UserAnswer": "fas fa-pencil-alt",
-        "exams.Category": "fas fa-folder",
-        "exams.Profile": "fas fa-id-card",
+# Django Unfold Admin UI Settings
+UNFOLD = {
+    "SITE_TITLE": "TechPhile Admin",
+    "SITE_HEADER": "TechPhile.ai",
+    "SITE_SUBHEADER": "Analytics Control Center",
+    "SITE_URL": "/",
+    "SITE_ICON": "/static/images/logo-tp.png",
+    "THEME": "light",
+    "STYLES": ["css/techphile-admin-models.css"],
+    "SHOW_HISTORY": True,
+    "SHOW_VIEW_ON_SITE": True,
+    "SIDEBAR": {
+        "show_search": True,
+        "show_all_applications": False,
+        "navigation": "techphile_exams.admin_navigation.sidebar_navigation",
     },
-    "custom_css": "css/admin_custom.css",
-    "custom_js": "js/admin_custom.js",
+    "COMMAND": {
+        "search_models": True,
+    },
+    "COLORS": {
+        "primary": {
+            "50": "oklch(97% .014 250)",
+            "100": "oklch(93% .03 250)",
+            "200": "oklch(87% .06 250)",
+            "300": "oklch(78% .10 250)",
+            "400": "oklch(68% .14 250)",
+            "500": "oklch(58% .16 250)",
+            "600": "oklch(49% .15 250)",
+            "700": "oklch(41% .13 250)",
+            "800": "oklch(34% .10 250)",
+            "900": "oklch(28% .07 250)",
+            "950": "oklch(21% .05 250)",
+        },
+    },
 }
 
 # Judge0 API Settings

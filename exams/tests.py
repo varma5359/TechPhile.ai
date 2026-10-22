@@ -84,7 +84,8 @@ class StudentDashboardTests(TestCase):
         response = self.client.get(reverse('exams:student_dashboard'))
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, 'Exam performance')
+        self.assertContains(response, 'Preparation overview')
+        self.assertContains(response, 'Recent exam activity')
         self.assertContains(response, reverse('careers:dashboard'))
         self.assertNotContains(response, 'Career learning roadmap')
         self.assertNotContains(response, 'Mock Interview')
@@ -100,9 +101,9 @@ class StudentDashboardTests(TestCase):
         response = self.client.get(reverse('exams:student_dashboard'))
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, 'Recent exam scores')
+        self.assertContains(response, 'Recent scores')
         self.assertContains(response, 'Analytics foundations')
-        self.assertContains(response, '78.0%')
+        self.assertContains(response, '78%')
 
 
 class CareerDashboardTests(TestCase):
@@ -114,7 +115,7 @@ class CareerDashboardTests(TestCase):
         response = self.client.get(reverse('careers:dashboard'))
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, 'Choose a career path')
+        self.assertContains(response, 'Set up your career path')
         self.assertContains(response, reverse('exams:profile_settings'))
 
     def test_dashboard_uses_saved_path_and_actual_lesson_scores(self):
@@ -128,7 +129,9 @@ class CareerDashboardTests(TestCase):
             user=self.user, day=day, correct_marks=4, total_marks=5, score_percent=80)
         profile = self.user.profile
         profile.career_role = role
-        profile.save(update_fields=['career_role'])
+        profile.experience_band = 'fresher'
+        profile.learning_path = 'beginner'
+        profile.save(update_fields=['career_role', 'experience_band', 'learning_path'])
 
         response = self.client.get(reverse('careers:dashboard'))
 
@@ -157,17 +160,18 @@ class CareerDashboardTests(TestCase):
             role=role, number=1, start_day=1, end_day=5, is_published=True)
         profile = self.user.profile
         profile.career_role = role
-        profile.save(update_fields=['career_role'])
+        profile.experience_band = 'fresher'
+        profile.learning_path = 'beginner'
+        profile.save(update_fields=['career_role', 'experience_band', 'learning_path'])
 
         response = self.client.get(reverse('careers:dashboard'))
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'Continue learning')
-        self.assertContains(response, 'Skill performance overview')
+        self.assertContains(response, 'Skill performance')
         self.assertContains(response, 'Test design')
         self.assertContains(response, '3/3 correct')
-        self.assertContains(response, 'Milestone assessments')
-        self.assertContains(response, 'Upcoming')
+        self.assertContains(response, 'Milestones ready')
 
     def test_dashboard_hides_skill_insight_with_too_few_answers(self):
         role = CareerRole.objects.create(
@@ -186,7 +190,9 @@ class CareerDashboardTests(TestCase):
         ])
         profile = self.user.profile
         profile.career_role = role
-        profile.save(update_fields=['career_role'])
+        profile.experience_band = 'fresher'
+        profile.learning_path = 'beginner'
+        profile.save(update_fields=['career_role', 'experience_band', 'learning_path'])
 
         response = self.client.get(reverse('careers:dashboard'))
 

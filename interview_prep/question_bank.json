@@ -1,0 +1,21 @@
+{
+  "version": "1.0",
+  "entries": [
+    {"id": "analytics-sql-001", "role_profile": "data-analytics", "category": "SQL and data modelling", "question": "How would you investigate a metric that changed unexpectedly after a data pipeline update?"},
+    {"id": "analytics-quality-001", "role_profile": "data-analytics", "category": "Problem solving", "question": "What checks would you add to detect missing, duplicated, or late-arriving records?"},
+    {"id": "business-kpi-001", "role_profile": "business-analytics", "category": "Requirements and metrics", "question": "How would you turn an ambiguous business goal into a measurable set of KPIs?"},
+    {"id": "business-stakeholder-001", "role_profile": "business-analytics", "category": "Stakeholder scenarios", "question": "How would you resolve a disagreement between stakeholders about a dashboard metric?"},
+    {"id": "ml-evaluation-001", "role_profile": "machine-learning-engineering", "category": "Model evaluation", "question": "How would you choose an evaluation strategy when errors have different business costs?"},
+    {"id": "ml-production-001", "role_profile": "machine-learning-engineering", "category": "Production systems", "question": "What signals would you monitor after deploying a model, and what actions would they trigger?"},
+    {"id": "cv-data-001", "role_profile": "computer-vision-engineering", "category": "Computer vision", "question": "How would you check whether an image dataset represents the conditions seen in production?"},
+    {"id": "cv-evaluation-001", "role_profile": "computer-vision-engineering", "category": "Model evaluation", "question": "How would you investigate strong aggregate accuracy but poor results for one image subgroup?"},
+    {"id": "genai-eval-001", "role_profile": "generative-ai-engineering", "category": "Evaluation and safety", "question": "How would you build an evaluation set for a language-model feature before release?"},
+    {"id": "genai-reliability-001", "role_profile": "generative-ai-engineering", "category": "Production systems", "question": "How would you handle provider timeouts and malformed model output in a production workflow?"},
+    {"id": "rag-retrieval-001", "role_profile": "rag-development", "category": "Retrieval design", "question": "How would you diagnose a RAG system that retrieves relevant documents but still gives unsupported answers?"},
+    {"id": "rag-grounding-001", "role_profile": "rag-development", "category": "Grounding and evaluation", "question": "How would you measure whether generated claims are supported by retrieved passages?"},
+    {"id": "agent-tools-001", "role_profile": "agentic-ai-development", "category": "Tool use and safety", "question": "How would you restrict an agent's tools when an action can change customer data?"},
+    {"id": "agent-eval-001", "role_profile": "agentic-ai-development", "category": "Reliability and evaluation", "question": "How would you test an agent that can take different valid paths to complete a task?"},
+    {"id": "software-debug-001", "role_profile": "general-software-engineering", "category": "Testing and reliability", "question": "Describe how you would isolate an intermittent production bug with limited reproduction steps?"},
+    {"id": "software-design-001", "role_profile": "general-software-engineering", "category": "System design", "question": "How would you design an API change so existing clients can migrate safely?"}
+  ]
+}

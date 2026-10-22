@@ -1,19 +1,20 @@
 from django.contrib.auth.models import User  # Ensure this is imported correctly
 from . import views
 from django.contrib import admin
+from unfold.admin import ModelAdmin, TabularInline
 from .models import Category, Exam, InterviewFeedback, Question, Answer, ExamAttempt, UserAnswer, Applicant, Interviewer
 
 from django.contrib import admin
 from .models import Category, Exam, Question, Answer, ExamAttempt, UserAnswer
 from django.utils.html import format_html
 
-class AnswerInline(admin.TabularInline):
+class AnswerInline(TabularInline):
     model = Answer
     extra = 4
     fields = ('answer_text', 'is_correct')
     ordering = ('id',)
 
-class QuestionAdmin(admin.ModelAdmin):
+class QuestionAdmin(ModelAdmin):
     inlines = [AnswerInline]
     list_display = ('order', 'set_number', 'category', 'title', 'level_display', 
                     'question_type_display', 'question_text_short', 'marks')
@@ -45,7 +46,7 @@ class QuestionAdmin(admin.ModelAdmin):
         return obj.question_text[:100] + '...' if len(obj.question_text) > 100 else obj.question_text
     question_text_short.short_description = 'Question'
     
-class ExamAdmin(admin.ModelAdmin):
+class ExamAdmin(ModelAdmin):
     list_display = ('title', 'category', 'is_popular', 'is_new', 'question_count')
     list_filter = ('category', 'is_popular', 'is_new')
     search_fields = ('title', 'description')
@@ -56,7 +57,7 @@ class ExamAdmin(admin.ModelAdmin):
         return obj.questions.count()
     question_count.short_description = 'Questions'
 
-class CategoryAdmin(admin.ModelAdmin):
+class CategoryAdmin(ModelAdmin):
     list_display = ('name', 'slug', 'question_count')
     prepopulated_fields = {'slug': ('name',)}
     search_fields = ('name',)
@@ -65,7 +66,7 @@ class CategoryAdmin(admin.ModelAdmin):
         return obj.questions.count()
     question_count.short_description = 'Questions'
 
-class UserAnswerInline(admin.TabularInline):
+class UserAnswerInline(TabularInline):
     model = UserAnswer
     readonly_fields = ('question', 'selected_answer', 'is_correct')
     extra = 0
@@ -74,7 +75,7 @@ class UserAnswerInline(admin.TabularInline):
     def has_add_permission(self, request, obj=None):
         return False
 
-class ExamAttemptAdmin(admin.ModelAdmin):
+class ExamAttemptAdmin(ModelAdmin):
     list_display = ('user', 'exam', 'started_at', 'completed_at', 'score', 'duration')
     list_filter = ('exam', 'user')
     inlines = [UserAnswerInline]
@@ -88,7 +89,7 @@ class ExamAttemptAdmin(admin.ModelAdmin):
         return "In progress"
     duration.short_description = 'Duration'
 
-class AnswerAdmin(admin.ModelAdmin):
+class AnswerAdmin(ModelAdmin):
     list_display = ('question_short', 'answer_text_short', 'is_correct')
     list_filter = ('is_correct', 'question__category', 'question__level')
     search_fields = ('answer_text', 'question__question_text')
@@ -118,7 +119,7 @@ from django.shortcuts import redirect
 from .models import Applicant
 from .views import assign_interviewer
 @admin.register(Applicant)
-class ApplicantAdmin(admin.ModelAdmin):
+class ApplicantAdmin(ModelAdmin):
     list_display = (
         'full_name', 'email', 'phone', 'interview_date', 
         'interview_time', 'interview_type', 'difficulty', 
@@ -217,13 +218,13 @@ class ApplicantAdmin(admin.ModelAdmin):
     get_interviewer.short_description = 'Interviewer'
 
 
-class InterviewerAdmin(admin.ModelAdmin):
+class InterviewerAdmin(ModelAdmin):
     list_display = ('name', 'specialization', 'max_interviews_per_day', 'is_active')
     search_fields = ('name', 'specialization')
 
 admin.site.register(Interviewer, InterviewerAdmin)
 
-class InterviewFeedbackAdmin(admin.ModelAdmin):
+class InterviewFeedbackAdmin(ModelAdmin):
     list_display = ('interview', 'evaluator', 'overall_score', 'recommendation', 'created_at')
     list_filter = ('recommendation', 'evaluator')
     search_fields = ('interview__applicant__name', 'evaluator__username', 'feedback')

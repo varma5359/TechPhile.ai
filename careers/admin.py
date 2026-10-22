@@ -1,5 +1,7 @@
 from django.contrib import admin
 from django import forms
+from django.db.models import Count, Q
+from unfold.admin import ModelAdmin, TabularInline
 
 from .models import (
     CareerRole, DayAttempt, DayProgress, LearningDay, MilestoneAttempt, MilestoneExam,
@@ -37,7 +39,7 @@ class MilestoneExamAdminForm(ExperienceTargetAdminMixin, forms.ModelForm):
         fields = '__all__'
 
 
-class LearningDayInline(admin.TabularInline):
+class LearningDayInline(TabularInline):
     model = LearningDay
     form = LearningDayAdminForm
     extra = 0
@@ -45,7 +47,7 @@ class LearningDayInline(admin.TabularInline):
     show_change_link = True
 
 
-class MilestoneInline(admin.TabularInline):
+class MilestoneInline(TabularInline):
     model = MilestoneExam
     form = MilestoneExamAdminForm
     extra = 0
@@ -54,32 +56,80 @@ class MilestoneInline(admin.TabularInline):
 
 
 @admin.register(CareerRole)
-class CareerRoleAdmin(admin.ModelAdmin):
-    list_display = ('title', 'duration_days', 'unlock_policy', 'is_published', 'display_order')
+class CareerRoleAdmin(ModelAdmin):
+    list_display = (
+        'title', 'duration_days', 'published_day_count', 'published_question_count',
+        'unlock_policy', 'is_published', 'display_order',
+    )
     list_filter = ('is_published', 'unlock_policy')
     list_editable = ('is_published', 'display_order')
     search_fields = ('title', 'summary')
     prepopulated_fields = {'slug': ('title',)}
     inlines = [LearningDayInline, MilestoneInline]
 
+    def get_queryset(self, request):
+        return super().get_queryset(request).annotate(
+            admin_published_day_count=Count(
+                'days', filter=Q(is_published=True, days__is_published=True), distinct=True,
+            ),
+            admin_published_question_count=Count(
+                'days__questions',
+                filter=Q(
+                    is_published=True,
+                    days__is_published=True,
+                    days__questions__is_published=True,
+                ),
+                distinct=True,
+            ),
+        )
+
+    @admin.display(description='Published days', ordering='admin_published_day_count')
+    def published_day_count(self, obj):
+        return obj.admin_published_day_count
+
+    @admin.display(description='Published questions', ordering='admin_published_question_count')
+    def published_question_count(self, obj):
+        return obj.admin_published_question_count
+
 
 @admin.register(Skill)
-class SkillAdmin(admin.ModelAdmin):
+class SkillAdmin(ModelAdmin):
+    list_display = ('name', 'published_question_count')
     search_fields = ('name',)
 
+    def get_queryset(self, request):
+        return super().get_queryset(request).annotate(
+            admin_published_question_count=Count(
+                'questions',
+                filter=Q(
+                    questions__is_published=True,
+                    questions__day__is_published=True,
+                    questions__day__role__is_published=True,
+                ),
+            ),
+        )
 
-class QuestionOptionInline(admin.TabularInline):
+    @admin.display(description='Published questions', ordering='admin_published_question_count')
+    def published_question_count(self, obj):
+        return obj.admin_published_question_count
+
+
+class QuestionOptionInline(TabularInline):
     model = QuestionOption
     extra = 4
 
 
 @admin.register(LearningDay)
-class LearningDayAdmin(admin.ModelAdmin):
+class LearningDayAdmin(ModelAdmin):
     form = LearningDayAdminForm
-    list_display = ('role', 'level', 'experience_band', 'day_number', 'title', 'difficulty_level', 'estimated_minutes', 'is_published')
-    list_filter = ('role', 'level', 'experience_band', 'is_published', 'difficulty_level')
+    list_display = (
+        'role', 'level', 'experience_band', 'day_number', 'title', 'published_question_count',
+        'difficulty_level', 'estimated_minutes', 'is_published',
+    )
+    list_filter = ('role', 'role__is_published', 'level', 'experience_band', 'is_published', 'difficulty_level')
     search_fields = ('title', 'topics', 'lesson_body')
     ordering = ('role', 'level', 'experience_band', 'day_number')
+    list_select_related = ('role',)
     fieldsets = (
         ('Day identity', {
             'fields': ('role', 'level', 'experience_band', 'day_number', 'title', 'is_published'),
@@ -135,18 +185,34 @@ class LearningDayAdmin(admin.ModelAdmin):
         }),
     )
 
+    def get_queryset(self, request):
+        return super().get_queryset(request).annotate(
+            admin_published_question_count=Count(
+                'questions',
+                filter=Q(is_published=True, role__is_published=True, questions__is_published=True),
+                distinct=True,
+            ),
+        )
+
+    @admin.display(description='Published questions', ordering='admin_published_question_count')
+    def published_question_count(self, obj):
+        return obj.admin_published_question_count
+
 
 @admin.register(ScenarioQuestion)
-class ScenarioQuestionAdmin(admin.ModelAdmin):
+class ScenarioQuestionAdmin(ModelAdmin):
     list_display = ('__str__', 'day', 'skill', 'difficulty', 'question_type', 'is_published')
-    list_filter = ('day__role', 'day__level', 'day__experience_band', 'difficulty', 'question_type', 'skill', 'is_published')
+    list_filter = (
+        'day__role', 'day__role__is_published', 'day__is_published', 'day__level',
+        'day__experience_band', 'difficulty', 'question_type', 'skill', 'is_published',
+    )
     search_fields = ('text', 'scenario', 'topic')
     autocomplete_fields = ('skill',)
     list_select_related = ('day__role', 'skill')
     inlines = [QuestionOptionInline]
 
 
-class MilestoneQuestionInline(admin.TabularInline):
+class MilestoneQuestionInline(TabularInline):
     model = MilestoneQuestion
     extra = 0
     raw_id_fields = ('question',)
@@ -168,14 +234,16 @@ class MilestoneQuestionInline(admin.TabularInline):
 
 
 @admin.register(MilestoneExam)
-class MilestoneExamAdmin(admin.ModelAdmin):
+class MilestoneExamAdmin(ModelAdmin):
     form = MilestoneExamAdminForm
     list_display = ('__str__', 'role', 'level', 'experience_band', 'number', 'question_count', 'time_limit_minutes', 'is_published')
     list_filter = ('role', 'level', 'experience_band', 'is_published')
+    search_fields = ('title', 'role__title')
+    list_select_related = ('role',)
     inlines = [MilestoneQuestionInline]
 
 
-class ReadOnlyAdmin(admin.ModelAdmin):
+class ReadOnlyAdmin(ModelAdmin):
     """Student progress and attempts are reviewed here, never edited."""
 
     def has_add_permission(self, request):
@@ -191,19 +259,22 @@ class DayProgressAdmin(ReadOnlyAdmin):
     list_filter = ('notes_completed', 'status', 'day__role')
     search_fields = ('user__username',)
     list_select_related = ('user', 'day__role')
+    date_hierarchy = 'last_attempt_at'
 
 
 @admin.register(DayAttempt)
 class DayAttemptAdmin(ReadOnlyAdmin):
     list_display = ('user', 'day', 'score_percent', 'submitted_at')
-    list_filter = ('day__role',)
+    list_filter = ('day__role', 'submitted_at')
     search_fields = ('user__username',)
     list_select_related = ('user', 'day__role')
+    date_hierarchy = 'submitted_at'
 
 
 @admin.register(MilestoneAttempt)
 class MilestoneAttemptAdmin(ReadOnlyAdmin):
     list_display = ('user', 'milestone', 'score_percent', 'submitted_at')
-    list_filter = ('milestone__role',)
+    list_filter = ('milestone__role', 'submitted_at')
     search_fields = ('user__username',)
     list_select_related = ('user', 'milestone__role')
+    date_hierarchy = 'submitted_at'

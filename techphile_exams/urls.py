@@ -21,6 +21,7 @@ urlpatterns = [
     path('api/', include('api.urls')),
     path('coding/', include('coding.urls')),
     path('careers/', include('careers.urls')),
+    path('interview-prep/', include('interview_prep.urls')),
     
 ]
 

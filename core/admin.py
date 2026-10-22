@@ -1,16 +1,17 @@
 from django.contrib import admin
+from unfold.admin import ModelAdmin
 from .models import Topic, Problem, Dataset, Submissions, UserProgress, Leaderboard
 
 
 @admin.register(Topic)
-class TopicAdmin(admin.ModelAdmin):
+class TopicAdmin(ModelAdmin):
     list_display = ['name', 'sort_order', 'created_at']
     list_editable = ['sort_order']
     ordering = ['sort_order', 'name']
 
 
 @admin.register(Problem)
-class ProblemAdmin(admin.ModelAdmin):
+class ProblemAdmin(ModelAdmin):
     list_display = ['title', 'topic', 'difficulty', 'points', 'is_active', 'created_at']
     list_filter = ['topic', 'difficulty', 'is_active']
     search_fields = ['title', 'description']
@@ -19,7 +20,7 @@ class ProblemAdmin(admin.ModelAdmin):
 
 
 @admin.register(Dataset)
-class DatasetAdmin(admin.ModelAdmin):
+class DatasetAdmin(ModelAdmin):
     list_display = ['name', 'filename', 'file_size', 'is_public', 'uploaded_by', 'created_at']
     list_filter = ['is_public', 'created_at']
     search_fields = ['name', 'filename']
@@ -27,7 +28,7 @@ class DatasetAdmin(admin.ModelAdmin):
 
 
 @admin.register(Submissions)
-class SubmissionAdmin(admin.ModelAdmin):
+class SubmissionAdmin(ModelAdmin):
     list_display = ['user', 'problem', 'status', 'score', 'submitted_at']
     list_filter = ['status', 'submitted_at']
     search_fields = ['user__username', 'problem__title']
@@ -35,14 +36,14 @@ class SubmissionAdmin(admin.ModelAdmin):
 
 
 @admin.register(UserProgress)
-class UserProgressAdmin(admin.ModelAdmin):
+class UserProgressAdmin(ModelAdmin):
     list_display = ['user', 'problem', 'status', 'best_score', 'attempts', 'completed_at']
     list_filter = ['status', 'completed_at']
     search_fields = ['user__username', 'problem__title']
 
 
 @admin.register(Leaderboard)
-class LeaderboardAdmin(admin.ModelAdmin):
+class LeaderboardAdmin(ModelAdmin):
     list_display = ['user', 'total_score', 'problems_solved', 'rank', 'last_updated']
     ordering = ['rank']
     readonly_fields = ['last_updated']

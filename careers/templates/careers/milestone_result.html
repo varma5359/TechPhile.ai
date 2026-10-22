@@ -9,7 +9,7 @@
     <nav class="cp-breadcrumb" aria-label="Breadcrumb"><a href="{% url 'careers:role_list' %}">Career Preparation</a> / <a href="{% url 'careers:level_role_detail' role.slug level %}">{{ role.title }}</a> / {{ milestone.title }}</nav>
     <header class="cp-result-hero {% if passed %}is-passed{% else %}needs-review{% endif %}">
       <div><p class="cp-result-eyebrow">{{ role.title }} · {{ level|title }} path · Milestone</p><h1>{{ milestone.title }}</h1><p>Assessment across days {{ milestone.start_day }}–{{ milestone.end_day }}.</p>
-        <span class="cp-badge {% if passed %}completed{% else %}revision_recommended{% endif %}">{% if passed %}Milestone passed · {{ pass_percent }}% required{% else %}More practice needed · {{ pass_percent }}% required{% endif %}</span>
+      <span class="cp-badge {% if passed %}completed{% else %}revision_recommended{% endif %}">{% if passed %}Milestone passed · {{ pass_percent }}% required{% else %}Below pass threshold · {{ pass_percent }}% required{% endif %}</span>
       </div><div class="cp-result-score"><strong>{{ attempt.score_percent|floatformat:0 }}%</strong><span>{{ attempt.correct_marks }} of {{ attempt.total_marks }} marks</span><small>Best score {{ best_score|floatformat:0 }}%</small></div>
     </header>
     {% if passed %}<div class="cp-alert info">You met the pass mark. The next five-day block is unlocked.</div>{% else %}<div class="cp-alert info">Review the suggested topics and answer feedback, then retake this milestone.</div>{% endif %}

@@ -1,0 +1,63 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}{{ preparation.job_title }} resume and job fit | TechPhile.ai{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/interview-prep.css' %}">{% endblock %}
+{% block content %}
+<main class="ipp-page ipp-result-page">
+  <section class="ipp-hero ipp-result-hero">
+    <div class="container ipp-container">
+      <a class="ipp-back-link" href="{% url 'interview_prep:create_preparation' %}"><i class="fa-solid fa-arrow-left" aria-hidden="true"></i> My preparations</a>
+      <div class="ipp-result-title-row">
+        <div><span class="ipp-eyebrow">STEP 1 OF 2: RESUME AND JOB FIT</span><h1>{{ preparation.job_title }}</h1><p>{% if preparation.company_name %}{{ preparation.company_name }} | {% endif %}{{ preparation.get_seniority_display|default:preparation.seniority|title }}</p></div>
+        <a class="ipp-secondary-button" href="{% url 'interview_prep:create_preparation' %}"><i class="fa-solid fa-plus" aria-hidden="true"></i> New preparation</a>
+      </div>
+    </div>
+  </section>
+  <section class="container ipp-container ipp-fit-layout">
+    <div class="ipp-fit-main">
+      {% with match=preparation.generated_content.jd_match %}
+      {% if match %}
+      <section class="ipp-summary-card ipp-fit-summary">
+        <span class="ipp-eyebrow">YOUR RESUME SCAN</span>
+        <div class="ipp-match-card" aria-labelledby="jd-match-heading">
+          <div class="ipp-match-score"><strong>{{ match.score }}%</strong><span>evidence match</span></div>
+          <div class="ipp-match-content">
+            <h2 id="jd-match-heading">{% if match.score >= minimum_match_score %}Strong resume alignment{% else %}See what your resume shows for this job{% endif %}</h2>
+            <p>This score reflects details found in the resume you provided. "Not shown" means the resume did not mention it; it does not mean you lack the skill.</p>
+            <div class="ipp-match-bar" role="img" aria-label="Resume evidence match {{ match.score }} percent"><span style="width: {{ match.score }}%"></span></div>
+            <div class="ipp-match-counts"><span><b>{{ match.counts.strong }}</b> clearly shown</span><span><b>{{ match.counts.partial }}</b> partly shown</span><span><b>{{ match.counts.not_evidenced }}</b> not mentioned</span></div>
+          </div>
+        </div>
+      </section>
+      {% endif %}{% endwith %}
+
+      {% if preparation.generated_content.requirements %}
+      <section class="ipp-summary-card ipp-fit-requirements">
+        <span class="ipp-eyebrow">WHAT THE JOB ASKS FOR</span><h2>Skills and suggestions</h2>
+        <p class="ipp-fit-intro">For each job requirement, see what the resume shows and a practical next step. “Not mentioned” describes the document only; use the questions page to learn unfamiliar skills.</p>
+        <div class="ipp-requirement-list">
+          {% for requirement in fit_requirements %}
+          <article class="ipp-requirement ipp-requirement-{{ requirement.match_level }}">
+            <div><div class="ipp-requirement-badges"><span class="ipp-requirement-status">{% if requirement.match_level == 'strong' %}Shown in resume{% elif requirement.match_level == 'partial' %}Partly shown{% else %}Not mentioned in resume{% endif %}</span>{% if requirement.mandatory %}<span class="ipp-required-tag">Important for this role</span>{% endif %}</div><h3>{{ requirement.requirement }}</h3>
+              {% if requirement.match_rationale %}<div class="ipp-requirement-evidence"><strong>What we found</strong><p>{{ requirement.match_rationale }}</p></div>{% endif %}
+              {% if requirement.match_level != 'strong' %}<div class="ipp-match-suggestion"><strong>What to do next</strong><p>{{ requirement.student_suggestion }}</p></div>{% endif %}
+            </div>
+          </article>
+          {% endfor %}
+        </div>
+      </section>
+      {% endif %}
+
+      <section class="ipp-summary-card ipp-next-step-card">
+        <span class="ipp-eyebrow">STEP 2 OF 2: LEARN AND PRACTISE</span><h2>Prepare for this role</h2>
+        {% with match=preparation.generated_content.jd_match %}{% if match %}
+          {% if match.score < foundation_match_score %}<p>Start with the basics, then work through questions about the role's requirements. The score does not limit your access to practice.</p>{% elif match.score < minimum_match_score %}<p>Focus on job skills that are only partly covered or not mentioned, while building on the experience your resume already shows.</p>{% else %}<p>Practise a broad range of role, job description, and experience-based questions.</p>{% endif %}
+        {% else %}<p>Review the questions and practice each answer at your own pace.</p>{% endif %}{% endwith %}
+        {% if preparation.generated_content.rounds %}<p class="ipp-next-step-count">{{ preparation.generated_content.rounds|length }} rounds | {% for round in preparation.generated_content.rounds %}{{ round.questions|length }}{% if not forloop.last %} + {% endif %}{% endfor %} questions | Your progress is saved.</p>{% endif %}
+        <a class="ipp-primary-button" href="{% url 'interview_prep:preparation_questions' preparation.pk %}"><i class="fa-solid fa-arrow-right" aria-hidden="true"></i> Continue to interview preparation</a>
+      </section>
+    </div>
+    <aside class="ipp-fit-aside"><div class="ipp-fit-aside-card"><span class="ipp-aside-icon"><i class="fa-solid fa-compass" aria-hidden="true"></i></span><h2>How to use this scan</h2><ol><li>See which skills your resume shows.</li><li>Review the suggestions for missing details.</li><li>Continue to learn and practise for the role.</li></ol></div></aside>
+  </section>
+</main>
+{% endblock %}

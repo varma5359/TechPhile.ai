@@ -57,6 +57,9 @@
             <a href="{% url 'exams:exam_list' %}" class="sidebar-link {% if request.resolver_match.namespace == 'exams' and request.resolver_match.url_name != 'student_dashboard' and request.resolver_match.url_name != 'profile_settings' %}active{% endif %}" title="Exam practice">
                 <i class="fas fa-file-pen"></i><span class="sidebar-label">Exam practice</span>
             </a>
+            <a href="{% url 'interview_prep:monthly_plan' %}" class="sidebar-link {% if request.resolver_match.namespace == 'interview_prep' %}active{% endif %}" title="Interview preparation" {% if request.resolver_match.namespace == 'interview_prep' %}aria-current="page"{% endif %}>
+                <i class="fas fa-user-tie"></i><span class="sidebar-label">Interview prep</span>
+            </a>
 
             {% block sidebar_extra %}{% endblock %}
         </nav>
