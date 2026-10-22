@@ -1,12 +1,17 @@
-/* General admin background (for non-login pages) */
-body {
-    background: rgb(94, 47, 47) !important;
+/* Neutral admin canvas; the login card retains its separate dark background. */
+html[data-bs-theme="light"] body {
+    background: #f4f6f9 !important;
 }
 
 /* Make admin table headers bold and blue */
-th {
+html[data-bs-theme="light"] th {
     font-weight: bold;
-    color: #007bff;
+    color: #172b4d;
+}
+
+html[data-bs-theme="dark"] th {
+    font-weight: bold;
+    color: #e7eef8;
 }
 
 /* Jazzmin login page background and centering */
