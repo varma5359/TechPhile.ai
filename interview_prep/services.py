@@ -1,9 +1,4 @@
-"""Server-side access checks and persistence for generated preparation sets.
-
-The repository has no resume parser or preparation question generator yet.
-The generator must call ``save_generated_preparation_set`` only after it has
-created a complete result; this module does not fabricate analysis or questions.
-"""
+"""Server-side access checks and persistence for preparation drafts and sets."""
 
 import uuid
 from datetime import timedelta
@@ -87,19 +82,149 @@ def get_preparation_access(user, at=None):
             'premium_active': False,
             'access_period': None,
             'sets_used': 0,
+            'sets_completed': 0,
+            'drafts_reserved': 0,
             'sets_remaining': 0,
             'set_limit': MONTHLY_PREPARATION_SET_LIMIT,
         }
 
-    used = PreparationSet.objects.filter(access_period=period).count()
+    preparations = PreparationSet.objects.filter(access_period=period).only('generated_content')
+    used = preparations.count()
+    drafts_reserved = sum(1 for item in preparations if preparation_is_draft(item))
     return {
         'plan': 'local_test_monthly' if period.order.plan_code == 'local_test_monthly' else 'premium_monthly',
         'premium_active': True,
         'access_period': period,
         'sets_used': used,
+        'sets_completed': used - drafts_reserved,
+        'drafts_reserved': drafts_reserved,
         'sets_remaining': max(0, MONTHLY_PREPARATION_SET_LIMIT - used),
         'set_limit': MONTHLY_PREPARATION_SET_LIMIT,
     }
+
+
+def preparation_is_draft(preparation_set):
+    """Whether a preparation row is an incomplete, resumable generation draft."""
+    return (preparation_set.generated_content or {}).get('_generation_state') in {
+        'in_progress', 'interrupted',
+    }
+
+
+def create_preparation_draft(
+    user, request_reference, company_name, job_title, job_description,
+    role_family='general-software-engineering', seniority='entry', input_fingerprint=None,
+):
+    """Reserve one monthly slot and persist an empty, resumable preparation draft."""
+    if not user or not user.is_authenticated:
+        raise PremiumPreparationRequired('Sign in to use Premium preparation.')
+    try:
+        request_reference = uuid.UUID(str(request_reference))
+    except (TypeError, ValueError, AttributeError) as exc:
+        raise ValidationError('A valid preparation request reference is required.') from exc
+
+    with transaction.atomic():
+        period = get_active_access_period(user, lock=True)
+        if period is None:
+            raise PremiumPreparationRequired('An approved, active monthly plan is required.')
+        existing = PreparationSet.objects.filter(owner=user, request_reference=request_reference).first()
+        if existing:
+            if existing.access_period_id != period.pk:
+                raise PremiumPreparationRequired('This request belongs to a different subscription month.')
+            return existing
+        if input_fingerprint:
+            existing = PreparationSet.objects.filter(
+                owner=user, access_period=period, input_fingerprint=input_fingerprint,
+            ).first()
+            if existing:
+                return existing
+        existing_sets = PreparationSet.objects.filter(access_period=period).count()
+        if existing_sets >= MONTHLY_PREPARATION_SET_LIMIT:
+            raise PreparationSetLimitReached('Two preparation sets have already been used this month.')
+        if not job_title or len(job_title) > 150 or not job_description:
+            raise ValidationError('A valid job title and job description are required.')
+        return PreparationSet.objects.create(
+            owner=user,
+            access_period=period,
+            request_reference=request_reference,
+            set_number=existing_sets + 1,
+            company_name=(company_name or '').strip(),
+            job_title=job_title.strip(),
+            role_family=role_family,
+            seniority=seniority,
+            job_description=job_description.strip(),
+            input_fingerprint=input_fingerprint,
+            generated_content={
+                '_generation_state': 'in_progress',
+                '_generation_progress': {'completed': 0, 'total': 60},
+                'rounds': [],
+            },
+        )
+
+
+def claim_preparation_draft(preparation_id, lease_seconds=1800):
+    """Acquire or reclaim an expired generation lease across web workers."""
+    with transaction.atomic():
+        draft = PreparationSet.objects.select_for_update().get(pk=preparation_id)
+        content = dict(draft.generated_content or {})
+        if not preparation_is_draft(draft):
+            return False
+        lease_until = content.get('_generation_lease_until', 0)
+        if content.get('_generation_state') == 'in_progress' and lease_until > timezone.now().timestamp():
+            return False
+        content['_generation_state'] = 'in_progress'
+        content['_generation_lease_until'] = timezone.now().timestamp() + lease_seconds
+        draft.generated_content = content
+        draft.save(update_fields=['generated_content', 'updated_at'])
+        return True
+
+
+def checkpoint_preparation_draft(preparation_id, round_number, questions, completed, total=60):
+    """Persist one validated round prefix without storing the submitted resume."""
+    with transaction.atomic():
+        draft = PreparationSet.objects.select_for_update().get(pk=preparation_id)
+        content = dict(draft.generated_content or {})
+        if content.get('_generation_state') not in {'in_progress', 'interrupted'}:
+            return draft
+        rounds = list(content.get('rounds') or [])
+        while len(rounds) < round_number:
+            index = len(rounds) + 1
+            rounds.append({'round_number': index, 'title': f'Practice round {index}', 'questions': []})
+        rounds[round_number - 1] = {
+            **rounds[round_number - 1],
+            'round_number': round_number,
+            'title': f'Practice round {round_number}',
+            'questions': questions,
+        }
+        content['rounds'] = rounds
+        content['_generation_state'] = 'in_progress'
+        content['_generation_progress'] = {'completed': completed, 'total': total}
+        content['_generation_lease_until'] = timezone.now().timestamp() + 1800
+        draft.generated_content = content
+        draft.save(update_fields=['generated_content', 'updated_at'])
+        return draft
+
+
+def mark_preparation_draft_interrupted(preparation_id, message=''):
+    """Keep completed batches available after a generation failure."""
+    with transaction.atomic():
+        draft = PreparationSet.objects.select_for_update().get(pk=preparation_id)
+        content = dict(draft.generated_content or {})
+        if content.get('_generation_state') == 'in_progress':
+            if 'final quality check' in message.casefold():
+                content['_generation_fallback_rounds'] = content.get('_generation_fallback_rounds') or list(content.get('rounds') or [])
+                content['_generation_retry_all'] = True
+            fallback_rounds = content.get('_generation_fallback_rounds')
+            if fallback_rounds:
+                content['rounds'] = fallback_rounds
+                content['_generation_progress'] = {'completed': sum(
+                    len(row.get('questions', [])) for row in fallback_rounds if isinstance(row, dict)
+                ), 'total': 60}
+            content['_generation_state'] = 'interrupted'
+            content['_generation_message'] = message[:240]
+            content.pop('_generation_lease_until', None)
+            draft.generated_content = content
+            draft.save(update_fields=['generated_content', 'updated_at'])
+        return draft
 
 
 def save_generated_preparation_set(
@@ -136,13 +261,17 @@ def save_generated_preparation_set(
         owner=user,
         request_reference=request_reference,
     ).first()
+    if existing is not None and not preparation_is_draft(existing):
+        if existing.access_period_id != active_period.pk:
+            raise PremiumPreparationRequired('This request belongs to a different subscription month.')
+        return existing
     if existing is None and input_fingerprint:
         existing = PreparationSet.objects.filter(
             owner=user,
             access_period=active_period,
             input_fingerprint=input_fingerprint,
         ).first()
-    if existing:
+    if existing and not preparation_is_draft(existing):
         if existing.access_period_id != active_period.pk:
             raise PremiumPreparationRequired('This request belongs to a different subscription month.')
         return existing
@@ -194,7 +323,7 @@ def save_generated_preparation_set(
                 owner=user,
                 request_reference=request_reference,
             ).first()
-            if existing:
+            if existing and not preparation_is_draft(existing):
                 if existing.access_period_id != period.pk:
                     raise PremiumPreparationRequired('This request belongs to a different subscription month.')
                 return existing
@@ -207,7 +336,17 @@ def save_generated_preparation_set(
                     input_fingerprint=input_fingerprint,
                 ).first()
             if existing_by_fingerprint:
-                return existing_by_fingerprint
+                if not preparation_is_draft(existing_by_fingerprint):
+                    return existing_by_fingerprint
+                existing = existing_by_fingerprint
+
+            if existing and preparation_is_draft(existing):
+                if existing.access_period_id != period.pk:
+                    raise PremiumPreparationRequired('This request belongs to a different subscription month.')
+                existing.generated_content = generated_content
+                existing.input_fingerprint = input_fingerprint or existing.input_fingerprint
+                existing.save(update_fields=['generated_content', 'input_fingerprint', 'updated_at'])
+                return existing
 
             set_number = PreparationSet.objects.filter(access_period=period).count() + 1
             if set_number > MONTHLY_PREPARATION_SET_LIMIT:

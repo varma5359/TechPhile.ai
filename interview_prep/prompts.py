@@ -24,7 +24,9 @@ Follow these rules:
 
 - Ask realistic, job-relevant questions that assess competency, reasoning, communication, and practical understanding.
 
-- Avoid duplicate questions, trivia, leading questions, and questions that assume facts not supported by evidence.
+- Treat the JD, resume, and role requirements as the source of question coverage. A company name alone must not change the core syllabus or cause company-specific assumptions; use it only when the supplied evidence supports a genuinely relevant context.
+- Avoid duplicate questions within the current preparation, trivia, leading questions, and questions that assume facts not supported by evidence. Check current-set questions for the same underlying task, decision, and scenario, not only matching wording. Questions from another preparation are optional variation context: when the JD and resume are unchanged, recurring core questions are expected and should not be forced into a different syllabus.
+- For every question, provide assessment_focus: a concise 3–8 word label naming the specific skill and decision being tested (for example, "reconcile revenue after join change" or "prioritize urgent stakeholder requests"). Do not use broad labels such as "SQL" or "communication".
 
 - Assess only job-related skills. Do not infer or ask about age, disability, religion, caste, race, sex, family status, or other protected/personal traits.
 
@@ -32,64 +34,28 @@ Follow these rules:
 
 - Every question must contain evidence_refs using only evidence IDs supplied in the input. Never fabricate evidence IDs.
 
-ANSWER GUIDANCE:
+ANSWER CONTENT:
 
-- answer_guidance MUST be a STRING.
+- answer_content MUST be an object matching the supplied schema.
 
-- Do NOT return answer_guidance as an object, array, JSON object, or nested structure.
+- direct_answer and interview_ready_answer are concise, complete text responses specific to the question.
 
-- The answer_guidance string MUST contain exactly these four sections in this order:
+- sections are optional. Add only sections that materially teach this question. Avoid repeating the direct answer in every section.
 
-  **How to answer**
-  Explain the logical structure the candidate should follow.
+- Each section has a short title and a concise Markdown body. Use only the elements that fit: short paragraphs, numbered steps, bullets, simple tables, or fenced SQL/Python code. A process can be shown as a short numbered sequence. Sections are optional; avoid repetition.
 
-  **Interview-ready answer**
-  Give a concise, natural model answer that the candidate could actually speak in an interview.
+- Use tables only for real structured data or comparisons, and make every row align with its headers. Use valid, clearly labeled illustrative SQL/Python code and explain its assumptions. Never invent a candidate's personal work or present hypothetical outcomes as measured facts.
 
-  **Why this is a good answer**
-  Explain briefly what competency or reasoning the answer demonstrates.
+- Explain technical terms simply and include relevant evidence, validation, limitations, or trade-offs. Tailor details to the question rather than reusing one investigation procedure for unrelated topics.
 
-  **Practice**
-  Give one short instruction for the candidate to answer the question in their own words.
+- interviewer_evaluation.what_interviewer_checks lists specific competencies; common_mistake identifies a plausible question-specific error; key_takeaway is one memorable, accurate point. These are brief and may be empty when unhelpful.
 
-- Do NOT use these old headings:
-  "Learn the idea"
-  "Answer path"
-  "Example"
-  "Try it"
+- practice_activity is a short task tied to this question. It may be empty if a useful activity would be artificial.
 
-- Do NOT write long textbook explanations.
-
-- For technical questions:
-  Explain the concept simply, provide the important technical points, and give a practical example when useful.
-
-- For scenario questions:
-  Structure the answer logically:
-  understand the problem → investigate → identify root cause → decide → act → validate → monitor.
-
-- For comparison questions:
-  Explain both approaches, compare their trade-offs, and give a context-based recommendation.
-
-- For project/system-design questions:
-  Cover the important components, flow, decisions, dependencies, validation, monitoring, and trade-offs as appropriate.
-
-- For behavioral or experience-based questions:
-  Never invent first-person experience.
-  Never write "I implemented", "I developed", "I achieved", etc. unless supported by the supplied resume.
-  If experience is not supported, provide a fill-in answer structure instead.
-
-- For experience questions, use:
-  Situation → Task → Action → Result
-  when STAR is appropriate.
-
-- Keep interview-ready answers short enough to speak naturally, normally around 30–90 seconds.
-
-- Keep the complete answer_guidance concise.
-
-- The explanation field should briefly explain why the question was included. Do not repeat "What the interviewer is checking" inside answer_guidance.
+- Keep each question's complete answer under 250 words. Keep direct_answer under 45 words, interview_ready_answer under 80 words, and each optional section under 90 words. Use at most two short sections. No filler, generic templates, empty sections, placeholder tables, raw HTML, Mermaid syntax, or JavaScript. The separate explanation field briefly states why this question was included.
 
 - Return ONLY valid JSON matching the supplied schema.
-- Do not add Markdown code fences.
+- Do not wrap the JSON response in Markdown code fences.
 - Do not add text before or after the JSON.
 """
 
@@ -214,6 +180,40 @@ INPUT_ANALYSIS_SCHEMA = {
 }
 
 
+ANSWER_CONTENT_SCHEMA = {
+    'type': 'object',
+    'additionalProperties': False,
+    'properties': {
+        'direct_answer': {'type': 'string'},
+        'sections': {
+            'type': 'array',
+            'items': {
+                'type': 'object',
+                'additionalProperties': False,
+                'properties': {
+                    'title': {'type': 'string'},
+                    'markdown': {'type': 'string'},
+                },
+                'required': ['title', 'markdown'],
+            },
+        },
+        'interview_ready_answer': {'type': 'string'},
+        'interviewer_evaluation': {
+            'type': 'object',
+            'additionalProperties': False,
+            'properties': {
+                'what_interviewer_checks': {'type': 'array', 'items': {'type': 'string'}},
+                'common_mistake': {'type': 'string'},
+                'key_takeaway': {'type': 'string'},
+            },
+            'required': ['what_interviewer_checks', 'common_mistake', 'key_takeaway'],
+        },
+        'practice_activity': {'type': 'string'},
+    },
+    'required': ['direct_answer', 'sections', 'interview_ready_answer', 'interviewer_evaluation', 'practice_activity'],
+}
+
+
 QUESTION_BATCH_SCHEMA = {
     'type': 'object',
     'additionalProperties': False,
@@ -227,6 +227,9 @@ QUESTION_BATCH_SCHEMA = {
                     'question': {
                         'type': 'string'
                     },
+                    'assessment_focus': {
+                        'type': 'string'
+                    },
                     'category': {
                         'type': 'string'
                     },
@@ -237,9 +240,7 @@ QUESTION_BATCH_SCHEMA = {
                             'personalized'
                         ]
                     },
-                    'answer_guidance': {
-                        'type': 'string'
-                    },
+                    'answer_content': ANSWER_CONTENT_SCHEMA,
                     'explanation': {
                         'type': 'string'
                     },
@@ -247,15 +248,15 @@ QUESTION_BATCH_SCHEMA = {
                         'type': 'array',
                         'items': {
                             'type': 'string'
-                        },
-                        'minItems': 1
+                        }
                     }
                 },
                 'required': [
                     'question',
+                    'assessment_focus',
                     'category',
                     'question_type',
-                    'answer_guidance',
+                    'answer_content',
                     'explanation',
                     'evidence_refs'
                 ]

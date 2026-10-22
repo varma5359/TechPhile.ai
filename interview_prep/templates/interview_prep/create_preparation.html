@@ -16,7 +16,7 @@
         <div class="ipp-usage-card" aria-label="Monthly preparation usage">
           <span class="ipp-usage-label">THIS MONTH</span>
           <strong>{{ access.sets_remaining }} <small>of {{ access.set_limit }} sets left</small></strong>
-          <span>{{ access.sets_used }} used in your active plan</span>
+          <span>{{ access.sets_completed }} completed - {{ access.drafts_reserved }} draft slots reserved</span>
         </div>
       </div>
     </div>
@@ -32,25 +32,25 @@
           </div>
           <ul class="ipp-previous-list">
             {% for item in previous_sets %}
-              <li><a href="{% url 'interview_prep:preparation_detail' item.pk %}"><span>{{ item.company_name|default:'Interview practice' }} · {{ item.job_title }}</span><i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i></a><small>Set {{ item.set_number }}</small></li>
+              <li><a href="{% if item.is_draft %}{% url 'interview_prep:preparation_questions' item.pk %}{% else %}{% url 'interview_prep:preparation_detail' item.pk %}{% endif %}"><span>{{ item.company_name|default:'Interview practice' }} - {{ item.job_title }}</span></a>{% if item.is_draft %}<small>Draft: {{ item.generation_progress.completed|default:0 }} of {{ item.generation_progress.total|default:60 }} questions - <a href="{% url 'interview_prep:create_preparation' %}?resume={{ item.pk }}">Resume generation</a></small>{% else %}<small>Set {{ item.set_number }}</small>{% endif %}</li>
             {% endfor %}
           </ul>
         </section>
       {% endif %}
 
       {% if not generation_configured %}
-        <div class="ipp-not-ready" role="status"><i class="fa-solid fa-circle-info" aria-hidden="true"></i><div><strong>AI preparation is not configured yet.</strong><br>Set an API key for the selected provider before generating a set.</div></div>
+        <div class="ipp-not-ready" role="status"><i class="fa-solid fa-circle-info" aria-hidden="true"></i><div><strong>Interview preparation is not available right now.</strong><br>Set an API key for the selected provider before generating a set.</div></div>
       {% elif access.sets_remaining == 0 %}
         <div class="ipp-not-ready" role="status"><i class="fa-solid fa-circle-info" aria-hidden="true"></i><div>You have used both preparation sets for this subscription month.</div></div>
       {% endif %}
       {% if form.non_field_errors %}<div class="ipp-form-errors" role="alert">{{ form.non_field_errors }}</div>{% endif %}
 
-      <form method="post" class="ipp-preparation-form">
-        {% csrf_token %}{{ form.request_reference }}
+      <form method="post" class="ipp-preparation-form" data-streaming-preparation>
+        {% csrf_token %}{{ form.request_reference }}{{ form.resume_draft_id }}
         <section class="ipp-form-section" aria-labelledby="role-details-heading">
           <div class="ipp-section-heading">
             <span class="ipp-step-number">01</span>
-            <div><h2 id="role-details-heading">Role details</h2><p>Choose the role and experience level you’re targeting.</p></div>
+            <div><h2 id="role-details-heading">Role details</h2><p>Choose the role and experience level you are targeting.</p></div>
           </div>
           <div class="ipp-field-grid ipp-field-grid-two">
             {% for field in form.visible_fields %}
@@ -89,7 +89,7 @@
           <div class="ipp-privacy-icon"><i class="fa-solid fa-shield-halved" aria-hidden="true"></i></div>
           <div class="ipp-privacy-copy">
             <h2 id="privacy-heading">Your information and consent</h2>
-            <p>Your resume text is sent to the selected AI provider to create this set and is not saved in your TechPhile account. Remove contact details or other private information before pasting.</p>
+            <p>{% if resuming_draft %}Your resume is not stored in this draft. Paste the same resume text again so generation can continue using the saved questions.{% else %}Your resume text is sent to the selected question-generation provider to create this set and is not saved in your TechPhile account. Remove contact details or other private information before pasting.{% endif %}</p>
             {% for field in form.visible_fields %}
               {% if field.name == 'consent_to_ai_provider' %}
                 <div class="ipp-consent-check{% if field.errors %} ipp-field-error{% endif %}">
@@ -102,11 +102,19 @@
         </section>
 
         <div class="ipp-form-submit">
-          <button type="submit" class="ipp-primary-button" {% if not generation_configured or access.sets_remaining == 0 %}disabled{% endif %}>
-            <i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true"></i> Generate my question sets
+          <button type="submit" class="ipp-primary-button" {% if not generation_configured or access.sets_remaining == 0 and not resuming_draft %}disabled{% endif %}>
+            <i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true"></i> <span>Generate my question sets</span>
           </button>
-          <span><i class="fa-solid fa-layer-group" aria-hidden="true"></i> 2 rounds · 30 questions each · 1 monthly set</span>
+          <span><i class="fa-solid fa-layer-group" aria-hidden="true"></i> 2 rounds - 30 questions each - 1 monthly set</span>
         </div>
+        <section class="ipp-generation-status" data-generation-status role="status" aria-live="polite" hidden>
+          <div class="ipp-generation-status-heading"><span data-generation-message>Starting your role-fit review...</span><strong data-generation-count>0 of 60</strong></div>
+          <progress data-generation-progress max="60" value="0" aria-label="Preparation generation progress"></progress>
+          <p>Validated questions are saved as a private draft as they are completed. You can keep practising them if generation is interrupted.</p>
+          <ol class="ipp-generation-preview" data-generation-preview aria-label="Questions ready so far"></ol>
+          <div data-generation-error role="alert" hidden></div>
+          <p data-generation-links hidden><a data-draft-link>Open saved questions</a> | <a data-resume-link>Resume unfinished questions</a></p>
+        </section>
       </form>
     </div>
 
@@ -120,8 +128,130 @@
         <li><span>2</span><div><strong>Two practice rounds</strong><small>30 questions in each round, with answer guidance.</small></div></li>
         <li><span>3</span><div><strong>Track your practice</strong><small>Save questions and mark them practised.</small></div></li>
       </ol>
-      <div class="ipp-aside-footnote"><i class="fa-solid fa-circle-info" aria-hidden="true"></i><span>Review AI-generated guidance and adapt it to your own experience.</span></div>
+      <div class="ipp-aside-footnote"><i class="fa-solid fa-circle-info" aria-hidden="true"></i><span>Review interviewer guidance and adapt it to your own experience.</span></div>
     </aside>
   </section>
 </main>
+{% endblock %}
+{% block extra_js %}
+<script>
+(() => {
+  const form = document.querySelector('[data-streaming-preparation]');
+  if (!form || !window.fetch || !window.ReadableStream) return;
+  const status = form.querySelector('[data-generation-status]');
+  const message = form.querySelector('[data-generation-message]');
+  const count = form.querySelector('[data-generation-count]');
+  const progress = form.querySelector('[data-generation-progress]');
+  const preview = form.querySelector('[data-generation-preview]');
+  const error = form.querySelector('[data-generation-error]');
+  const links = form.querySelector('[data-generation-links]');
+  const draftLink = form.querySelector('[data-draft-link]');
+  const resumeLink = form.querySelector('[data-resume-link]');
+  const button = form.querySelector('button[type="submit"]');
+  const buttonLabel = button.querySelector('span');
+  const icon = button.querySelector('i');
+
+  form.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    status.hidden = false;
+    error.hidden = true;
+    error.textContent = '';
+    progress.value = 0;
+    count.textContent = `0 of ${progress.max}`;
+    preview.replaceChildren();
+    button.disabled = true;
+    buttonLabel.textContent = 'Preparing your questions...';
+    icon.classList.remove('fa-wand-magic-sparkles');
+    icon.classList.add('fa-spinner', 'fa-spin');
+    try {
+      const response = await fetch(form.action || window.location.href, {
+        method: 'POST',
+        body: new FormData(form),
+        headers: {'Accept': 'text/event-stream'},
+        credentials: 'same-origin',
+      });
+      if (!(response.headers.get('content-type') || '').includes('text/event-stream')) {
+        const html = await response.text();
+        document.open();
+        document.write(html);
+        document.close();
+        return;
+      }
+      if (!response.ok || !response.body) throw new Error('The progress connection could not be started. Please try again.');
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+      let finished = false;
+      const handleEvent = (raw) => {
+        const dataLine = raw.split('\n').find((line) => line.startsWith('data: '));
+        if (!dataLine) return false;
+        const payload = JSON.parse(dataLine.slice(6));
+        if (payload.type === 'progress') {
+          if (payload.draft_url && payload.resume_url) {
+            draftLink.href = payload.draft_url;
+            resumeLink.href = payload.resume_url;
+          }
+          message.textContent = payload.message || 'Preparing your questions...';
+          const completed = Number(payload.completed || 0);
+          progress.value = completed;
+          count.textContent = `${completed} of ${progress.max}`;
+          for (const question of (payload.preview_questions || [])) {
+            const item = document.createElement('li');
+            const title = document.createElement('strong');
+            title.textContent = question;
+            item.appendChild(title);
+            const answer = (payload.validated_questions || []).find((entry) => entry.question === question);
+            const answerText = answer && answer.answer_content && answer.answer_content.direct_answer || answer && answer.answer_guidance;
+            if (answerText) {
+              const summary = document.createElement('p');
+              summary.textContent = answerText;
+              item.appendChild(summary);
+            }
+            preview.appendChild(item);
+          }
+        } else if (payload.type === 'error') {
+          error.textContent = payload.message || 'Preparation failed. Please try again.';
+          error.hidden = false;
+          if (payload.draft_url && payload.resume_url) {
+            draftLink.href = payload.draft_url;
+            resumeLink.href = payload.resume_url;
+            links.hidden = false;
+          }
+          message.textContent = 'Your interviewer could not finish this preparation.';
+          button.disabled = false;
+          buttonLabel.textContent = 'Try again';
+          icon.classList.remove('fa-spinner', 'fa-spin');
+          icon.classList.add('fa-wand-magic-sparkles');
+          return true;
+        } else if (payload.type === 'complete' && payload.redirect_url) {
+          message.textContent = payload.message || 'Your preparation is ready.';
+          window.location.assign(payload.redirect_url);
+          return true;
+        }
+        return false;
+      };
+      while (!finished) {
+        const {value, done} = await reader.read();
+        buffer += decoder.decode(value || new Uint8Array(), {stream: !done});
+        const chunks = buffer.split('\n\n');
+        buffer = chunks.pop() || '';
+        for (const chunk of chunks) {
+          if (handleEvent(chunk)) { finished = true; break; }
+        }
+        if (done) break;
+      }
+      if (!finished) throw new Error('The connection ended early. Your saved draft is still available; resume when you are ready.');
+    } catch (err) {
+      error.textContent = err.message || 'Your interviewer could not finish this preparation. Please check your saved draft.';
+      error.hidden = false;
+      if (draftLink.href && resumeLink.href) links.hidden = false;
+      message.textContent = 'Your interviewer could not finish this preparation.';
+      button.disabled = false;
+      buttonLabel.textContent = 'Try again';
+      icon.classList.remove('fa-spinner', 'fa-spin');
+      icon.classList.add('fa-wand-magic-sparkles');
+    }
+  });
+})();
+</script>
 {% endblock %}

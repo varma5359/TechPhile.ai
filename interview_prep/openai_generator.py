@@ -5,12 +5,14 @@ import hashlib
 import logging
 import re
 import time
+from difflib import SequenceMatcher
 from copy import deepcopy
 from pathlib import Path
 
 import requests
 from django.conf import settings
 
+from .answer_content import answer_content_texts, validate_answer_content
 from .blueprint import build_competency_blueprint
 from .intelligence_schema import (
     OUTPUT_SCHEMA_VERSION,
@@ -39,6 +41,33 @@ QUESTION_VARIATION_ANGLES = (
     'reflect on a specific project decision',
     'investigate an ambiguous situation before acting',
 )
+
+ANSWER_PLACEHOLDER_PATTERNS = (
+    re.compile(r'\boption\s+[ab]\b', re.IGNORECASE),
+    re.compile(r'what it improves', re.IGNORECASE),
+    re.compile(r'cost or limitation to check', re.IGNORECASE),
+    re.compile(r'_{3,}'),
+    re.compile(r'\bfill in the blanks?\b', re.IGNORECASE),
+    re.compile(r'\binsert your example here\b', re.IGNORECASE),
+    re.compile(r'\[\s*(?:real project|your responsibility|the steps you took|the outcome)', re.IGNORECASE),
+)
+
+_QUESTION_STOP_WORDS = {
+    'a', 'an', 'and', 'are', 'as', 'at', 'be', 'between', 'by', 'can', 'could',
+    'describe', 'do', 'does', 'explain', 'for', 'from', 'give', 'how', 'if',
+    'in', 'into', 'is', 'it', 'its', 'of', 'on', 'or', 'our', 'please',
+    'should', 'the', 'their', 'them', 'then', 'this', 'through', 'to', 'under',
+    'use', 'using', 'what', 'when', 'where', 'which', 'who', 'why', 'will',
+    'with', 'would', 'you', 'your', 'approach',
+}
+_QUESTION_SYNONYMS = {
+    'analyse': 'analyze', 'analysing': 'analyze', 'analyzed': 'analyze',
+    'investigate': 'diagnose', 'investigating': 'diagnose', 'investigation': 'diagnose',
+    'decline': 'decrease', 'dropped': 'decrease', 'drop': 'decrease', 'fall': 'decrease',
+    'combine': 'merge', 'combining': 'merge', 'merged': 'merge', 'merging': 'merge',
+    'datasets': 'dataset', 'tables': 'table', 'records': 'record', 'rows': 'row',
+    'tradeoffs': 'tradeoff', 'trade-offs': 'tradeoff', 'versus': 'vs',
+}
 
 
 class PreparationProviderError(Exception):
@@ -71,7 +100,7 @@ def _provider_config():
         return settings.INTERVIEW_PREP_GROQ_API_KEY, settings.INTERVIEW_PREP_GROQ_MODEL, 'https://api.groq.com/openai/v1/responses'
     if provider == 'openai':
         return settings.INTERVIEW_PREP_OPENAI_API_KEY, settings.INTERVIEW_PREP_OPENAI_MODEL, 'https://api.openai.com/v1/responses'
-    raise PreparationProviderError('The configured AI provider is not supported.')
+    raise PreparationProviderError('The selected preparation provider is not supported.')
 
 
 def is_provider_configured():
@@ -82,8 +111,15 @@ def is_provider_configured():
     return bool(key)
 
 
-def _request_json(instructions, dynamic_input, schema, model, endpoint, api_key, max_tokens=3500):
+def _request_json(instructions, dynamic_input, schema, model, endpoint, api_key, max_tokens=3500, groq_json_mode=False):
     """Call the selected provider, retrying one transport/format failure."""
+    request_endpoint = endpoint
+    retry_input = {**dynamic_input, 'required_output_schema': schema}
+    json_object_fallback = settings.INTERVIEW_PREP_AI_PROVIDER == 'groq' and groq_json_mode
+    fallback_instructions = instructions + (
+        '\nReturn one valid JSON object matching required_output_schema in the user input. '
+        'Keep it concise and include all required fields. The application validates the result before use.'
+    )
     payload = {
         'model': model,
         'max_output_tokens': max_tokens,
@@ -103,14 +139,30 @@ def _request_json(instructions, dynamic_input, schema, model, endpoint, api_key,
     if settings.INTERVIEW_PREP_AI_PROVIDER == 'openai':
         payload['store'] = False
 
+    if json_object_fallback:
+        request_endpoint = endpoint.rsplit('/', 1)[0] + '/chat/completions'
+        payload = {
+            'model': model,
+            'max_completion_tokens': max_tokens,
+            'messages': [
+                {'role': 'system', 'content': fallback_instructions},
+                {'role': 'user', 'content': json.dumps(retry_input, ensure_ascii=False)},
+            ],
+            'response_format': {'type': 'json_object'},
+        }
+        if model.startswith('openai/gpt-oss-'):
+            payload['reasoning_effort'] = 'low'
+
     last_error = None
     rate_limit_retries = 0
     schema_retries = 0
+    transient_retries = 0
+    json_object_retries = 0
     for attempt in range(6):
         started = time.monotonic()
         try:
             response = requests.post(
-                endpoint,
+                request_endpoint,
                 headers={'Authorization': f'Bearer {api_key}', 'Content-Type': 'application/json'},
                 json=payload,
                 timeout=(5, 90),
@@ -131,27 +183,35 @@ def _request_json(instructions, dynamic_input, schema, model, endpoint, api_key,
                 )
                 raise
             data = response.json()
-            text = ''.join(
-                part['text']
-                for item in data.get('output', []) if item.get('type') == 'message'
-                for part in item.get('content', [])
-                if part.get('type') == 'output_text' and isinstance(part.get('text'), str)
-            )
-            if data.get('status') != 'completed' or not text:
-                logger.warning(
-                    'Interview AI provider returned no completed text: provider=%s status=%s output_types=%s',
-                    settings.INTERVIEW_PREP_AI_PROVIDER,
-                    data.get('status', 'missing'),
-                    [item.get('type') for item in data.get('output', []) if isinstance(item, dict)],
+            if json_object_fallback:
+                choices = data.get('choices', [])
+                message = choices[0].get('message', {}) if choices and isinstance(choices[0], dict) else {}
+                text = message.get('content', '') if isinstance(message, dict) else ''
+                if not isinstance(text, str) or not text:
+                    logger.warning('Groq Chat Completions JSON fallback returned no message content.')
+                    raise ValueError('Incomplete JSON fallback response')
+            else:
+                text = ''.join(
+                    part['text']
+                    for item in data.get('output', []) if item.get('type') == 'message'
+                    for part in item.get('content', [])
+                    if part.get('type') == 'output_text' and isinstance(part.get('text'), str)
                 )
-                raise ValueError('Incomplete model response')
+                if data.get('status') != 'completed' or not text:
+                    logger.warning(
+                        'Interview AI provider returned no completed text: provider=%s status=%s output_types=%s',
+                        settings.INTERVIEW_PREP_AI_PROVIDER,
+                        data.get('status', 'missing'),
+                        [item.get('type') for item in data.get('output', []) if isinstance(item, dict)],
+                    )
+                    raise ValueError('Incomplete model response')
             parsed = json.loads(text)
             if not isinstance(parsed, dict):
                 raise ValueError('Expected a JSON object')
             usage = data.get('usage') or {}
             return parsed, {
-                'input_tokens': int(usage.get('input_tokens', 0) or 0),
-                'output_tokens': int(usage.get('output_tokens', 0) or 0),
+                'input_tokens': int(usage.get('input_tokens', usage.get('prompt_tokens', 0)) or 0),
+                'output_tokens': int(usage.get('output_tokens', usage.get('completion_tokens', 0)) or 0),
                 'elapsed_ms': int((time.monotonic() - started) * 1000),
                 'api_calls': 1,
             }
@@ -169,6 +229,10 @@ def _request_json(instructions, dynamic_input, schema, model, endpoint, api_key,
                 and getattr(exc.response, 'status_code', None) == 400
                 and provider_error.get('code') == 'json_validate_failed'
             )
+            is_transient = (
+                not isinstance(exc, requests.HTTPError)
+                or getattr(exc.response, 'status_code', 0) >= 500
+            )
             if is_rate_limited and rate_limit_retries < 3 and attempt < 5:
                 rate_limit_retries += 1
                 try:
@@ -183,20 +247,71 @@ def _request_json(instructions, dynamic_input, schema, model, endpoint, api_key,
                     match = re.search(r'try again in ([0-9.]+)s', message, re.IGNORECASE)
                     wait_seconds = float(match.group(1)) if match else 5
                 time.sleep(min(max(wait_seconds, 1), 60))
-            elif is_schema_validation_error and schema_retries < 2 and attempt < 5:
-                schema_retries += 1
-                retry_input = dict(dynamic_input)
-                retry_input['schema_validation_retry'] = (
-                    'The provider rejected the previous generated content against the supplied JSON schema. '
-                    'Regenerate the response and ensure every field, array item, enum value, and evidence ID '
-                    'strictly matches the schema. Do not copy an invalid value from the previous attempt.'
-                )
-                payload['input'] = json.dumps(retry_input, ensure_ascii=False)
-                payload['instructions'] = instructions + (
-                    '\nThe previous attempt failed provider-side JSON schema validation. '
-                    'Return only a response that exactly matches every schema constraint.'
-                )
-                logger.info('Retrying provider-side structured-output validation failure (retry=%s).', schema_retries)
+            elif is_schema_validation_error:
+                if json_object_fallback and json_object_retries < 2 and attempt < 5:
+                    json_object_retries += 1
+                    retry_input['json_mode_retry'] = (
+                        'The previous JSON response was rejected. Return a fresh, complete object matching the schema. '
+                        'Keep every answer concise and ensure the JSON is syntactically valid.'
+                    )
+                    payload['max_completion_tokens'] = int(payload.get('max_completion_tokens', max_tokens)) + 800
+                    payload['messages'][1]['content'] = json.dumps(retry_input, ensure_ascii=False)
+                    logger.info('Retrying Groq JSON-mode generation after provider rejection (retry=%s).', json_object_retries)
+                elif not json_object_fallback and schema_retries < 2 and attempt < 5:
+                    schema_retries += 1
+                    retry_input = dict(dynamic_input)
+                    retry_input['schema_validation_retry'] = (
+                        'The provider rejected the previous generated content against the supplied JSON schema. '
+                        'Regenerate the response and ensure every field, array item, enum value, and evidence ID '
+                        'strictly matches the schema. Do not copy an invalid value from the previous attempt.'
+                    )
+                    payload['input'] = json.dumps(retry_input, ensure_ascii=False)
+                    payload['instructions'] = instructions + (
+                        '\nThe previous attempt failed provider-side JSON schema validation. '
+                        'Return only a response that exactly matches every schema constraint.'
+                    )
+                    logger.info('Retrying provider-side structured-output validation failure (retry=%s).', schema_retries)
+                elif settings.INTERVIEW_PREP_AI_PROVIDER == 'groq' and not json_object_fallback and attempt < 5:
+                    # Keep a final recovery path for provider/model schema-decoding
+                    # failures. The caller still validates the returned object
+                    # locally before it can be persisted.
+                    json_object_fallback = True
+                    retry_input = dict(dynamic_input)
+                    retry_input['required_output_schema'] = schema
+                    retry_input['schema_validation_retry'] = (
+                        'Strict schema-constrained generation failed. Return one valid JSON object that follows '
+                        'required_output_schema exactly, including every required field and allowed enum value. '
+                        'Do not include Markdown fences or explanatory text.'
+                    )
+                    payload['input'] = json.dumps(retry_input, ensure_ascii=False)
+                    fallback_instructions = instructions + (
+                        '\nReturn a valid JSON object matching the required_output_schema in the user input exactly. '
+                        'The application validates it against the full schema before use.'
+                    )
+                    request_endpoint = endpoint.rsplit('/', 1)[0] + '/chat/completions'
+                    payload = {
+                        'model': model,
+                        'max_completion_tokens': max_tokens,
+                        'messages': [
+                            {'role': 'system', 'content': fallback_instructions},
+                            {'role': 'user', 'content': json.dumps(retry_input, ensure_ascii=False)},
+                        ],
+                        'response_format': {'type': 'json_object'},
+                    }
+                    if model.startswith('openai/gpt-oss-'):
+                        payload['reasoning_effort'] = 'low'
+                    logger.warning('Groq strict structured output failed; retrying once in JSON object mode with local validation.')
+                else:
+                    break
+            elif json_object_fallback and isinstance(exc, ValueError) and json_object_retries < 2 and attempt < 5:
+                json_object_retries += 1
+                retry_input['json_mode_retry'] = 'The previous response was incomplete or invalid JSON. Return a fresh complete JSON object, concisely.'
+                payload['max_completion_tokens'] = int(payload.get('max_completion_tokens', max_tokens)) + 800
+                payload['messages'][1]['content'] = json.dumps(retry_input, ensure_ascii=False)
+                logger.warning('Retrying Groq JSON-mode generation after malformed JSON output (retry=%s).', json_object_retries)
+            elif is_transient and transient_retries < 2 and attempt < 5:
+                transient_retries += 1
+                time.sleep(transient_retries)
             elif not is_rate_limited and not is_schema_validation_error:
                 break
     if isinstance(last_error, requests.HTTPError) and getattr(last_error.response, 'status_code', None) == 429:
@@ -210,9 +325,31 @@ def _request_json(instructions, dynamic_input, schema, model, endpoint, api_key,
             final_error = {}
         if final_error.get('code') == 'json_validate_failed':
             raise PreparationProviderError(
-                'Groq could not return valid structured output after retries. No preparation was saved; please try again.'
+                'Your interviewer could not complete this set yet. Your role details are still available; please try again.'
             ) from last_error
-    raise PreparationProviderError('The AI service is temporarily unavailable. Please try again shortly.') from last_error
+        raise PreparationProviderError(
+            'Your interviewer could not prepare this set. Please contact support if the problem continues.'
+        ) from last_error
+    if isinstance(last_error, requests.HTTPError):
+        status_code = getattr(last_error.response, 'status_code', None)
+        if status_code in {401, 403}:
+            raise PreparationProviderError(
+                'The interview preparation service could not authenticate. Please contact support.'
+            ) from last_error
+        if status_code == 404:
+            raise PreparationProviderError(
+                'The interview preparation service is not configured correctly. Please contact support.'
+            ) from last_error
+        if status_code is not None and status_code < 500:
+            raise PreparationProviderError(
+                f'Your interviewer could not prepare this set (error {status_code}). Please contact support.'
+            ) from last_error
+    logger.error(
+        'Interview AI request failed after retries: provider=%s error_type=%s',
+        settings.INTERVIEW_PREP_AI_PROVIDER,
+        type(last_error).__name__ if last_error else 'unknown',
+    )
+    raise PreparationProviderError('The interview preparation service is temporarily unavailable. Please try again shortly.') from last_error
 
 
 def _question_bank(role_family):
@@ -236,7 +373,7 @@ def _numbered_evidence(items, prefix, value_key):
 
 def _check_extraction(extracted):
     if not isinstance(extracted.get('analysis'), str) or not extracted['analysis'].strip():
-        raise PreparationProviderError('The AI service returned an incomplete role analysis.')
+        raise PreparationProviderError('Your interviewer could not complete the role review. Please try again.')
     facts, fact_id_map = _numbered_evidence(extracted.get('resume_facts', []), 'RES', 'fact')
     requirements, requirement_id_map = _numbered_evidence(extracted.get('jd_requirements', []), 'JD', 'requirement')
     if not requirements:
@@ -293,21 +430,99 @@ def _build_jd_match(requirements):
     }
 
 
+def _question_tokens(text):
+    tokens = re.findall(r'[a-z0-9]+', str(text or '').casefold())
+    normalized = []
+    for token in tokens:
+        token = _QUESTION_SYNONYMS.get(token, token)
+        if token.endswith('ies') and len(token) > 5:
+            token = token[:-3] + 'y'
+        elif token.endswith('s') and not token.endswith(('ss', 'us', 'is')) and len(token) > 4:
+            token = token[:-1]
+        if token not in _QUESTION_STOP_WORDS and len(token) > 2:
+            normalized.append(token)
+    return set(normalized)
+
+
+def _questions_are_semantic_duplicates(candidate, earlier):
+    """Conservative, offline duplicate check; similar topics alone are not enough."""
+    candidate_text = str(candidate.get('question', '')).strip()
+    earlier_text = str(earlier.get('question', '')).strip()
+    if not candidate_text or not earlier_text:
+        return False
+    exact_normalize = lambda text: ' '.join(re.findall(r'[a-z0-9]+', text.casefold()))
+    if exact_normalize(candidate_text) == exact_normalize(earlier_text):
+        return True
+
+    candidate_focus = str(candidate.get('assessment_focus', '')).strip()
+    earlier_focus = str(earlier.get('assessment_focus', '')).strip()
+    focus_tokens = _question_tokens(candidate_focus)
+    earlier_focus_tokens = _question_tokens(earlier_focus)
+    if len(focus_tokens) >= 3 and len(earlier_focus_tokens) >= 3:
+        focus_shared = focus_tokens & earlier_focus_tokens
+        focus_ratio = len(focus_shared) / max(1, min(len(focus_tokens), len(earlier_focus_tokens)))
+        focus_jaccard = len(focus_shared) / max(1, len(focus_tokens | earlier_focus_tokens))
+        focus_text_ratio = SequenceMatcher(None, ' '.join(sorted(focus_tokens)), ' '.join(sorted(earlier_focus_tokens))).ratio()
+        if len(focus_shared) >= 3 and (focus_ratio >= 0.85 or focus_jaccard >= 0.72 or focus_text_ratio >= 0.90):
+            return True
+        # Similar wording can still test different skills (for example, a
+        # metric investigation versus explaining the result to a stakeholder).
+        # Let clearly different, specific focus labels distinguish those cases.
+        if focus_ratio < 0.50 and focus_jaccard < 0.35:
+            return False
+
+    tokens = _question_tokens(candidate_text)
+    earlier_tokens = _question_tokens(earlier_text)
+    shared = tokens & earlier_tokens
+    if len(shared) < 5:
+        return False
+    overlap = len(shared) / max(1, min(len(tokens), len(earlier_tokens)))
+    jaccard = len(shared) / max(1, len(tokens | earlier_tokens))
+    # Requiring strong overlap and several shared content words avoids treating
+    # two questions about the same broad skill as duplicates.
+    if overlap >= 0.78 and jaccard >= 0.58:
+        return True
+    # Catch paraphrases with extra context, such as "revise the promoted-sale
+    # dashboard" versus "update a KPI definition and its reporting model".
+    return len(shared) >= 6 and overlap >= 0.50 and jaccard >= 0.27
+
+
+def _coverage_target(category, question_number, requirements, competencies, rotation=0):
+    # Keep JD needs first, then offer role skills as alternatives. This gives
+    # duplicate retries a different target instead of asking for another
+    # wording of the same competency.
+    candidates = [
+        f"JD requirement: {row['requirement']}"
+        for row in requirements
+        if row.get('category') == category and row.get('requirement')
+    ]
+    category_competencies = [item for item in competencies if category.casefold() in item.casefold()]
+    for competency in category_competencies or competencies:
+        target = f'Role skill: {competency}'
+        if target not in candidates:
+            candidates.append(target)
+    if candidates:
+        index = (question_number - 1 + rotation) % len(candidates)
+        return candidates[index]
+    return f"Assess a distinct practical skill within {category}"
+
+
 def _batch_validation_errors(questions, expected_types, expected_categories, evidence_ids, prior_questions):
     errors = []
     if not isinstance(questions, list) or len(questions) != len(expected_types):
         return ['incorrect question count']
-    prior_text = {
-        ' '.join(''.join(c.lower() if c.isalnum() else ' ' for c in str(q.get('question', ''))).split())
-        for q in prior_questions if isinstance(q, dict)
-    }
-    seen = set(prior_text)
+    seen = [q for q in prior_questions if isinstance(q, dict)]
     for index, (question, expected_type, expected_category) in enumerate(zip(questions, expected_types, expected_categories), start=1):
         if not isinstance(question, dict):
             errors.append(f'question {index} is not an object')
             continue
-        if not str(question.get('question', '')).strip() or not str(question.get('answer_guidance', '')).strip() or not str(question.get('explanation', '')).strip():
-            errors.append(f'question {index} is missing question text, answer guidance, or assessment explanation')
+        if not str(question.get('question', '')).strip() or not str(question.get('explanation', '')).strip():
+            errors.append(f'question {index} is missing question text or question explanation')
+        answer_content_errors = validate_answer_content(question.get('answer_content'))
+        errors.extend(f'question {index} answer content: {error}' for error in answer_content_errors)
+        answer_text = ' '.join(answer_content_texts(question.get('answer_content')))
+        if any(pattern.search(answer_text) for pattern in ANSWER_PLACEHOLDER_PATTERNS):
+            errors.append(f'question {index} answer guidance contains a generic placeholder')
         refs = question.get('evidence_refs')
         refs_valid = (
             isinstance(refs, list)
@@ -318,11 +533,17 @@ def _batch_validation_errors(questions, expected_types, expected_categories, evi
             errors.append(f'question {index} has missing or invalid evidence references')
         if expected_type == 'personalized' and refs_valid and not any(ref.startswith('RES-') for ref in refs):
             errors.append(f'question {index} is personalized without resume evidence')
-        normalized = ' '.join(''.join(c.lower() if c.isalnum() else ' ' for c in str(question.get('question', ''))).split())
-        if normalized in seen:
-            errors.append(f'question {index} repeats an earlier question')
-        elif normalized:
-            seen.add(normalized)
+        question_key = ' '.join(re.findall(r'[a-z0-9]+', str(question.get('question', '')).casefold()))
+        seen_keys = {
+            ' '.join(re.findall(r'[a-z0-9]+', str(earlier.get('question', '')).casefold()))
+            for earlier in seen
+        }
+        if question_key and question_key in seen_keys:
+            errors.append(f'question {index} repeats an exact earlier question')
+        elif any(_questions_are_semantic_duplicates(question, earlier) for earlier in seen):
+            errors.append(f'question {index} is semantically equivalent to an earlier question')
+        elif str(question.get('question', '')).strip():
+            seen.append(question)
     return errors
 
 
@@ -345,29 +566,32 @@ def _invalid_question_indexes(errors, question_count):
 
 
 def _quality_failure_message(errors):
-    if errors and all('repeats an earlier question' in error for error in errors):
-        return 'The AI kept repeating questions after several retries. No preparation was saved; please try again, or add more detail to the job description.'
+    if errors and all('repeats an exact earlier question' in error or 'semantically equivalent' in error for error in errors):
+        return "Your interviewer couldn't finalize this practice set because some questions overlapped too closely. No preparation was saved; please try again. Your job details are still available."
     if errors and all('evidence' in error for error in errors):
-        return 'The AI could not link questions reliably to your resume or job description after several retries. No preparation was saved; please try again.'
-    return 'The AI could not create a complete, distinct question batch after several retries. No preparation was saved; please try again.'
+        return "Your interviewer couldn't connect some questions to the supplied experience. No preparation was saved; please try again. Your job details are still available."
+    return "Your interviewer couldn't complete one question group. No preparation was saved; please try again. Your job details are still available."
+
+
+def _only_semantic_overlap_errors(errors):
+    """Whether a batch failed only a heuristic meaning-similarity check."""
+    return bool(errors) and all('semantically equivalent' in error for error in errors)
 
 
 def _duplicate_batch_questions(questions, prior_questions):
     """Return question texts that repeat earlier work so a retry can replace them."""
     if not isinstance(questions, list):
         return []
-    normalize = lambda text: ' '.join(''.join(char.lower() if char.isalnum() else ' ' for char in str(text)).split())
-    seen = {normalize(row.get('question', '')) for row in prior_questions if isinstance(row, dict)}
+    seen = [row for row in prior_questions if isinstance(row, dict)]
     duplicates = []
     for question in questions:
         if not isinstance(question, dict):
             continue
         text = str(question.get('question', '')).strip()
-        key = normalize(text)
-        if key and key in seen:
+        if text and any(_questions_are_semantic_duplicates(question, row) for row in seen):
             duplicates.append(text)
-        elif key:
-            seen.add(key)
+        elif text:
+            seen.append(question)
     return duplicates
 
 
@@ -394,13 +618,9 @@ def _normalize_generated_evidence_refs(questions, valid_evidence_ids, evidence_a
 
 
 def _question_batch_schema(valid_evidence_ids, question_count):
-    """Constrain Groq to emit at least one source ID from this preparation."""
+    """Constrain evidence IDs; batch size is validated after generation."""
     schema = deepcopy(QUESTION_BATCH_SCHEMA)
-    questions_schema = schema['properties']['questions']
-    questions_schema['minItems'] = question_count
-    questions_schema['maxItems'] = question_count
-    reference_schema = questions_schema['items']['properties']['evidence_refs']
-    reference_schema['minItems'] = 1
+    reference_schema = schema['properties']['questions']['items']['properties']['evidence_refs']
     reference_schema['items']['enum'] = sorted(valid_evidence_ids)
     return schema
 
@@ -408,12 +628,27 @@ def _question_batch_schema(valid_evidence_ids, question_count):
 def generate_preparation(
     resume_text, job_description, company_name, job_title,
     role_family='general-software-engineering', seniority='entry', previous_questions=None,
+    progress_callback=None, resume_content=None,
 ):
     """Analyze input, build a role blueprint, and generate two validated rounds."""
     api_key, model, endpoint = _provider_config()
     if not api_key:
-        raise PreparationProviderError('AI preparation is not configured yet.')
+        raise PreparationProviderError('Interview preparation is not available right now.')
     provider = settings.INTERVIEW_PREP_AI_PROVIDER
+    retry_all_questions = bool((resume_content or {}).get('_generation_retry_all'))
+    resume_rounds = {} if retry_all_questions else {
+        int(row.get('round_number', index + 1)): row
+        for index, row in enumerate((resume_content or {}).get('rounds', []))
+        if isinstance(row, dict) and isinstance(row.get('questions'), list)
+    }
+    resumed_questions = [
+        question for question_round in resume_rounds.values()
+        for question in question_round.get('questions', []) if isinstance(question, dict)
+    ]
+    resumed_count = len(resumed_questions)
+    if progress_callback:
+        progress_callback({'phase': 'reviewing', 'completed': resumed_count, 'total': ROUND_COUNT * QUESTIONS_PER_ROUND,
+                           'message': 'Reviewing your resume and role requirements…'})
     profile = get_role_profile(role_family)
     try:
         research = research_job_market(role_family, job_title, company_name)
@@ -455,6 +690,9 @@ def generate_preparation(
         if not facts:
             raise PreparationProviderError('We could not identify readable experience, skills, projects, or education in the resume text. Paste the resume as plain text and include any transferable work or project examples.')
     jd_match = _build_jd_match(requirements)
+    if progress_callback:
+        progress_callback({'phase': 'questions', 'completed': resumed_count, 'total': ROUND_COUNT * QUESTIONS_PER_ROUND,
+                           'message': 'Building question-specific practice answers…'})
     foundation_threshold = settings.INTERVIEW_PREP_FOUNDATION_MATCH_SCORE
     strong_alignment_threshold = settings.INTERVIEW_PREP_MINIMUM_JD_MATCH_SCORE
     if jd_match['score'] < foundation_threshold:
@@ -486,12 +724,21 @@ def generate_preparation(
         if isinstance(entry, dict) and entry.get('id')
     }
     evidence_ids.update(bank_evidence_ids)
-    prior_questions = [
-        {'question': str(item.get('question', ''))[:300]}
+    prior_preparation_questions = [
+        {
+            'question': str(item.get('question', ''))[:300],
+            'assessment_focus': str(item.get('assessment_focus', ''))[:100],
+        }
         for item in (previous_questions or [])
         if isinstance(item, dict) and str(item.get('question', '')).strip()
     ]
+    # A second preparation for the same JD is expected to overlap with the
+    # first. Keep a small sample as optional variation context; never require
+    # novelty across separate preparations.
+    prior_preparation_questions = prior_preparation_questions[-20:]
     rounds = []
+    current_preparation_questions = list(resumed_questions)
+    completed_question_count = resumed_count
     standard_count = blueprint['per_round']['standardized']
     category_counts = blueprint['per_round']['category_counts']
     category_sequence = []
@@ -502,7 +749,7 @@ def generate_preparation(
                 category_sequence.append(category)
                 remaining_counts[category] -= 1
     for round_number in range(1, ROUND_COUNT + 1):
-        round_questions = []
+        round_questions = list(resume_rounds.get(round_number, {}).get('questions', []))
         # Keep personalized questions in their own batch so the provider schema
         # can require resume evidence IDs for every item in that batch.
         batch_specs = []
@@ -510,10 +757,14 @@ def generate_preparation(
             ('standardized', 0, standard_count),
             ('personalized', standard_count, QUESTIONS_PER_ROUND),
         ):
-            for batch_start in range(start, end, 10):
-                batch_end = min(batch_start + 10, end)
+            # Compact Markdown answers let us keep reliable batches without
+            # paying for repeated strict-schema decoding retries.
+            for batch_start in range(start, end, 5):
+                batch_end = min(batch_start + 5, end)
                 batch_specs.append((batch_start, [question_type] * (batch_end - batch_start)))
         for batch_start, batch_types in batch_specs:
+            if len(round_questions) >= batch_start + len(batch_types):
+                continue
             batch_categories = category_sequence[batch_start:batch_start + len(batch_types)]
             batch_evidence_ids = (
                 {identifier for identifier in evidence_ids if identifier.startswith('RES-')}
@@ -532,6 +783,7 @@ def generate_preparation(
                 'preparation_focus': [
                     {
                         'requirement': row['requirement'],
+                        'category': row.get('category', ''),
                         'priority': ('mandatory gap' if row.get('mandatory') and row.get('match_level') == 'not_evidenced' else 'mandatory partial evidence' if row.get('mandatory') and row.get('match_level') == 'partial' else 'JD skill gap' if row.get('match_level') == 'not_evidenced' else 'partly evidenced JD skill' if row.get('match_level') == 'partial' else 'demonstrated skill to deepen'),
                         'resume_evidence_status': row.get('match_level', 'not_evidenced'),
                     }
@@ -541,9 +793,13 @@ def generate_preparation(
                 'competency_blueprint': blueprint,
                 'market_research': research,
                 'question_bank_entries': bank,
-                'previously_generated_questions': prior_questions + [
-                    {'question': str(question.get('question', ''))[:300]}
-                    for question in round_questions
+                'prior_preparation_questions': prior_preparation_questions,
+                'questions_already_in_this_preparation': [
+                    {
+                        'question': str(question.get('question', ''))[:300],
+                        'assessment_focus': str(question.get('assessment_focus', ''))[:100],
+                    }
+                    for question in current_preparation_questions
                 ],
                 'current_round': round_number,
                 'batch_start_index': batch_start,
@@ -554,6 +810,10 @@ def generate_preparation(
                         'question_number': batch_start + index + 1,
                         'question_type': kind,
                         'category': batch_categories[index],
+                        'coverage_target': _coverage_target(
+                            batch_categories[index], batch_start + index + 1,
+                            preparation_focus, profile['competencies'], rotation=round_number - 1,
+                        ),
                         'assessment_angle': QUESTION_VARIATION_ANGLES[(batch_start + index + (round_number - 1) * 3) % len(QUESTION_VARIATION_ANGLES)],
                     }
                     for index, kind in enumerate(batch_types)
@@ -563,9 +823,10 @@ def generate_preparation(
                 'valid_evidence_ids': sorted(batch_evidence_ids),
             }
             batch, batch_usage = _request_json(
-                INTERVIEWER_SYSTEM_PROMPT + '\nGenerate only the requested question batch. Match question_type, category, and assessment_angle to each question_slots entry. Questions must test different decisions or scenarios; do not repeat a question stem or merely change a few words. Every personalized question must be explicitly about a supplied resume fact and cite at least one ID from personalized_evidence_ids. Standardized questions must remain role-based. Cite only valid evidence IDs.',
+                INTERVIEWER_SYSTEM_PROMPT + '\nGenerate only the requested question batch. Match question_type, category, assessment_angle, and coverage_target to each question_slots entry. Treat company as context only; the same JD and resume should produce substantially the same skill coverage regardless of company name. Questions in prior_preparation_questions are from separate saved sets: overlap is expected and is not a validation failure; use them only as optional context for useful scenario variation. Do not repeat a question already listed in questions_already_in_this_preparation or merely change a few words. Every personalized question must be explicitly about a supplied resume fact and cite at least one ID from personalized_evidence_ids. Standardized questions must remain role-based. Cite only valid evidence IDs.',
                 batch_input, batch_schema, model, endpoint, api_key,
-                max_tokens=1600 if len(batch_types) <= 3 else 3000,
+                max_tokens=4500,
+                groq_json_mode=provider == 'groq',
             )
             batch_questions = batch.get('questions', [])
             if not isinstance(batch_questions, list) or len(batch_questions) != len(batch_types):
@@ -578,9 +839,12 @@ def generate_preparation(
                     if isinstance(question, dict):
                         question['question_type'] = question_type
                         question['category'] = category
-            earlier_questions = prior_questions + [
-                {'question': str(question.get('question', ''))[:300]}
-                for question in round_questions if isinstance(question, dict)
+            earlier_questions = [
+                {
+                    'question': str(question.get('question', ''))[:300],
+                    'assessment_focus': str(question.get('assessment_focus', ''))[:100],
+                }
+                for question in current_preparation_questions if isinstance(question, dict)
             ]
             validation_errors = _batch_validation_errors(
                 batch_questions, batch_types, batch_categories, evidence_ids, earlier_questions
@@ -601,12 +865,19 @@ def generate_preparation(
                         'question_number': batch_start + index + 1,
                         'question_type': batch_types[index],
                         'category': batch_categories[index],
+                        'coverage_target': _coverage_target(
+                            batch_categories[index], batch_start + index + 1,
+                            preparation_focus, profile['competencies'], rotation=round_number + retry_number,
+                        ),
                         'assessment_angle': QUESTION_VARIATION_ANGLES[(batch_start + index + (round_number - 1) * 3 + (retry_number + 1) * 4) % len(QUESTION_VARIATION_ANGLES)],
                     }
                     for index in invalid_indexes
                 ]
                 valid_siblings = [
-                    {'question': str(batch_questions[index].get('question', ''))[:300]}
+                    {
+                        'question': str(batch_questions[index].get('question', ''))[:300],
+                        'assessment_focus': str(batch_questions[index].get('assessment_focus', ''))[:100],
+                    }
                     for index in range(len(batch_questions))
                     if index not in invalid_indexes and isinstance(batch_questions[index], dict)
                 ]
@@ -617,15 +888,17 @@ def generate_preparation(
                     'question_types_in_order': retry_types,
                     'question_categories_in_order': retry_categories,
                     'question_slots': retry_slots,
-                    'previously_generated_questions': retry_context,
-                    'quality_retry': 'The previous output failed these checks: ' + '; '.join(validation_errors[:10]) + '. Return exactly one replacement per question_slots entry. Follow each assessment_angle. Do not repeat or lightly rephrase any item in previously_generated_questions or duplicate_question_texts_to_replace. Make replacements distinct in both wording and the skill or decision they assess. Include complete answer guidance and explanation and only valid evidence IDs.',
+                    'questions_already_in_this_preparation': retry_context,
+                    'prior_preparation_questions': prior_preparation_questions,
+                    'quality_retry': 'The previous output failed these checks: ' + '; '.join(validation_errors[:10]) + '. Return exactly one replacement per question_slots entry. Follow each coverage_target and assessment_angle. Prior preparation questions are only optional variation context; overlap with another preparation is allowed. Do not repeat or semantically duplicate a question already in questions_already_in_this_preparation or duplicate_question_texts_to_replace. Select a different uncovered skill/decision for each replacement, not a synonym or broader rewrite. Write a substantive answer that directly teaches the specific question; do not use generic placeholders, fill-in templates, or generic Option A/Option B comparisons. Include complete answer guidance and explanation and only valid evidence IDs.',
                     'duplicate_question_texts_to_replace': _duplicate_batch_questions(batch_questions, retry_context),
                 }
                 retry_schema = _question_batch_schema(batch_evidence_ids, len(invalid_indexes))
                 batch, retry_usage = _request_json(
-                    INTERVIEWER_SYSTEM_PROMPT + '\nGenerate only the requested replacement questions. Match question_type, category, and assessment_angle to each question_slots entry. Every personalized question must be explicitly about a supplied resume fact and cite at least one ID from personalized_evidence_ids. Standardized questions must remain role-based. Do not repeat any supplied earlier question. Cite only valid evidence IDs.',
+                    INTERVIEWER_SYSTEM_PROMPT + '\nGenerate only the requested replacement questions. Match question_type, category, assessment_angle, and coverage_target to each question_slots entry. Treat prior preparations as optional variation context; repeated core questions across preparations are allowed. Do not repeat or semantically duplicate questions already in the current preparation. Every personalized question must be explicitly about a supplied resume fact and cite at least one ID from personalized_evidence_ids. Standardized questions must remain role-based. Cite only valid evidence IDs.',
                     retry_input, retry_schema, model, endpoint, api_key,
-                    max_tokens=1600 if len(invalid_indexes) <= 3 else 3000,
+                    max_tokens=4500,
+                    groq_json_mode=provider == 'groq',
                 )
                 batch_usage['input_tokens'] += retry_usage['input_tokens']
                 batch_usage['output_tokens'] += retry_usage['output_tokens']
@@ -643,6 +916,17 @@ def generate_preparation(
                 validation_errors = _batch_validation_errors(
                     batch_questions, batch_types, batch_categories, evidence_ids, earlier_questions
                 )
+            if _only_semantic_overlap_errors(validation_errors):
+                # Semantic similarity is a heuristic, and some related
+                # interview questions legitimately share a scenario. After
+                # targeted replacements have been attempted, prefer a complete
+                # useful set over discarding it for an uncertain match. Exact
+                # duplicate text and all structural/evidence errors still fail.
+                logger.warning(
+                    'Retaining semantically related questions after targeted replacements (round=%s start=%s count=%s).',
+                    round_number, batch_start, len(validation_errors),
+                )
+                validation_errors = []
             if validation_errors:
                 logger.warning(
                     'Interview question batch rejected after retries (round=%s start=%s): %s',
@@ -653,13 +937,24 @@ def generate_preparation(
             usage['output_tokens'] += batch_usage['output_tokens']
             usage['elapsed_ms'] += batch_usage['elapsed_ms']
             usage['api_calls'] += batch_usage['api_calls']
+            for question_index, question in enumerate(batch_questions, start=len(round_questions) + 1):
+                question['id'] = f'r{round_number}-q{question_index:02d}'
             round_questions.extend(batch_questions)
+            current_preparation_questions.extend(batch_questions)
+            completed_question_count += len(batch_questions)
+            if progress_callback:
+                progress_callback({
+                    'phase': 'questions',
+                    'completed': completed_question_count,
+                    'total': ROUND_COUNT * QUESTIONS_PER_ROUND,
+                    'round': round_number,
+                    'message': f'Validated {completed_question_count} of {ROUND_COUNT * QUESTIONS_PER_ROUND} questions',
+                    'preview_questions': [str(question.get('question', '')) for question in batch_questions],
+                    'validated_questions': batch_questions,
+                    'round_questions': list(round_questions),
+                    'round_number': round_number,
+                })
         rounds.append({'round_number': round_number, 'title': f'Practice round {round_number}', 'questions': round_questions})
-        prior_questions.extend(
-            {'question': str(question.get('question', ''))[:300]}
-            for question in round_questions if isinstance(question, dict)
-        )
-
     result = {
         'analysis': extracted['analysis'],
         'skill_gaps': skill_gaps,
@@ -700,5 +995,7 @@ def generate_preparation(
         standard_ratio=settings.INTERVIEW_PREP_STANDARD_QUESTION_RATIO,
     )
     if errors:
-        raise PreparationProviderError('The AI service returned preparation that failed validation. Please retry.')
+        raise PreparationProviderError(
+            'Your interviewer could not complete the final quality check. Please try again.'
+        )
     return result

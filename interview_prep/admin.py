@@ -12,6 +12,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import path, reverse
 from django.utils import timezone
 from django.utils.html import format_html
+from unfold.admin import ModelAdmin
 
 from .models import PaymentReview, PaymentSubmission, PremiumAccessPeriod, PremiumOrder, PreparationSet
 
@@ -46,7 +47,7 @@ def one_month_after(value):
 
 
 @admin.register(PaymentSubmission)
-class PaymentSubmissionAdmin(admin.ModelAdmin):
+class PaymentSubmissionAdmin(ModelAdmin):
     """Provide a read only queue and a permission checked review workflow."""
 
     list_display = (
@@ -219,7 +220,7 @@ class PaymentSubmissionAdmin(admin.ModelAdmin):
         return response
 
 
-class ReadOnlyModelAdmin(admin.ModelAdmin):
+class ReadOnlyModelAdmin(ModelAdmin):
     """Expose payment audit records without allowing edits or deletion."""
 
     def get_readonly_fields(self, request, obj=None):
@@ -260,7 +261,7 @@ class PremiumAccessPeriodAdmin(ReadOnlyModelAdmin):
 
 
 @admin.register(PreparationSet)
-class PreparationSetAdmin(admin.ModelAdmin):
+class PreparationSetAdmin(ModelAdmin):
     """Let authorized staff inspect set metadata and remove test sets safely."""
 
     list_display = (

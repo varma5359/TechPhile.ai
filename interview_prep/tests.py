@@ -23,12 +23,39 @@ from .services import (
     MONTHLY_PREPARATION_SET_LIMIT,
     PreparationSetLimitReached,
     PremiumPreparationRequired,
+    checkpoint_preparation_draft,
+    claim_preparation_draft,
+    create_preparation_draft,
     get_preparation_access,
     get_saved_questions,
+    mark_preparation_draft_interrupted,
     mark_question_completed,
+    preparation_is_draft,
     save_generated_preparation_set,
     toggle_saved_question,
 )
+
+
+def _rich_answer(direct, blocks, interview_answer, practice, checks=None, mistake='', takeaway=''):
+    return {
+        'direct_answer': direct,
+        'sections': [{'title': 'Worked explanation', 'blocks': blocks}] if blocks else [],
+        'interview_ready_answer': interview_answer,
+        'interviewer_evaluation': {
+            'what_interviewer_checks': checks or ['Question-specific reasoning.'],
+            'common_mistake': mistake,
+            'key_takeaway': takeaway,
+        },
+        'practice_activity': practice,
+    }
+
+
+def _answer_block(kind, *, title='', text='', items=None, headers=None, rows=None, code='', language='text'):
+    return {
+        'type': kind, 'title': title, 'text': text,
+        'items': items or [], 'headers': headers or [], 'rows': rows or [],
+        'code': code, 'language': language,
+    }
 
 
 class PremiumAccessServiceTests(TestCase):
@@ -97,6 +124,40 @@ class PremiumAccessServiceTests(TestCase):
         self.assertEqual(access['sets_remaining'], 0)
         with self.assertRaises(PreparationSetLimitReached):
             self.save_set(company='Company Three')
+
+    def test_checkpointed_draft_survives_failure_and_can_be_completed_in_place(self):
+        reference = uuid.uuid4()
+        draft = create_preparation_draft(
+            self.learner, reference, 'Acme', 'Analyst', 'Analyze sales data.',
+            input_fingerprint='draft-fingerprint',
+        )
+        access = get_preparation_access(self.learner)
+        self.assertEqual(access['sets_completed'], 0)
+        self.assertEqual(access['drafts_reserved'], 1)
+        self.assertEqual(access['sets_remaining'], 1)
+        self.assertTrue(claim_preparation_draft(draft.pk))
+        self.assertFalse(claim_preparation_draft(draft.pk))
+        questions = [{'id': 'r1-q01', 'question': 'How do you validate a sales metric?'}]
+        checkpoint_preparation_draft(draft.pk, 1, questions, completed=1, total=60)
+        mark_preparation_draft_interrupted(draft.pk, 'Final quality check failed')
+        draft.refresh_from_db()
+
+        self.assertTrue(preparation_is_draft(draft))
+        self.assertEqual(draft.generated_content['rounds'][0]['questions'], questions)
+        self.assertEqual(draft.generated_content['_generation_progress']['completed'], 1)
+        self.assertTrue(draft.generated_content['_generation_retry_all'])
+        self.assertEqual(draft.generated_content['_generation_fallback_rounds'][0]['questions'], questions)
+        self.assertNotIn('resume_text', draft.generated_content)
+        self.assertTrue(claim_preparation_draft(draft.pk))
+
+        completed = save_generated_preparation_set(
+            self.learner, reference, 'Acme', 'Analyst', 'Analyze sales data.',
+            {'analysis': 'Role analysis.', 'questions': self.questions},
+            input_fingerprint='draft-fingerprint',
+        )
+        self.assertEqual(completed.pk, draft.pk)
+        self.assertFalse(preparation_is_draft(completed))
+        self.assertEqual(PreparationSet.objects.filter(owner=self.learner).count(), 1)
 
     def test_expired_or_rejected_access_does_not_allow_set_creation(self):
         self.period.ends_at = timezone.now() - timedelta(seconds=1)
@@ -282,24 +343,34 @@ class PremiumPaymentWorkflowTests(TestCase):
 
 
 class OpenAIGenerationTests(TestCase):
-    def response(self, output):
+    def response(self, output, chat=False):
         result = Mock()
         result.raise_for_status.return_value = None
-        result.json.return_value = {
-            'status': 'completed',
-            'output': [{
-                'type': 'message',
-                'content': [{'type': 'output_text', 'text': json.dumps(output)}],
-            }],
-            'usage': {'input_tokens': 400, 'output_tokens': 200},
-        }
+        if chat:
+            result.json.return_value = {
+                'choices': [{'message': {'content': json.dumps(output)}}],
+                'usage': {'prompt_tokens': 400, 'completion_tokens': 200},
+            }
+        else:
+            result.json.return_value = {
+                'status': 'completed',
+                'output': [{
+                    'type': 'message',
+                    'content': [{'type': 'output_text', 'text': json.dumps(output)}],
+                }],
+                'usage': {'input_tokens': 400, 'output_tokens': 200},
+            }
         return result
 
     def mock_full_pipeline(self, post):
         counter = {'question': 0}
 
         def respond(*args, **kwargs):
-            dynamic = json.loads(kwargs['json']['input'])
+            is_chat = args[0].endswith('/chat/completions')
+            dynamic = json.loads(
+                kwargs['json']['messages'][1]['content'] if is_chat else kwargs['json']['input']
+            )
+            dynamic.pop('required_output_schema', None)
             if 'resume_text' in dynamic:
                 result = {
                     'analysis': 'The resume shows API delivery experience against the supplied role requirements.',
@@ -320,18 +391,25 @@ class OpenAIGenerationTests(TestCase):
                 category_start = dynamic['batch_start_index']
                 for number, kind in enumerate(dynamic['question_types_in_order']):
                     counter['question'] += 1
+                    question_number = (counter['question'] - 1) % 60 + 1
+                    category = category_sequence[category_start + number]
                     result['questions'].append({
-                        'question': f'Question {counter["question"]}: explain your approach to this role scenario?',
-                        'category': category_sequence[category_start + number],
+                        'question': f'Task{question_number} evaluation for {category}?',
+                        'assessment_focus': f'task{question_number} evaluation',
+                        'category': category,
                         'question_type': kind,
-                        'answer_guidance': 'Use a relevant example and explain the trade-offs.',
+                    'answer_content': _rich_answer(
+                        'Compare the evidence before choosing a response.', [],
+                        'I would compare the relevant evidence, explain the decision, and verify the result.',
+                        'Name the evidence you would inspect first.',
+                    ),
                         'explanation': 'Assesses role-related reasoning and communication.',
                         'evidence_refs': [
                             next((ref for ref in dynamic['valid_evidence_ids'] if ref.startswith('RES-')), dynamic['valid_evidence_ids'][0])
                             if kind == 'personalized' else dynamic['valid_evidence_ids'][0]
                         ],
                     })
-            return self.response(result)
+            return self.response(result, chat=is_chat)
 
         post.side_effect = respond
 
@@ -348,8 +426,8 @@ class OpenAIGenerationTests(TestCase):
         self.assertEqual([len(row['questions']) for row in generated['rounds']], [30, 30])
         self.assertEqual(generated['rounds'][0]['questions'][0]['id'], 'r1-q01')
         self.assertEqual(generated['rounds'][1]['questions'][0]['id'], 'r2-q01')
-        self.assertEqual(generated['generation_metrics']['input_tokens'], 3600)
-        self.assertEqual(post.call_count, 9)
+        self.assertEqual(generated['generation_metrics']['input_tokens'], 6000)
+        self.assertEqual(post.call_count, 15)
         for call in post.call_args_list:
             kwargs = call.kwargs
             self.assertEqual(call.args[0], 'https://api.openai.com/v1/responses')
@@ -358,17 +436,61 @@ class OpenAIGenerationTests(TestCase):
             self.assertEqual(kwargs['json']['model'], 'test-model')
             self.assertEqual(kwargs['json']['text']['format']['type'], 'json_schema')
 
+    @override_settings(INTERVIEW_PREP_AI_PROVIDER='openai', INTERVIEW_PREP_OPENAI_API_KEY='test-key', INTERVIEW_PREP_OPENAI_MODEL='test-model')
+    @patch('interview_prep.openai_generator.requests.post')
+    def test_second_preparation_may_reuse_core_questions_from_same_jd(self, post):
+        self.mock_full_pipeline(post)
+        first = generate_preparation(
+            'Same resume', 'Same analyst JD', 'Company A', 'Data Analyst',
+            role_family='data-analytics', seniority='entry',
+        )
+        earlier_questions = [
+            question
+            for question_round in first['rounds']
+            for question in question_round['questions']
+        ]
+
+        second = generate_preparation(
+            'Same resume', 'Same analyst JD', 'Company B', 'Data Analyst',
+            role_family='data-analytics', seniority='entry',
+            previous_questions=earlier_questions,
+        )
+
+        first_text = [question['question'] for row in first['rounds'] for question in row['questions']]
+        second_text = [question['question'] for row in second['rounds'] for question in row['questions']]
+        self.assertEqual(first_text, second_text)
+        self.assertEqual(len(second['rounds']), 2)
+        self.assertEqual(post.call_count, 30)
+
     @override_settings(INTERVIEW_PREP_AI_PROVIDER='groq', INTERVIEW_PREP_GROQ_API_KEY='groq-test-key', INTERVIEW_PREP_GROQ_MODEL='openai/gpt-oss-20b')
     @patch('interview_prep.openai_generator.requests.post')
     def test_groq_uses_compatible_responses_endpoint_without_openai_storage_flag(self, post):
         self.mock_full_pipeline(post)
         result = generate_preparation('resume', 'requirements', '', 'Engineer')
         self.assertEqual(len(result['rounds']), 2)
-        self.assertEqual(post.call_count, 9)
+        self.assertEqual(post.call_count, 15)
+        self.assertEqual(post.call_args_list[0].args[0], 'https://api.groq.com/openai/v1/responses')
+        self.assertTrue(all(call.args[0] == 'https://api.groq.com/openai/v1/chat/completions' for call in post.call_args_list[1:]))
         for call in post.call_args_list:
-            self.assertEqual(call.args[0], 'https://api.groq.com/openai/v1/responses')
             self.assertEqual(call.kwargs['headers']['Authorization'], 'Bearer groq-test-key')
             self.assertNotIn('store', call.kwargs['json'])
+
+    @override_settings(INTERVIEW_PREP_AI_PROVIDER='groq', INTERVIEW_PREP_GROQ_API_KEY='groq-test-key', INTERVIEW_PREP_GROQ_MODEL='openai/gpt-oss-20b')
+    @patch('interview_prep.openai_generator.requests.post')
+    def test_full_draft_validation_failure_retries_question_batches(self, post):
+        self.mock_full_pipeline(post)
+        result = generate_preparation(
+            'resume', 'requirements', '', 'Engineer',
+            resume_content={
+                '_generation_retry_all': True,
+                'rounds': [
+                    {'round_number': 1, 'questions': [{'id': f'r1-q{i:02d}'} for i in range(1, 31)]},
+                    {'round_number': 2, 'questions': [{'id': f'r2-q{i:02d}'} for i in range(1, 31)]},
+                ],
+            },
+        )
+        self.assertEqual(len(result['rounds']), 2)
+        self.assertEqual(post.call_count, 15)
 
     @override_settings(INTERVIEW_PREP_AI_PROVIDER='openai', INTERVIEW_PREP_OPENAI_API_KEY='')
     def test_missing_api_key_does_not_call_provider(self):
@@ -376,6 +498,16 @@ class OpenAIGenerationTests(TestCase):
             with self.assertRaises(PreparationProviderError):
                 generate_preparation('resume', 'job description', 'Acme', 'Engineer')
         post.assert_not_called()
+
+    @override_settings(INTERVIEW_PREP_AI_PROVIDER='openai', INTERVIEW_PREP_OPENAI_API_KEY='test-key', INTERVIEW_PREP_OPENAI_MODEL='test-model')
+    @patch('interview_prep.openai_generator.validate_intelligence_output', return_value=['quality check failed'])
+    @patch('interview_prep.openai_generator.requests.post')
+    def test_final_validation_error_uses_interviewer_language(self, post, _validate):
+        self.mock_full_pipeline(post)
+        with self.assertRaises(PreparationProviderError) as raised:
+            generate_preparation('resume', 'requirements', '', 'Engineer')
+        self.assertIn('Your interviewer could not complete the final quality check.', str(raised.exception))
+        self.assertNotIn('AI', str(raised.exception))
 
     def setUp(self):
         user_model = get_user_model()
@@ -395,6 +527,189 @@ class OpenAIGenerationTests(TestCase):
             ends_at=now + timedelta(days=29),
         )
 
+    def test_question_page_shows_saved_answer_and_keeps_practice_actions(self):
+        preparation = PreparationSet.objects.create(
+            owner=self.learner,
+            access_period=PremiumAccessPeriod.objects.get(order__user=self.learner),
+            set_number=1,
+            company_name='Acme',
+            job_title='Data Analyst',
+            role_family='data-analytics',
+            seniority='entry',
+            job_description='Analyze reliable business data.',
+            generated_content={'rounds': []},
+        )
+        preparation.generated_content = {
+            'rounds': [{
+                'round_number': 1,
+                'title': 'Practice round 1',
+                'questions': [{
+                    'id': 'r1-q1',
+                    'category': 'Data quality',
+                    'question': 'How would you find missing records?',
+                    'answer_content': {'direct_answer': 'Malformed content is ignored.'},
+                    'answer_guidance': '**Check the source and target counts.** Compare keys to identify which records are missing.',
+                    'explanation': 'Checks data validation and debugging.',
+                    'evidence_refs': ['JD-01'],
+                }],
+            }],
+        }
+        preparation.save(update_fields=['generated_content'])
+        self.client.force_login(self.learner)
+
+        response = self.client.get(reverse('interview_prep:preparation_questions', args=[preparation.pk]))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Compare keys to identify which records are missing.')
+        self.assertContains(response, 'Save for later')
+        self.assertContains(response, 'Mark practised')
+        self.assertNotContains(response, 'Option A')
+        self.assertNotContains(response, 'I would first clarify')
+
+    def test_representative_structured_answers_render_distinct_formats(self):
+        pipeline_answer = _rich_answer(
+            'Find the first pipeline stage where the sales total diverges, then verify the cause before changing the transformation.',
+            [
+                _answer_block('flow', title='Investigation workflow', items=[
+                    'Confirm revenue definition and reporting window',
+                    'Compare source, staging, and warehouse totals',
+                    'Inspect changed joins and date filters',
+                    'Reconcile the correction and add a regression check',
+                ]),
+                _answer_block('example', title='What the difference can tell you', text='If the source still totals ₹10 lakh but staging falls to ₹7 lakh, inspect the transformation between those stages before changing the dashboard.'),
+                _answer_block('table', title='Illustrative sales example',
+                              headers=['Metric', 'Before update', 'After update'],
+                              rows=[['Reported revenue', '₹10 lakh', '₹7 lakh'], ['Difference', '—', '−₹3 lakh']]),
+            ],
+            'I would compare the metric definition and reporting period first, then trace totals through the pipeline. If revenue fell from ₹10 lakh to ₹7 lakh after a deployment, I would inspect the changed joins, filters, and intermediate totals to locate the first divergence. I would reconcile the correction to source transactions and add a check for future runs.',
+            'Name the pipeline stage where the total first changes and the evidence that proves it.',
+            takeaway='Locate the first divergence; do not assume the dashboard is the source of the defect.',
+        )
+        records_answer = _rich_answer(
+            'Use stable business keys and event-time checks to detect missing, duplicate, and late records separately.',
+            [_answer_block('bullets', title='Checks by failure type', items=[
+                'Missing: anti-join expected source keys against loaded target keys.',
+                'Duplicates: group by the business key and flag counts greater than one.',
+                'Late arrivals: compare event time with ingestion time and the agreed lateness window.',
+            ]), _answer_block('steps', title='Turn checks into monitoring', items=[
+                'Set an expected count or freshness threshold for each source.',
+                'Run checks before publishing the reporting table.',
+                'Alert with the affected partition and route it to an owner.',
+            ])],
+            'I would compare source and target keys to detect missing rows, group by the business key to find duplicates, and monitor the gap between event time and ingestion time for late arrivals. Each check should alert with a threshold that reflects the source and business process.',
+            'Write down one query or rule for each of the three failure types.',
+            takeaway='Missing, duplicated, and late records need different checks.',
+        )
+        sql_answer = _rich_answer(
+            'Group rows by the reporting dimension, then aggregate the measure at the same grain as the business question.',
+            [
+                _answer_block('code', title='Illustrative SQL', language='sql', code='''SELECT region, SUM(revenue) AS total_revenue
+FROM sales
+WHERE order_date >= '2026-01-01' AND order_date < '2026-02-01'
+GROUP BY region
+ORDER BY total_revenue DESC;
+-- <script>alert(1)</script>'''),
+                _answer_block('table', title='Example input', headers=['region', 'revenue'], rows=[['West', '120'], ['West', '80'], ['East', '150']]),
+                _answer_block('table', title='Expected output', headers=['region', 'total_revenue'], rows=[['West', '200'], ['East', '150']]),
+                _answer_block('paragraph', text='GROUP BY creates one result row per region; SUM adds the revenue values within each region.'),
+            ],
+            'I would group sales by region and sum revenue for a clearly defined reporting period. The query returns West = 200 and East = 150, assuming each row is one valid sale and revenue is already in the reporting currency.',
+            'Calculate the two regional totals by hand, then explain why the date range uses an exclusive end date.',
+            takeaway='Choose the grouping grain and date window to match the metric definition.',
+        )
+        priority_answer = _rich_answer(
+            'Protect model validity first, address critical data-quality risks next, and time-box feature work according to its expected value and dependencies.',
+            [_answer_block('table', title='Prioritization under a short deadline',
+                           headers=['Work', 'Decision criterion', 'Near-term action'],
+                           rows=[
+                               ['Model validation', 'Release risk and decision impact', 'Run a minimum holdout and leakage check before release.'],
+                               ['Data quality', 'Severity and affected records', 'Block on defects that invalidate labels or evaluation.'],
+                               ['Feature engineering', 'Expected lift and effort', 'Time-box one high-value feature after the checks.'],
+                           ]), _answer_block('callout', title='Why this order?', text='A feature improvement is not useful if leakage or incorrect labels make the evaluation untrustworthy.')],
+            'I would first protect the validity of the model decision by checking the holdout and leakage. In parallel, I would fix data defects that could invalidate that evaluation. I would defer broad feature work and time-box only a high-value feature whose dependencies are ready, then communicate what remains untested.',
+            'Given a two-hour deadline, state what you would do first, what you would defer, and what risk you would report.',
+            checks=['Risk-based prioritization', 'Understanding of validation dependencies'],
+            mistake='Spending the time on feature work before confirming that the evaluation data is trustworthy.',
+            takeaway='Do not optimize a model result until you know the data and evaluation are valid.',
+        )
+        examples = [
+            ('Investigate an unexpected sales metric change', 'Data pipelines', pipeline_answer),
+            ('Detect missing, duplicated, or late records', 'Data quality', records_answer),
+            ('Explain a SQL aggregation result', 'SQL', sql_answer),
+            ('Prioritize data quality, feature engineering, and model validation', 'Machine learning', priority_answer),
+        ]
+        questions = [{
+            'id': f'r1-q{index:02d}', 'question': title, 'category': category,
+            'question_type': 'standardized', 'answer_content': answer,
+            'explanation': f'Assesses the reasoning needed for {category}.', 'evidence_refs': ['JD-01'],
+        } for index, (title, category, answer) in enumerate(examples, start=1)]
+        preparation = PreparationSet.objects.create(
+            owner=self.learner,
+            access_period=PremiumAccessPeriod.objects.get(order__user=self.learner),
+            set_number=1,
+            company_name='Acme', job_title='Data Analyst', role_family='data-analytics',
+            seniority='mid', job_description='Analyze business data.',
+            completed_question_ids=['r1-q01'],
+            generated_content={'rounds': [{'round_number': 1, 'title': 'Practice round 1', 'questions': questions}]},
+        )
+        self.client.force_login(self.learner)
+
+        response = self.client.get(reverse('interview_prep:preparation_questions', args=[preparation.pk]))
+        html = response.content.decode()
+
+        self.assertEqual(response.status_code, 200)
+        for expected in ('sales total diverges', 'business keys', 'SUM(revenue)', 'time-box only a high-value feature'):
+            self.assertContains(response, expected)
+        self.assertGreaterEqual(html.count('<table'), 4)
+        self.assertIn('<pre><code>', html)
+        self.assertIn('ipp-answer-flow', html)
+        self.assertIn('ipp-answer-example', html)
+        self.assertIn('ipp-answer-list', html)
+        self.assertIn('Why this order?', html)
+        self.assertIn('Save for later', html)
+        self.assertIn('Mark practised', html)
+        self.assertIn('1 of 4 practised', html)
+        self.assertIn('data-question-jump', html)
+        self.assertNotIn('<code><script>', html)
+        self.assertIn('&lt;script&gt;alert(1)&lt;/script&gt;', html)
+        self.assertNotContains(response, 'Option A')
+
+    def test_question_page_shows_unavailable_state_without_fabricating_an_answer(self):
+        preparation = PreparationSet.objects.create(
+            owner=self.learner,
+            access_period=PremiumAccessPeriod.objects.get(order__user=self.learner),
+            set_number=1,
+            company_name='Acme',
+            job_title='Data Analyst',
+            role_family='data-analytics',
+            seniority='entry',
+            job_description='Analyze reliable business data.',
+            generated_content={'rounds': []},
+        )
+        preparation.generated_content = {
+            'rounds': [{
+                'round_number': 1,
+                'title': 'Practice round 1',
+                'questions': [{
+                    'id': 'r1-q1',
+                    'category': 'Data quality',
+                    'question': 'What checks would detect duplicate records?',
+                    'answer_guidance': '',
+                    'explanation': 'Checks data validation.',
+                    'evidence_refs': ['JD-01'],
+                }],
+            }],
+        }
+        preparation.save(update_fields=['generated_content'])
+        self.client.force_login(self.learner)
+
+        response = self.client.get(reverse('interview_prep:preparation_questions', args=[preparation.pk]))
+
+        self.assertContains(response, 'Answer unavailable')
+        self.assertContains(response, 'detect duplicate records')
+        self.assertNotContains(response, 'Option A')
+        self.assertNotContains(response, 'I would first clarify')
+
     @override_settings(INTERVIEW_PREP_OPENAI_API_KEY='test-key')
     @patch('interview_prep.views.generate_preparation')
     def test_generation_requires_explicit_provider_consent(self, generate):
@@ -411,7 +726,59 @@ class OpenAIGenerationTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertTrue(response.context['form'].errors['consent_to_ai_provider'])
+        self.assertNotContains(response, 'AI service')
+        self.assertNotContains(response, 'â€™')
         generate.assert_not_called()
+
+    @override_settings(INTERVIEW_PREP_OPENAI_API_KEY='test-key')
+    @patch('interview_prep.views.generate_preparation')
+    def test_stream_failure_keeps_batch_and_retry_resumes_same_draft(self, generate):
+        reference = uuid.uuid4()
+        ready_question = {'id': 'r1-q01', 'question': 'How would you reconcile a sales total?'}
+
+        def fail_after_batch(**kwargs):
+            kwargs['progress_callback']({
+                'phase': 'questions', 'completed': 1, 'total': 60,
+                'round_number': 1, 'round_questions': [ready_question],
+                'validated_questions': [ready_question],
+                'preview_questions': [ready_question['question']],
+            })
+            raise PreparationProviderError('Temporary provider interruption.')
+
+        recovered_content = {
+            'analysis': 'Sales analysis experience.', 'questions': [
+                {'id': 'r1-q01', 'question': ready_question['question']},
+            ],
+        }
+        generate.side_effect = fail_after_batch
+        self.client.force_login(self.learner)
+        form_data = {
+            'request_reference': reference,
+            'company_name': 'Acme', 'job_title': 'Analyst',
+            'role_family': 'data-analytics', 'seniority': 'entry',
+            'job_description': 'Analyze business sales.',
+            'resume_text': 'Built sales dashboards.',
+            'consent_to_ai_provider': 'on',
+        }
+        first_response = self.client.post(
+            reverse('interview_prep:create_preparation'), form_data,
+            HTTP_ACCEPT='text/event-stream',
+        )
+        first_events = b''.join(first_response.streaming_content).decode()
+        draft = PreparationSet.objects.get(owner=self.learner)
+        self.assertIn('"type": "error"', first_events)
+        self.assertIn('"draft_url":', first_events)
+        self.assertIn('How would you reconcile a sales total?', first_events, first_events)
+        self.assertTrue(preparation_is_draft(draft))
+        self.assertEqual(draft.generated_content['rounds'][0]['questions'], [ready_question], first_events)
+
+        form_data['resume_draft_id'] = draft.pk
+        generate.side_effect = None
+        generate.return_value = recovered_content
+        retry_response = self.client.post(reverse('interview_prep:create_preparation'), form_data)
+        self.assertEqual(retry_response.status_code, 302)
+        self.assertEqual(PreparationSet.objects.filter(owner=self.learner).count(), 1)
+        self.assertEqual(generate.call_args.kwargs['resume_content']['rounds'][0]['questions'], [ready_question])
 
     @override_settings(INTERVIEW_PREP_OPENAI_API_KEY='test-key')
     @patch('interview_prep.views.generate_preparation')
@@ -449,6 +816,46 @@ class OpenAIGenerationTests(TestCase):
         self.assertEqual(preparation.generated_content, generated)
         self.assertNotIn('Unique private resume text.', preparation.job_description)
         self.assertEqual(preparation.request_reference, reference)
+
+    @override_settings(INTERVIEW_PREP_OPENAI_API_KEY='test-key')
+    @patch('interview_prep.views.generate_preparation')
+    def test_streaming_generation_reports_validated_progress_then_redirects(self, generate):
+        generated = {
+            'analysis': 'Relevant backend experience.',
+            'skill_gaps': [],
+            'questions': [{'id': 'q-1', 'category': 'Backend', 'question': 'How would you design this API?'}],
+        }
+
+        def generate_with_progress(**kwargs):
+            kwargs['progress_callback']({'phase': 'questions', 'completed': 1, 'total': 60, 'message': 'Validated 1 of 60 questions'})
+            return generated
+
+        generate.side_effect = generate_with_progress
+        reference = uuid.uuid4()
+        self.client.force_login(self.learner)
+        response = self.client.post(
+            reverse('interview_prep:create_preparation'),
+            {
+                'request_reference': reference,
+                'company_name': 'Acme',
+                'job_title': 'Engineer',
+                'role_family': 'general-software-engineering',
+                'seniority': 'entry',
+                'job_description': 'Build backend services.',
+                'resume_text': 'Built APIs with Django.',
+                'consent_to_ai_provider': 'on',
+            },
+            HTTP_ACCEPT='text/event-stream',
+        )
+
+        events = b''.join(response.streaming_content).decode()
+        preparation = PreparationSet.objects.get(owner=self.learner)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response['Content-Type'], 'text/event-stream')
+        self.assertIn('Validated 1 of 60 questions', events)
+        self.assertIn('"type": "complete"', events)
+        self.assertIn(reverse('interview_prep:preparation_detail', args=[preparation.pk]), events)
+        generate.assert_called_once()
 
     @override_settings(INTERVIEW_PREP_OPENAI_API_KEY='test-key')
     @patch('interview_prep.views.generate_preparation')

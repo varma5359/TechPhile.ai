@@ -3,9 +3,11 @@
 import math
 import re
 
-PIPELINE_VERSION = '1.4'
-PROMPT_VERSION = '1.5'
-OUTPUT_SCHEMA_VERSION = '1.1'
+from .answer_content import validate_answer_content
+
+PIPELINE_VERSION = '1.5'
+PROMPT_VERSION = '1.8'
+OUTPUT_SCHEMA_VERSION = '1.3'
 QUESTIONS_PER_ROUND = 30
 ROUND_COUNT = 2
 STANDARD_RATIO = 0.70
@@ -75,9 +77,15 @@ def validate_intelligence_output(result, allowed_categories, valid_evidence_ids,
                 errors.append(f'Round {round_index}, question {question_index} has an invalid question type.')
             if kind == 'standardized':
                 standard_count += 1
-            for field in ('answer_guidance', 'explanation'):
-                if not isinstance(question.get(field), str) or not question[field].strip():
-                    errors.append(f'Round {round_index}, question {question_index} needs {field.replace("_", " ")}.')
+            if 'answer_content' in question:
+                errors.extend(
+                    f'Round {round_index}, question {question_index}: {error}.'
+                    for error in validate_answer_content(question.get('answer_content'))
+                )
+            elif not isinstance(question.get('answer_guidance'), str) or not question['answer_guidance'].strip():
+                errors.append(f'Round {round_index}, question {question_index} needs an answer.')
+            if not isinstance(question.get('explanation'), str) or not question['explanation'].strip():
+                errors.append(f'Round {round_index}, question {question_index} needs an explanation.')
             refs = question.get('evidence_refs')
             if not isinstance(refs, list) or not refs or not set(refs).issubset(allowed_evidence):
                 errors.append(f'Round {round_index}, question {question_index} has invalid evidence references.')

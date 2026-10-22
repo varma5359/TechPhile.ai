@@ -5,9 +5,10 @@
 {% block content %}
 <main class="ipp-page ipp-questions-page">
   <section class="ipp-hero ipp-result-hero"><div class="container ipp-container">
-    <a class="ipp-back-link" href="{% url 'interview_prep:preparation_detail' preparation.pk %}"><i class="fa-solid fa-arrow-left" aria-hidden="true"></i> Back to resume scan</a>
-    <div class="ipp-result-title-row"><div><span class="ipp-eyebrow">STEP 2 OF 2: LEARN AND PRACTISE</span><h1>{{ preparation.job_title }}</h1><p>{% if preparation.company_name %}{{ preparation.company_name }} | {% endif %}Work through one question at a time. Your practice progress is saved.</p><span class="ipp-progress-pill">{{ completed_question_ids|length }} of {{ total_question_count }} practised</span></div></div>
-    <div class="ipp-learning-intro"><strong>How to use each question</strong><span>Understand the idea <b>&rarr;</b> follow the answer path <b>&rarr;</b> adapt it to your experience <b>&rarr;</b> practise aloud</span><p><b>Save for later</b> adds a question to the saved list on this page so you can review it again. <b>Mark practised</b> updates your progress count; it does not grade your answer. Both stay saved when you return to this preparation.</p></div>
+    <a class="ipp-back-link" href="{% if is_draft %}{% url 'interview_prep:create_preparation' %}{% else %}{% url 'interview_prep:preparation_detail' preparation.pk %}{% endif %}"><i class="fa-solid fa-arrow-left" aria-hidden="true"></i> {% if is_draft %}My preparations{% else %}Back to resume scan{% endif %}</a>
+    {% if is_draft %}<div class="ipp-not-ready" role="status"><strong>Saved draft: {{ generation_progress.completed|default:0 }} of {{ generation_progress.total|default:60 }} questions are ready.</strong> Practise these now, or <a href="{% url 'interview_prep:create_preparation' %}?resume={{ preparation.pk }}">resume generation</a>. Paste your resume again; it is not stored in your account.</div>{% endif %}
+    <div class="ipp-result-title-row"><div><span class="ipp-eyebrow">{% if is_draft %}SAVED DRAFT: LEARN AND PRACTISE{% else %}STEP 2 OF 2: LEARN AND PRACTISE{% endif %}</span><h1>{{ preparation.job_title }}</h1><p>{% if preparation.company_name %}{{ preparation.company_name }} | {% endif %}Work through one question at a time. Your practice progress is saved.</p><span class="ipp-progress-pill">{{ completed_question_ids|length }} of {{ total_question_count }} practised</span></div></div>
+    <div class="ipp-learning-intro"><strong>How to use each question</strong><span>Start with the direct answer <b>&rarr;</b> explore the example or steps <b>&rarr;</b> review the takeaway <b>&rarr;</b> practise your response</span><p><b>Save for later</b> adds a question to the saved list on this page so you can review it again. <b>Mark practised</b> updates your progress count; it does not grade your answer. Both stay saved when you return to this preparation.</p></div>
   </div></section>
   <section class="container ipp-container ipp-questions-content">
     <div class="ipp-questions-main">
@@ -19,20 +20,36 @@
           <details class="ipp-learning-question" id="{{ question.id }}" {% if forloop.first and forloop.parentloop.first %}open{% endif %}>
             <summary><span class="ipp-question-number">{{ forloop.counter|stringformat:'02d' }}</span><span class="ipp-learning-question-title">{{ question.question }}</span><span class="ipp-plan-badge">{{ question.category }}</span></summary>
             <div class="ipp-learning-answer">
-              {% if question.learning_aid.kind == 'model' %}
-              <section class="ipp-answer-guidance ipp-model-answer"><h3>Learn it and build your answer</h3><div class="ipp-markdown-guidance">{{ question.answer_guidance|safe_markdown }}</div></section>
+              {% if question.answer_content %}
+              <article class="ipp-answer-document">
+                <section class="ipp-answer-direct"><h3>Direct answer</h3><div class="ipp-markdown-guidance">{{ question.answer_content.direct_answer|safe_markdown }}</div></section>
+                {% for section in question.answer_content.sections %}
+                <section class="ipp-answer-section"><h3>{{ section.title }}</h3>
+                  {% if section.markdown %}<div class="ipp-markdown-guidance">{{ section.markdown|safe_markdown }}</div>{% endif %}
+                  {% for block in section.blocks %}
+                    {% if block.type == 'paragraph' %}<div class="ipp-markdown-guidance">{{ block.text|safe_markdown }}</div>
+                    {% elif block.type == 'steps' %}{% if block.title %}<h4>{{ block.title }}</h4>{% endif %}<ol class="ipp-answer-list">{% for item in block.items %}<li>{{ item|safe_markdown }}</li>{% endfor %}</ol>
+                    {% elif block.type == 'bullets' %}{% if block.title %}<h4>{{ block.title }}</h4>{% endif %}<ul class="ipp-answer-list">{% for item in block.items %}<li>{{ item|safe_markdown }}</li>{% endfor %}</ul>
+                    {% elif block.type == 'flow' %}{% if block.title %}<h4>{{ block.title }}</h4>{% endif %}<ol class="ipp-answer-flow" aria-label="{{ block.title|default:section.title }}">{% for item in block.items %}<li>{{ item|safe_markdown }}</li>{% endfor %}</ol>
+                    {% elif block.type == 'example' %}<aside class="ipp-answer-example"><h4>{{ block.title|default:'Worked example' }}</h4><div class="ipp-markdown-guidance">{{ block.text|safe_markdown }}</div></aside>
+                    {% elif block.type == 'callout' %}<aside class="ipp-answer-callout"><strong>{{ block.title }}</strong><div class="ipp-markdown-guidance">{{ block.text|safe_markdown }}</div></aside>
+                    {% elif block.type == 'table' %}{% if block.title %}<h4>{{ block.title }}</h4>{% endif %}<div class="ipp-answer-table-wrap" role="region" aria-label="{{ block.title|default:section.title }}" tabindex="0"><table class="ipp-answer-table"><thead><tr>{% for header in block.headers %}<th scope="col">{{ header }}</th>{% endfor %}</tr></thead><tbody>{% for row in block.rows %}<tr>{% for cell in row %}<td>{{ cell }}</td>{% endfor %}</tr>{% endfor %}</tbody></table></div>
+                    {% elif block.type == 'code' %}<figure class="ipp-answer-code">{% if block.title %}<figcaption>{{ block.title }}{% if block.language != 'text' %} · {{ block.language|upper }}{% endif %}</figcaption>{% endif %}<pre><code>{{ block.code }}</code></pre></figure>
+                    {% endif %}
+                  {% endfor %}
+                </section>
+                {% endfor %}
+                <section class="ipp-answer-interview"><h3>Interview-ready answer</h3><div class="ipp-markdown-guidance">{{ question.answer_content.interview_ready_answer|safe_markdown }}</div></section>
+              </article>
+              {% elif question.answer_guidance %}
+              <section class="ipp-answer-document ipp-answer-legacy"><h3>Answer and explanation</h3><div class="ipp-markdown-guidance">{{ question.answer_guidance|safe_markdown }}</div></section>
               {% else %}
-              <section class="ipp-learning-guide"><h3>{{ question.learning_aid.title }}</h3><p class="ipp-learning-explanation">{{ question.learning_aid.simple_explanation }}</p>
-                {% if question.learning_aid.kind == 'table' %}<div class="ipp-learning-table-wrap"><table class="ipp-learning-table"><thead><tr><th>Choice</th><th>What it helps</th><th>What to consider</th></tr></thead><tbody>{% for option in question.learning_aid.options %}<tr><th>{{ option.name }}</th><td>{{ option.benefit }}</td><td>{{ option.risk }}</td></tr>{% endfor %}</tbody></table></div>
-                {% elif question.learning_aid.kind == 'star' %}<div class="ipp-star-grid">{% for step in question.learning_aid.steps %}<div class="ipp-learning-step"><b>{{ step.label }}</b><span>{{ step.hint }}</span></div>{% endfor %}</div>
-                {% else %}<div class="ipp-learning-diagram">{% for step in question.learning_aid.steps %}<div class="ipp-learning-step"><b>{{ forloop.counter|stringformat:'02d' }}</b><span>{{ step }}</span></div>{% if not forloop.last %}<span class="ipp-learning-arrow" aria-hidden="true">&rarr;</span>{% endif %}{% endfor %}</div>{% endif %}
-                <div class="ipp-learning-example"><strong>Example answer</strong><p>{{ question.learning_aid.example }}</p></div>
-                <div class="ipp-practice-prompt"><strong>Now try it</strong><span>Cover the example and explain the same idea in your own words. For experience questions, use a real work, coursework, or personal project example.</span></div>
-              </section>
-              {% if question.answer_guidance %}<details class="ipp-original-tip"><summary>Extra tip for this question</summary><div class="ipp-markdown-guidance">{{ question.answer_guidance|safe_markdown }}</div></details>{% endif %}
+              <section class="ipp-answer-document"><h3>Answer unavailable</h3><p>A complete answer was not saved for this question. Use the practice task below to organize your response.</p></section>
               {% endif %}
-              {% if question.explanation %}<details class="ipp-answer-assesses"><summary>What the interviewer is checking</summary><div class="ipp-markdown-guidance">{{ question.explanation|safe_markdown }}</div></details>{% endif %}
-              <details class="ipp-evidence-details"><summary>Why this question is included</summary><p>It relates to your selected role, job description, or resume evidence. Evidence references: {{ question.evidence_refs|join:', '|default:'role and job requirements' }}</p></details>
+              {% if question.answer_content.interviewer_evaluation.what_interviewer_checks or question.answer_content.interviewer_evaluation.common_mistake %}<details class="ipp-answer-assesses"><summary>What the interviewer is checking</summary>{% if question.answer_content.interviewer_evaluation.what_interviewer_checks %}<ul>{% for item in question.answer_content.interviewer_evaluation.what_interviewer_checks %}<li>{{ item }}</li>{% endfor %}</ul>{% endif %}{% if question.answer_content.interviewer_evaluation.common_mistake %}<p><strong>Common mistake:</strong> {{ question.answer_content.interviewer_evaluation.common_mistake }}</p>{% endif %}</details>{% endif %}
+              {% if question.answer_content.interviewer_evaluation.key_takeaway %}<aside class="ipp-answer-takeaway"><strong>Key takeaway</strong><div class="ipp-markdown-guidance">{{ question.answer_content.interviewer_evaluation.key_takeaway|safe_markdown }}</div></aside>{% endif %}
+              {% if question.answer_content.practice_activity %}<div class="ipp-practice-prompt"><strong>Practice activity</strong><span>{{ question.answer_content.practice_activity }}</span></div>{% else %}<div class="ipp-practice-prompt"><strong>Now try it</strong><span>{{ question.learning_aid.practice_prompt }}</span></div>{% endif %}
+              {% if question.explanation %}<details class="ipp-evidence-details"><summary>Why this question is included</summary><div class="ipp-markdown-guidance">{{ question.explanation|safe_markdown }}</div><p>Evidence references: {{ question.evidence_refs|join:', '|default:'role and job requirements' }}</p></details>{% endif %}
               <div class="ipp-question-actions">
                 <form method="post" action="{% url 'interview_prep:preparation_question_action' preparation.pk 'save' %}">{% csrf_token %}<input type="hidden" name="question_id" value="{{ question.id }}"><button type="submit" class="ipp-action-button{% if question.id in saved_question_ids %} is-active{% endif %}"><i class="fa-{% if question.id in saved_question_ids %}solid{% else %}regular{% endif %} fa-bookmark" aria-hidden="true"></i>{% if question.id in saved_question_ids %}Saved for later{% else %}Save for later{% endif %}</button></form>
                 <form method="post" action="{% url 'interview_prep:preparation_question_action' preparation.pk 'complete' %}">{% csrf_token %}<input type="hidden" name="question_id" value="{{ question.id }}"><input type="hidden" name="completed" value="{% if question.id in completed_question_ids %}false{% else %}true{% endif %}"><button type="submit" class="ipp-action-button{% if question.id in completed_question_ids %} is-active{% endif %}"><i class="fa-{% if question.id in completed_question_ids %}solid{% else %}regular{% endif %} fa-circle-check" aria-hidden="true"></i>{% if question.id in completed_question_ids %}Practised{% else %}Mark practised{% endif %}</button></form>

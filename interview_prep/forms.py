@@ -65,9 +65,10 @@ class PaymentSubmissionForm(forms.Form):
 
 
 class PreparationRequestForm(forms.Form):
-    """Collect text input while requiring consent to AI provider processing."""
+    """Collect text input while requiring consent to provider processing."""
 
     request_reference = forms.UUIDField(widget=forms.HiddenInput())
+    resume_draft_id = forms.IntegerField(required=False, widget=forms.HiddenInput())
     company_name = forms.CharField(
         max_length=120,
         required=False,
@@ -98,6 +99,6 @@ class PreparationRequestForm(forms.Form):
         widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 12}),
     )
     consent_to_ai_provider = forms.BooleanField(
-        label='I agree to send this resume text and job description to the configured AI provider for analysis.',
+        label='I agree to send this resume text and job description to the selected question-preparation provider for analysis.',
         required=True,
     )
