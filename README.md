@@ -1,171 +1,172 @@
-# TechPhile Exams
+# TechPhile.ai
 
-TechPhile.ai is a Django-based learning and assessment platform. It combines **mock exams**, **mock interviews**, an **online coding practice judge**, and **AI/ML course exploration** with datasets, plus a REST API for each major feature.
+TechPhile.ai is a Django web application for learning technical skills, practising coding and exams, and preparing for job interviews. Its main goal is to give learners one place to study role-related material, check their understanding, practise realistic problems, and track progress over time.
 
-## Features
+The project includes public website pages, account management, timed mock exams, coding exercises, structured career learning paths, and a role-aware AI interview-preparation workflow.
 
-| Area | What it provides |
-|------|------------------|
-| **Accounts** | Sign-up with email verification, login/logout (safe `next` redirect, "remember me"), password reset, terms of service and privacy policy pages |
-| **Mock exams** (`exams`) | Categories, exams with levels/sets, multiple question types, timed attempts, results with per-type performance, bookmarks, retakes, study guide, sample questions, user analytics |
-| **Mock interviews** (`exams`) | Schedule, edit, cancel, reschedule and join interviews; interviewer dashboard; interviewer assignment (admin); post-interview feedback |
-| **User settings** (`exams`) | Profile, photo, password change, notifications, preferences, session management |
-| **Coding practice** (`coding`) | Problem list and detail pages, in-browser code editor, code submission and execution API, solutions, personal dashboard, leaderboard |
-| **Explore courses** (`core`) | Topics (AI, ML, DL, NLP, CV, GenAI, NumPy, Pandas, ...), practice problems, submissions, progress tracking, leaderboard, downloadable datasets |
-| **Site pages** (`tech`) | Home, about, services, contact form |
-| **REST API** | DRF + JWT (`simplejwt`) + token auth, CORS enabled |
-| **Admin** | Django admin themed with Jazzmin |
+## What learners can do
 
-## Tech stack
+- Create and manage an account, verify an email address, reset a password, and update profile settings.
+- Take timed mock exams, review results, bookmark questions, and track performance.
+- Practise coding problems, submit code for execution through Judge0, and review scores and progress.
+- Explore AI and software topics, work through learning problems and datasets, and track submissions.
+- Follow career paths with day-by-day lessons, scenario questions, recommendations, and milestone assessments.
+- Prepare for an interview using a job description and resume evidence. The interview workflow maps requirements to role competencies, creates question plans, validates question quality, and saves progress so an interrupted draft can be resumed.
+- Use REST API endpoints for supported application features.
 
-- Python 3.12, Django 4.2, Django REST Framework, SimpleJWT, django-cors-headers
-- MySQL (via `mysqlclient`)
-- Jazzmin admin theme, Django Debug Toolbar, django-extensions, WhiteNoise
-- pandas, numpy, openpyxl, OpenCV, Pillow (data import and dataset/CV exercises)
-- Bootstrap 5, jQuery, Owl Carousel, Font Awesome (frontend via CDN)
+## Technology and skills
 
-## Project structure
+### Backend
 
+- **Python 3.12** and **Django 4.2** for application logic, routing, forms, templates, authentication, and persistence.
+- **Django REST Framework** for APIs; SimpleJWT and DRF token authentication are installed for API authentication.
+- **MySQL** with `mysqlclient` as the configured database backend.
+- Django ORM and migrations for relational data; JSON fields are used for structured interview-preparation output and learning content.
+- **Pandas, NumPy, OpenCV, Pillow, and OpenPyXL** support data, image, spreadsheet, and learning exercises.
+- **Requests** is used for external HTTP integrations, including configured AI providers and Judge0.
+
+### Frontend
+
+- Django-rendered HTML templates power the pages and forms.
+- CSS and JavaScript provide layout, styling, and interactive behavior.
+- The shared site uses Bootstrap, jQuery, Owl Carousel, and Font Awesome assets (including CDN-loaded assets where configured).
+- Static styles, scripts, images, and fonts are under `static/` and app-specific static directories.
+
+This repository does not use a separate React/Vite frontend build. React and related tools appear among the technical learning and interview topics.
+
+### Technical learning topics
+
+The supplied learning and question material covers Python, Java, C/C++, JavaScript, HTML/CSS, SQL, Git, data structures and algorithms, object-oriented programming, React, NumPy, Pandas, data analytics, data science, machine learning, deep learning, computer vision, and generative AI. Topic availability depends on the data loaded into the database.
+
+## Application areas
+
+| URL | Django app | Purpose |
+| --- | --- | --- |
+| `/` | `tech` | Public home, about, services, and contact pages |
+| `/accounts/` | `accounts` | Registration, login, logout, email verification, and password recovery |
+| `/exams/` | `exams` | Mock exams, results, profiles/settings, analytics, and human mock-interview features |
+| `/coding/` | `coding` | Coding problem pages, submissions, Judge0 execution, dashboard, and leaderboard |
+| `/explore_courses` | `core` | Technical topics, problems, datasets, progress, and leaderboard |
+| `/careers/` | `careers` | Role-based learning paths, daily lessons and questions, recommendations, and milestones |
+| `/interview-prep/` | `interview_prep` | Premium interview preparation, saved question sets, practice, and payment review |
+| `/api/` | `api` | Additional REST API endpoints |
+| `/admin/` | Django admin | Administrative data and configuration |
+
+The root URL configuration is in `techphile_exams/urls.py`; app URL patterns live in each app's `urls.py`.
+
+## Interview-preparation workflow
+
+The interview-preparation feature accepts a job description and resume information after consent. It extracts resume facts and job requirements, maps requirements to canonical competencies, plans the selected 30-, 45-, or 60-question target, then generates and validates questions in saved batches. The workflow supports technical and role-specific questions, scenarios, coding/SQL exercises, projects, and evidence-based personalized questions. Questions and draft checkpoints are stored with the preparation; original resume text is not saved by the generation flow.
+
+Generation uses the configured OpenAI or Groq Responses API provider. It is intentionally incremental: each validated batch is checkpointed so a provider or validation failure does not discard questions already saved. The learner can resume an unfinished draft. Current market research is optional and disabled by default. Paid access is governed by the server-side monthly plan settings and administrator payment review; development-only test access is separate.
+
+Implementation landmarks:
+
+- `interview_prep/openai_generator.py` — extraction, competency planning, provider calls, generation, and validation.
+- `interview_prep/blueprint.py` — role competency mapping and question allocation.
+- `interview_prep/intelligence_schema.py` — structured data and question validation.
+- `interview_prep/role_profiles.py` — role families, categories, competencies, and seniority expectations.
+- `interview_prep/candidate_profile.py` — candidate profile extraction and confirmation helpers.
+- `interview_prep/services.py` — access checks, draft checkpoints, and preparation persistence.
+- `interview_prep/views.py`, `forms.py`, and `urls.py` — web request handling and forms.
+- `interview_prep/prompts.py` — stable interviewer instructions.
+- `interview_prep/templates/interview_prep/` and `static/css/interview-prep.css` — interview-preparation pages and styling.
+- `interview_prep/tests.py` and `test_intelligence.py` — application and generation/intelligence tests.
+
+More feature-specific configuration notes are in [`interview_prep/README.md`](interview_prep/README.md).
+
+## Repository guide
+
+```text
+manage.py                       Django command-line entry point
+requirements.txt                Python dependencies
+techphile_exams/                Project settings, root URLs, ASGI and WSGI
+accounts/                       Account forms, views, models, templates and tests
+exams/                          Exams, questions, attempts, profiles and interview features
+coding/                         Coding problems, submissions and execution integration
+core/                           Topic learning, datasets, exercises and learner progress
+careers/                        Career paths, lessons, recommendations and milestones
+interview_prep/                 AI interview preparation and premium-access workflow
+api/                            Additional API views, serializers and models
+tech/                           Public website pages and contact functionality
+management/                     Project management commands
+explore_courses/                Course/topic data population scripts
+tech_coding_questions/          Sample coding-question population scripts
+tech_bits/                      Spreadsheet question banks for technical topics
+datasets/                       Exercise datasets and related assets (when present)
+templates/                      Shared site and registration templates
+static/                         Shared CSS, JavaScript, images and fonts
+media/                          User-uploaded files at runtime
 ```
-techphile_exams/
-├── manage.py
-├── requirements.txt
-├── techphile_exams/        # Project config: settings, root urls, wsgi/asgi
-├── accounts/               # Signup, login, logout, email verification, password reset
-├── exams/                  # Exams, questions, attempts, interviews, profiles, dashboards, REST API
-├── coding/                 # Coding problems, submissions, code execution API, leaderboard
-├── core/                   # Explore-courses topics, problems, datasets, progress, leaderboard
-├── tech/                   # Public site pages (home/about/services/contact)
-├── api/                    # Additional API endpoints
-├── management/             # Custom management commands
-├── explore_courses/        # Population scripts for course topics (AI, ML, DL, NLP, CV, ...)
-├── tech_coding_questions/  # Sample data scripts for coding questions
-├── tech_bits/              # Question banks in .xlsx (Python, SQL, DSA, React, Git, ML, ...)
-├── datasets/               # CSVs and images used by exercises (iris, houses, sales, ...)
-├── templates/              # Shared templates (base, home, about, contact, coding_temp, registration)
-├── static/                 # CSS, JS, images, fonts
-├── staticfiles/            # collectstatic output
-├── media/                  # User uploads
-├── populate_*.py           # Seed scripts (ML, DL, NLP, CV, GenAI, creativity, all)
-└── .venv/                  # Local virtual environment (not committed)
-```
 
-Each Django app follows the usual layout: `models.py`, `views.py`, `urls.py`, `admin.py`, `forms.py`/`serializers.py`, `migrations/`, `templates/`.
+Most Django apps use the standard Django layout: `models.py` for data models, `views.py` for request handling, `urls.py` for routes, `forms.py` for forms, `serializers.py` for API representations, `admin.py` for administration, `templates/` and `static/` for UI assets, and `migrations/` for schema history. Some apps omit files they do not need.
 
-### Main data models
+Important project files:
 
-- **exams**: `Category`, `Exam`, `Question`, `Answer`, `ExamAttempt`, `UserAnswer`, `Interviewer`, `Applicant`, `Bookmark`, `Profile`, `InterviewFeedback`
-- **coding**: `Problem`, `Submission`, `UserProfile`
-- **core**: `Topic`, `Dataset`, `Problem`, `Submissions`, `UserProgress`, `Leaderboard`
-- **tech**: `Contact`
+- `techphile_exams/settings.py` — installed apps, database, templates, static files, email, integrations, and feature settings.
+- `techphile_exams/urls.py` — root route table.
+- `techphile_exams/wsgi.py` and `asgi.py` — deployment entry points.
+- `.env.example` — names and local defaults for environment configuration; copy it to `.env` and set local values.
+- `populate_*.py`, `populate_all.py`, and app management commands — optional content-loading utilities. Review a script before running it because it can write to the configured database.
 
-## URL map
+## Run locally
 
-| Prefix | App | Notable routes |
-|--------|-----|----------------|
-| `/` | tech | Home, about, services, contact |
-| `/accounts/` | accounts | `signup/`, `login/`, `logout/`, `verify-email/<uid>/<token>/`, `password-reset/`, `terms-of-service/`, `privacy-policy/` |
-| `/exams/` | exams | `dashboard/`, `mock-exams/`, `<exam_slug>/`, `result/<id>/`, `mock-interview/`, `interview/<id>/...`, `study-guide/`, `user-analytics/`, `settings/...`, plus `api/...` |
-| `/coding/` | coding | `problems/`, `problems/<slug>/`, `submit/`, `dashboard/`, `leaderboard/`, `api/execute/` |
-| `/explore_courses` | core | `creativity-intelligence/`, `topic/<id>/`, `datasets/`, `leaderboard/` |
-| `/api/` | api | REST endpoints |
-| `/admin/` | admin | Django admin (Jazzmin) |
+### Requirements
 
-REST auth endpoints live under `/exams/api/auth/` (`login`, `signup`, `logout`, `token`, `token/refresh`). Exam, interview, profile, dashboard and study-guide APIs are under `/exams/api/`.
+- Python 3.12 (the project dependencies target the Django 4.2 series).
+- MySQL available locally, unless you deliberately configure a separate test/development settings module.
+- A Judge0 API key for remote coding execution.
+- An OpenAI or Groq API key to generate AI interview questions.
 
-## Career Preparation (`careers` app)
-
-Role-based learning paths (Data Analytics, Business Analytics, ML Engineering, Computer Vision, GenAI, RAG, Agentic AI) with day-wise scenario questions, per-student progress, rule-based recommendations (next day, revision days, weak skills) and a milestone exam for every 5-day block. Served under `/careers/`; content is managed in Django admin (student progress is read-only there).
+### Windows PowerShell setup
 
 ```powershell
-python manage.py migrate
-python manage.py seed_careers   # idempotent starter roles, days, questions; never overwrites admin edits
-```
-
-Unlock policy is set per role (`open`, `sequential` (default), `sequential_min_score`).
-
-Day pages can carry a structured lesson (`LearningDay.lesson` JSON: intro, objectives, scenario, sections, diagrams, worked example, revision) plus per-option explanations and a takeaway on each question. Days without a lesson keep the plain layout. `seed_careers` loads the lesson for Data Analytics Day 1 only when its fields are empty.
-
-### Feature flags
-
-The Coding and Mock Interview navigation entries are hidden by default. Set `FEATURE_CODING=True` and/or `FEATURE_MOCK_INTERVIEWS=True` in `.env` to show them again. Only the entry points are hidden; their URLs remain routable.
-
-## Authentication flow
-
-- Anonymous users are sent to `/accounts/login/`; after login they go to the `next` URL if it is a safe internal URL, otherwise to the student dashboard (`exams:student_dashboard`).
-- Already logged-in users visiting the login page are redirected to the dashboard (so the browser Back button does not re-show the login form).
-- External or malicious `next` values are ignored.
-- "Remember me" keeps a long session; otherwise the session ends when the browser closes.
-- New accounts are inactive until they click the emailed verification link.
-
-## Getting started
-
-### Prerequisites
-
-- Python 3.12
-- MySQL 8 running locally
-- Build tools/libraries needed by `mysqlclient` (on Windows, a prebuilt wheel is normally installed automatically)
-
-### Setup
-
-```powershell
-# 1. Create and activate a virtual environment
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
-
-# 2. Install dependencies
-pip install -r requirements.txt
-
-# 3. Create the MySQL database
-#    CREATE DATABASE Tech CHARACTER SET utf8mb4;
-
-# 4. Apply migrations
-python manage.py migrate
-
-# 5. Create an admin user
-python manage.py createsuperuser
-
-# 6. (Optional) Load seed data
-python populate_all.py
-
-# 7. Run the development server
-python manage.py runserver
-```
-
-Open <http://127.0.0.1:8000/> (use another port, e.g. `runserver 8765`, if 8000 is busy).
-
-### Configuration
-
-Settings are in [techphile_exams/settings.py](techphile_exams/settings.py). Secrets are read from environment variables or a local `.env` file (git-ignored). Copy the template and fill in your values:
-
-```powershell
+python -m pip install -r requirements.txt
 Copy-Item .env.example .env
 ```
 
-| Variable | Notes |
-|----------|-------|
-| `SECRET_KEY`, `DEBUG` | Django secret key and debug flag |
-| `DB_NAME`, `DB_USER`, `DB_PASSWORD`, `DB_HOST`, `DB_PORT` | MySQL connection (default database `Tech` on `localhost:3306`) |
-| `EMAIL_HOST_USER`, `EMAIL_HOST_PASSWORD` | SMTP (Gmail) account for verification and password-reset emails |
-| `JUDGE0_API_KEY` | RapidAPI key for the Judge0 code-execution service |
+Edit `.env` with local database credentials and any provider credentials you intend to use. Create the configured MySQL database (the sample database name is `Tech`) before running migrations:
 
-`LOGIN_REDIRECT_URL` is `exams:student_dashboard`.
+```powershell
+python manage.py migrate
+python manage.py createsuperuser
+python manage.py runserver
+```
 
-> **Security:** never commit `.env`. For production set `DEBUG=False` and a strong `SECRET_KEY`.
+Open <http://127.0.0.1:8000/>. To load optional course content, review the relevant `populate_*.py` script or management command first, then run only the content loader you need.
 
-## Testing and checks
+### Environment configuration
+
+`settings.py` reads configuration from environment variables and `.env` through `python-decouple`. Main settings include:
+
+- `SECRET_KEY`, `DEBUG`, and database values `DB_NAME`, `DB_USER`, `DB_PASSWORD`, `DB_HOST`, `DB_PORT`.
+- `EMAIL_HOST_USER` and `EMAIL_HOST_PASSWORD` for SMTP account email.
+- `JUDGE0_API_KEY` for remote code execution.
+- `INTERVIEW_PREP_AI_PROVIDER` (`openai` or `groq`), the corresponding provider API key, and model name for AI question generation.
+- `INTERVIEW_PREP_MARKET_RESEARCH_PROVIDER`, which defaults to `none`.
+- `INTERVIEW_PREP_PAYMENTS_ENABLED` and merchant/payment settings. Keep payments disabled until the merchant details and payment-verification process are configured.
+- `FEATURE_CODING` and `FEATURE_MOCK_INTERVIEWS` control navigation visibility; hiding a navigation entry does not remove its route.
+
+Never commit `.env`, API keys, database passwords, or private user data. Set `DEBUG=False` and configure an appropriate secret key, allowed hosts, HTTPS, email, static files, and production database before deployment. The sample `ALLOWED_HOSTS` in settings is for local development.
+
+## Tests and checks
+
+Run targeted Django tests for the area you change. Common commands are:
 
 ```powershell
 python manage.py check
-python manage.py test accounts --keepdb
+python manage.py test accounts
+python manage.py test interview_prep.tests interview_prep.test_intelligence
+python manage.py test careers
 ```
 
-The `accounts` tests cover login/signup page links, safe `next` redirects, external redirect blocking, remember-me session expiry, authenticated-user redirect, and the verification email flow. They need a MySQL user allowed to create a `test_Tech` database.
+The project test runner uses the configured database settings and may create a test database. Confirm the active settings and database permissions before running tests against a local MySQL setup. Do not point destructive test or seed operations at data you need to preserve.
 
-## Troubleshooting
+## Notes
 
-- **`Can't create database 'test_tech'; database exists`** – run tests with `--keepdb`, or drop the leftover test database.
-- **Port 8000 already in use** – start the server on another port.
-- **`mysqlclient` fails to install** – install a matching wheel or the MySQL C connector/build tools.
-- **Missing column errors (e.g. `expected_output`)** – run `python manage.py migrate`; migration `coding/0008_restore_expected_output` repairs databases that drifted from the models.
-- **Static files not loading in production** – run `python manage.py collectstatic`.
+- Admin customizations are configured through `techphile_exams/admin_site.py` and the Django admin app configuration.
+- Uploaded media and collected static files are runtime/deployment concerns; `media/` and `staticfiles/` may be generated locally.
+- AI output and external code execution depend on provider availability, configuration, rate limits, and network access.
+- This README describes the repository structure and configured features. Some routes or integrations may require credentials, database content, feature flags, or approved paid access before they are usable.

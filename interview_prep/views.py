@@ -17,13 +17,16 @@ from django.views.decorators.http import require_POST
 from django.utils import timezone
 
 from .answer_content import normalize_answer_content
+from .candidate_profile import PROFILE_SECTIONS, confirm_profile_edits, profile_to_resume_text
 from .forms import PaymentSubmissionForm, PreparationRequestForm
+from .intelligence_schema import count_valid_unique_questions
 from .learning_aids import build_learning_aid
 from .models import PaymentSubmission, PreparationSet, PremiumOrder
-from .openai_generator import PreparationProviderError, generate_preparation, is_provider_configured, preparation_fingerprint
+from .openai_generator import PreparationProviderError, extract_candidate_profile, generate_preparation, is_provider_configured, preparation_fingerprint
 from .services import (
     PreparationSetLimitReached,
     PremiumPreparationRequired,
+    claim_preparation_draft,
     claim_preparation_draft,
     checkpoint_preparation_draft,
     create_preparation_draft,
@@ -33,11 +36,46 @@ from .services import (
     preparation_is_draft,
     save_generated_preparation_set,
     toggle_saved_question,
+    update_preparation_draft_target,
 )
 
 logger = logging.getLogger(__name__)
 _ACTIVE_GENERATIONS = set()
 _ACTIVE_GENERATIONS_LOCK = threading.Lock()
+
+
+def _profile_review_sections(profile):
+    sections = []
+    for key, label in PROFILE_SECTIONS:
+        rows = profile.get(key, []) if isinstance(profile, dict) else []
+        sections.append({
+            'name': f'profile_{key}',
+            'label': label,
+            'value': '\n'.join(
+                str(row.get('text', '')).strip()
+                for row in rows if isinstance(row, dict) and str(row.get('text', '')).strip()
+            ) if isinstance(rows, list) else '',
+        })
+    return sections
+
+
+def _preparation_form_context(request, form, access, candidate_profile=None, resuming_draft=False, saved_profile=None):
+    previous_sets = list(PreparationSet.objects.filter(
+        owner=request.user, access_period=access['access_period'],
+    ).order_by('-created_at')) if access['access_period'] else []
+    for item in previous_sets:
+        item.is_draft = preparation_is_draft(item)
+        item.generation_progress = (item.generated_content or {}).get('_generation_progress', {})
+    return {
+        'form': form,
+        'access': access,
+        'generation_configured': is_provider_configured(),
+        'resuming_draft': resuming_draft,
+        'candidate_profile': candidate_profile,
+        'saved_profile': saved_profile,
+        'profile_review_sections': _profile_review_sections(candidate_profile) if candidate_profile else [],
+        'previous_sets': previous_sets,
+    }
 
 
 def _sse_message(payload):
@@ -69,6 +107,7 @@ def _preparation_progress_stream(*, user, data, previous_questions, fingerprint,
                 if progress.get('validated_questions'):
                     checkpoint_preparation_draft(
                         draft.pk, progress['round_number'], progress['round_questions'], progress['completed'],
+                        total=progress.get('total', 60),
                     )
                     progress = {key: value for key, value in progress.items() if key != 'round_questions'}
                 events.put(('progress', progress))
@@ -79,6 +118,8 @@ def _preparation_progress_stream(*, user, data, previous_questions, fingerprint,
                 role_family=data['role_family'], seniority=data['seniority'],
                 previous_questions=previous_questions, progress_callback=report_progress,
                 resume_content=resume_content,
+                confirmed_extraction=data.get('confirmed_extraction'),
+                target_question_count=data['question_target'],
             )
             result['preparation'] = save_generated_preparation_set(
                 user=user, request_reference=data['request_reference'], company_name=data['company_name'],
@@ -108,10 +149,10 @@ def _preparation_progress_stream(*, user, data, previous_questions, fingerprint,
             _ACTIVE_GENERATIONS.add(draft.pk)
         worker.start()
 
-    yield _sse_message({'type': 'progress', 'phase': 'starting', 'completed': 0, 'total': 60,
+    yield _sse_message({'type': 'progress', 'phase': 'starting', 'completed': 0, 'total': data['question_target'],
                         'message': 'Starting your role-fit review...'})
     yield _sse_message({
-        'type': 'progress', 'phase': 'draft', 'completed': 0, 'total': 60,
+        'type': 'progress', 'phase': 'draft', 'completed': 0, 'total': data['question_target'],
         'draft_url': reverse('interview_prep:preparation_questions', args=[draft.pk]),
         'resume_url': f"{reverse('interview_prep:create_preparation')}?resume={draft.pk}",
     })
@@ -135,11 +176,18 @@ def _preparation_progress_stream(*, user, data, previous_questions, fingerprint,
             message = 'Your interviewer could not complete this preparation. Your saved questions are still available; you can resume the unfinished part.'
         partial = PreparationSet.objects.filter(pk=draft.pk, owner=user).first()
         content = (partial.generated_content or {}) if partial else {}
+        completed = content.get('_generation_progress', {}).get('completed', 0)
+        total = content.get('_generation_progress', {}).get('total', 60)
+        if completed:
+            message = (
+                f'Generation paused after {completed} of {total} questions. Your completed questions '
+                'are saved. Review them now or resume to continue the unfinished round.'
+            )
         yield _sse_message({
             'type': 'error', 'message': message,
             'draft_url': reverse('interview_prep:preparation_questions', args=[draft.pk]),
             'resume_url': f"{reverse('interview_prep:create_preparation')}?resume={draft.pk}",
-            'completed': content.get('_generation_progress', {}).get('completed', 0),
+            'completed': completed,
         })
         return
     preparation = result['preparation']
@@ -282,23 +330,98 @@ def create_preparation(request):
         ).first()
         if requested_draft and not preparation_is_draft(requested_draft):
             return redirect('interview_prep:preparation_detail', preparation_id=requested_draft.pk)
+    saved_profile = (requested_draft.generated_content or {}).get('_candidate_profile') if requested_draft else None
+    candidate_profile = (
+        saved_profile if saved_profile and (requested_draft.generated_content or {}).get('_candidate_profile_state') != 'confirmed'
+        else None
+    )
     initial = {
         'request_reference': requested_draft.request_reference if requested_draft else uuid.uuid4(),
         'resume_draft_id': requested_draft.pk if requested_draft else '',
     }
     if requested_draft:
+        saved_target = (requested_draft.generated_content or {}).get('_question_target')
+        if not isinstance(saved_target, int) or isinstance(saved_target, bool) or not 30 <= saved_target <= 60:
+            saved_target = (requested_draft.generated_content or {}).get('_generation_progress', {}).get('total', 45)
+        if not isinstance(saved_target, int) or isinstance(saved_target, bool) or not 30 <= saved_target <= 60:
+            saved_target = 45
+        profile_text = profile_to_resume_text(saved_profile) if saved_profile else ''
         initial.update({
             'company_name': requested_draft.company_name,
             'job_title': requested_draft.job_title,
             'role_family': requested_draft.role_family,
             'seniority': requested_draft.seniority,
+            'question_target': saved_target,
             'job_description': requested_draft.job_description,
+            'resume_text': profile_text,
+            'seniority': requested_draft.seniority,
         })
+        if candidate_profile:
+            initial['seniority'] = candidate_profile.get('recommended_seniority', requested_draft.seniority)
     form = PreparationRequestForm(initial=initial)
     if request.method == 'POST':
         form = PreparationRequestForm(request.POST)
         if form.is_valid():
             data = form.cleaned_data
+            action = request.POST.get('preparation_action', 'generate')
+            if action == 'review':
+                try:
+                    prior_request = PreparationSet.objects.filter(
+                        owner=request.user,
+                        access_period=access['access_period'],
+                        request_reference=data['request_reference'],
+                    ).first()
+                    if prior_request and not preparation_is_draft(prior_request):
+                        return redirect('interview_prep:preparation_detail', preparation_id=prior_request.pk)
+                    if prior_request and (prior_request.generated_content or {}).get('_candidate_profile'):
+                        candidate_profile = prior_request.generated_content['_candidate_profile']
+                        form = PreparationRequestForm(initial={
+                            **data,
+                            'request_reference': prior_request.request_reference,
+                            'resume_draft_id': prior_request.pk,
+                            'resume_text': profile_to_resume_text(candidate_profile),
+                            'seniority': candidate_profile.get('recommended_seniority', data['seniority']),
+                            'consent_to_ai_provider': True,
+                        })
+                        access = get_preparation_access(request.user)
+                        return render(request, 'interview_prep/create_preparation.html',
+                                      _preparation_form_context(request, form, access, candidate_profile, True, candidate_profile))
+                    profile = extract_candidate_profile(
+                        data['resume_text'], data['job_description'], data['job_title'],
+                        data['role_family'], data['seniority'],
+                    )
+                    fingerprint = preparation_fingerprint(
+                        data['resume_text'], data['job_description'], data['company_name'],
+                        data['job_title'], data['role_family'], data['seniority'],
+                        target_question_count=data['question_target'],
+                    )
+                    draft = create_preparation_draft(
+                        request.user, data['request_reference'], data['company_name'],
+                        data['job_title'], data['job_description'], data['role_family'],
+                        data['seniority'], fingerprint,
+                        target_question_count=data['question_target'],
+                    )
+                    if not preparation_is_draft(draft):
+                        return redirect('interview_prep:preparation_detail', preparation_id=draft.pk)
+                    draft_content = dict(draft.generated_content or {})
+                    draft_content['_candidate_profile'] = profile
+                    draft_content['_candidate_profile_state'] = 'review'
+                    draft.generated_content = draft_content
+                    draft.save(update_fields=['generated_content', 'updated_at'])
+                    candidate_profile = profile
+                    form = PreparationRequestForm(initial={
+                        **data,
+                        'request_reference': draft.request_reference,
+                        'resume_draft_id': draft.pk,
+                        'resume_text': profile_to_resume_text(profile),
+                        'seniority': profile.get('recommended_seniority', data['seniority']),
+                        'consent_to_ai_provider': True,
+                    })
+                    access = get_preparation_access(request.user)
+                    return render(request, 'interview_prep/create_preparation.html',
+                                  _preparation_form_context(request, form, access, candidate_profile, True, profile))
+                except (PreparationProviderError, PremiumPreparationRequired, PreparationSetLimitReached, ValidationError) as exc:
+                    form.add_error(None, str(exc))
             draft = None
             if data.get('resume_draft_id'):
                 draft = PreparationSet.objects.filter(
@@ -313,7 +436,6 @@ def create_preparation(request):
                         data['company_name'].strip() == draft.company_name
                         and data['job_title'].strip() == draft.job_title
                         and data['role_family'] == draft.role_family
-                        and data['seniority'] == draft.seniority
                         and data['job_description'].strip() == draft.job_description
                     )
                     if not matches_draft:
@@ -321,6 +443,30 @@ def create_preparation(request):
                         draft = None
                     else:
                         data['request_reference'] = draft.request_reference
+                        saved_profile = (draft.generated_content or {}).get('_candidate_profile')
+                        if saved_profile:
+                            if (draft.generated_content or {}).get('_candidate_profile_state') != 'confirmed':
+                                candidate_profile = saved_profile
+                            if (draft.generated_content or {}).get('_candidate_profile_state') != 'confirmed':
+                                try:
+                                    saved_profile = confirm_profile_edits(saved_profile, request.POST)
+                                except ValueError as exc:
+                                    form.add_error(None, str(exc))
+                                    candidate_profile = saved_profile
+                                else:
+                                    content = dict(draft.generated_content or {})
+                                    content['_candidate_profile'] = saved_profile
+                                    content['_candidate_profile_state'] = 'confirmed'
+                                    content['_confirmed_extraction'] = saved_profile['extraction']
+                                    draft.generated_content = content
+                                    draft.seniority = data['seniority']
+                                    draft.save(update_fields=['generated_content', 'seniority', 'updated_at'])
+                            else:
+                                draft.seniority = data['seniority']
+                                draft.save(update_fields=['seniority', 'updated_at'])
+                            if (draft.generated_content or {}).get('_candidate_profile_state') == 'confirmed':
+                                data['resume_text'] = profile_to_resume_text(saved_profile)
+                                data['confirmed_extraction'] = (draft.generated_content or {}).get('_confirmed_extraction')
             previous_sets = PreparationSet.objects.filter(
                 owner=request.user,
                 access_period=access['access_period'],
@@ -344,6 +490,7 @@ def create_preparation(request):
             fingerprint = preparation_fingerprint(
                 data['resume_text'], data['job_description'], data['company_name'],
                 data['job_title'], data['role_family'], data['seniority'], previous_questions,
+                target_question_count=data['question_target'],
             ) if is_provider_configured() else ''
             existing = PreparationSet.objects.filter(
                 owner=request.user,
@@ -361,6 +508,12 @@ def create_preparation(request):
             if existing and preparation_is_draft(existing):
                 draft = existing
 
+            if draft and not form.errors:
+                try:
+                    draft = update_preparation_draft_target(draft.pk, data['question_target'])
+                except ValidationError as exc:
+                    form.add_error('question_target', str(exc))
+
             access = get_preparation_access(request.user)
             if form.errors:
                 pass
@@ -375,6 +528,7 @@ def create_preparation(request):
                             request.user, data['request_reference'], data['company_name'],
                             data['job_title'], data['job_description'], data['role_family'],
                             data['seniority'], fingerprint,
+                            target_question_count=data['question_target'],
                         )
                     except (PremiumPreparationRequired, PreparationSetLimitReached, ValidationError) as exc:
                         form.add_error(None, str(exc))
@@ -388,7 +542,7 @@ def create_preparation(request):
                         _preparation_progress_stream(
                             user=request.user, data=data, previous_questions=previous_questions,
                             fingerprint=fingerprint, draft=draft,
-                            resume_content=draft.generated_content if draft.generated_content.get('rounds') else None,
+                            resume_content=draft.generated_content if draft else None,
                         ),
                         content_type='text/event-stream',
                     )
@@ -396,7 +550,28 @@ def create_preparation(request):
                     response['X-Accel-Buffering'] = 'no'
                     return response
             else:
+                draft_claimed = False
                 try:
+                    if draft is None:
+                        draft = create_preparation_draft(
+                            request.user, data['request_reference'], data['company_name'],
+                            data['job_title'], data['job_description'], data['role_family'],
+                            data['seniority'], fingerprint,
+                            target_question_count=data['question_target'],
+                        )
+                    if draft:
+                        draft = update_preparation_draft_target(draft.pk, data['question_target'])
+                    if not draft or not claim_preparation_draft(draft.pk):
+                        raise ValidationError('This preparation is already being generated in another tab. Refresh to see its saved progress.')
+                    draft_claimed = True
+
+                    def checkpoint_progress(progress):
+                        if progress.get('validated_questions'):
+                            checkpoint_preparation_draft(
+                                draft.pk, progress['round_number'], progress['round_questions'],
+                                progress['completed'], total=progress.get('total', data['question_target']),
+                            )
+
                     generated_content = generate_preparation(
                         resume_text=data['resume_text'],
                         job_description=data['job_description'],
@@ -405,7 +580,10 @@ def create_preparation(request):
                         role_family=data['role_family'],
                         seniority=data['seniority'],
                         previous_questions=previous_questions,
-                        resume_content=draft.generated_content if draft and draft.generated_content.get('rounds') else None,
+                        resume_content=draft.generated_content if draft else None,
+                        confirmed_extraction=data.get('confirmed_extraction'),
+                        target_question_count=data['question_target'],
+                        progress_callback=checkpoint_progress,
                     )
                     preparation = save_generated_preparation_set(
                         user=request.user,
@@ -424,7 +602,18 @@ def create_preparation(request):
                     PreparationSetLimitReached,
                     ValidationError,
                 ) as exc:
+                    if draft_claimed and draft and preparation_is_draft(draft):
+                        mark_preparation_draft_interrupted(draft.pk, str(exc))
+                        messages.warning(request, str(exc))
+                        return redirect('interview_prep:preparation_questions', preparation_id=draft.pk)
                     form.add_error(None, str(exc))
+                except Exception as exc:
+                    logger.exception('Unexpected interview preparation generation failure')
+                    if draft_claimed and draft and preparation_is_draft(draft):
+                        mark_preparation_draft_interrupted(draft.pk, str(exc))
+                        messages.warning(request, 'Generation paused. Your saved questions are safe; resume when the service is available.')
+                        return redirect('interview_prep:preparation_questions', preparation_id=draft.pk)
+                    form.add_error(None, 'Interview preparation is temporarily unavailable.')
                 else:
                     return redirect(
                         'interview_prep:preparation_detail',
@@ -432,19 +621,9 @@ def create_preparation(request):
                     )
 
     access = get_preparation_access(request.user)
-    previous_sets = list(PreparationSet.objects.filter(
-        owner=request.user, access_period=access['access_period'],
-    ).order_by('-created_at')) if access['access_period'] else []
-    for item in previous_sets:
-        item.is_draft = preparation_is_draft(item)
-        item.generation_progress = (item.generated_content or {}).get('_generation_progress', {})
-    return render(request, 'interview_prep/create_preparation.html', {
-        'form': form,
-        'access': access,
-        'generation_configured': is_provider_configured(),
-        'resuming_draft': bool(requested_draft),
-        'previous_sets': previous_sets,
-    })
+    return render(request, 'interview_prep/create_preparation.html',
+                  _preparation_form_context(request, form, access, candidate_profile,
+                                            bool(requested_draft), saved_profile))
 
 
 @login_required
@@ -493,6 +672,15 @@ def preparation_questions(request, preparation_id):
     rounds = content.get('rounds') or []
     if not rounds and content.get('questions'):
         rounds = [{'round_number': 1, 'title': 'Practice round 1', 'questions': content['questions']}]
+    total_question_count = count_valid_unique_questions(rounds)
+    progress_data = dict(content.get('_generation_progress') or {})
+    target_question_count = content.get('_question_target')
+    if not isinstance(target_question_count, int) or isinstance(target_question_count, bool) or not 30 <= target_question_count <= 60:
+        target_question_count = progress_data.get('total') if is_draft else total_question_count
+    if not isinstance(target_question_count, int) or isinstance(target_question_count, bool) or not 30 <= target_question_count <= 60:
+        target_question_count = total_question_count
+    progress_data['completed'] = total_question_count
+    progress_data['total'] = target_question_count
     prepared_rounds = []
     saved_questions = []
     for question_round in rounds:
@@ -510,7 +698,6 @@ def preparation_questions(request, preparation_id):
                 })
             questions.append(question)
         prepared_rounds.append({**question_round, 'questions': questions})
-    total_question_count = sum(len(question_round.get('questions', [])) for question_round in prepared_rounds)
     return render(request, 'interview_prep/preparation_questions.html', {
         'preparation': preparation,
         'question_rounds': prepared_rounds,
@@ -519,7 +706,9 @@ def preparation_questions(request, preparation_id):
         'saved_question_ids': saved_question_ids,
         'completed_question_ids': set(preparation.completed_question_ids or []),
         'is_draft': is_draft,
-        'generation_progress': content.get('_generation_progress', {}),
+        'generation_progress': progress_data,
+        'generation_state': content.get('_generation_state') if is_draft else 'complete',
+        'target_question_count': target_question_count,
     })
 
 

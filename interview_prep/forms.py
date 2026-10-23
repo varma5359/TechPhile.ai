@@ -69,6 +69,15 @@ class PreparationRequestForm(forms.Form):
 
     request_reference = forms.UUIDField(widget=forms.HiddenInput())
     resume_draft_id = forms.IntegerField(required=False, widget=forms.HiddenInput())
+    question_target = forms.IntegerField(
+        label='How many questions would you like?',
+        required=False,
+        min_value=30,
+        max_value=60,
+        initial=45,
+        help_text='Choose between 30 and 60. Your selection is saved with this draft.',
+        widget=forms.NumberInput(attrs={'class': 'form-control', 'min': 30, 'max': 60, 'step': 1}),
+    )
     company_name = forms.CharField(
         max_length=120,
         required=False,
@@ -102,3 +111,7 @@ class PreparationRequestForm(forms.Form):
         label='I agree to send this resume text and job description to the selected question-preparation provider for analysis.',
         required=True,
     )
+
+    def clean_question_target(self):
+        """Use the platform default for older clients and validate any choice."""
+        return self.cleaned_data.get('question_target') or 45

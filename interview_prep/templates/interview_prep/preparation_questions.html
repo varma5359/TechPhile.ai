@@ -6,7 +6,11 @@
 <main class="ipp-page ipp-questions-page">
   <section class="ipp-hero ipp-result-hero"><div class="container ipp-container">
     <a class="ipp-back-link" href="{% if is_draft %}{% url 'interview_prep:create_preparation' %}{% else %}{% url 'interview_prep:preparation_detail' preparation.pk %}{% endif %}"><i class="fa-solid fa-arrow-left" aria-hidden="true"></i> {% if is_draft %}My preparations{% else %}Back to resume scan{% endif %}</a>
-    {% if is_draft %}<div class="ipp-not-ready" role="status"><strong>Saved draft: {{ generation_progress.completed|default:0 }} of {{ generation_progress.total|default:60 }} questions are ready.</strong> Practise these now, or <a href="{% url 'interview_prep:create_preparation' %}?resume={{ preparation.pk }}">resume generation</a>. Paste your resume again; it is not stored in your account.</div>{% endif %}
+    <div class="ipp-not-ready ipp-question-count-status" role="status">
+      <strong>{% if generation_state == 'in_progress' %}Generation in progress.{% elif generation_state == 'temporarily_unavailable' or generation_state == 'interrupted' %}Generation is temporarily unavailable.{% elif is_draft %}This practice set is incomplete.{% else %}This practice set is complete.{% endif %}</strong>
+      {{ generation_progress.completed }} of {{ target_question_count }} valid questions are ready.
+      {% if is_draft %}Practise the saved questions now, or <a href="{% url 'interview_prep:create_preparation' %}?resume={{ preparation.pk }}">continue generation</a>. Your original resume text is not stored with the draft.{% endif %}
+    </div>
     <div class="ipp-result-title-row"><div><span class="ipp-eyebrow">{% if is_draft %}SAVED DRAFT: LEARN AND PRACTISE{% else %}STEP 2 OF 2: LEARN AND PRACTISE{% endif %}</span><h1>{{ preparation.job_title }}</h1><p>{% if preparation.company_name %}{{ preparation.company_name }} | {% endif %}Work through one question at a time. Your practice progress is saved.</p><span class="ipp-progress-pill">{{ completed_question_ids|length }} of {{ total_question_count }} practised</span></div></div>
     <div class="ipp-learning-intro"><strong>How to use each question</strong><span>Start with the direct answer <b>&rarr;</b> explore the example or steps <b>&rarr;</b> review the takeaway <b>&rarr;</b> practise your response</span><p><b>Save for later</b> adds a question to the saved list on this page so you can review it again. <b>Mark practised</b> updates your progress count; it does not grade your answer. Both stay saved when you return to this preparation.</p></div>
   </div></section>
@@ -20,6 +24,20 @@
           <details class="ipp-learning-question" id="{{ question.id }}" {% if forloop.first and forloop.parentloop.first %}open{% endif %}>
             <summary><span class="ipp-question-number">{{ forloop.counter|stringformat:'02d' }}</span><span class="ipp-learning-question-title">{{ question.question }}</span><span class="ipp-plan-badge">{{ question.category }}</span></summary>
             <div class="ipp-learning-answer">
+              {% if question.coding_prompt.title or question.coding_prompt.problem_statement or question.coding_prompt.example_input or question.coding_prompt.expected_output %}
+              <article class="ipp-coding-task" aria-label="{% if question.question_kind == 'sql' %}SQL exercise{% else %}Coding exercise{% endif %}">
+                {% if question.coding_prompt.title %}<h2>{{ question.coding_prompt.title }}</h2>{% endif %}
+                {% if question.coding_prompt.language or question.coding_prompt.difficulty %}<p class="ipp-coding-meta">{% if question.coding_prompt.language %}<span>{{ question.coding_prompt.language }}</span>{% endif %}{% if question.coding_prompt.difficulty %}<span>{{ question.coding_prompt.difficulty }}</span>{% endif %}</p>{% endif %}
+                {% if question.coding_prompt.problem_statement %}<section><h3>Problem statement</h3><div class="ipp-markdown-guidance">{{ question.coding_prompt.problem_statement|safe_markdown }}</div></section>{% endif %}
+                {% if question.coding_prompt.function_signature %}<section><h3>{% if question.coding_prompt.language|lower == 'sql' %}Starter query{% else %}Function signature or starter code{% endif %}</h3><div class="ipp-markdown-guidance">{{ question.coding_prompt.function_signature|safe_markdown }}</div></section>{% endif %}
+                {% if question.coding_prompt.example_input %}<section><h3>Example input</h3><div class="ipp-markdown-guidance">{{ question.coding_prompt.example_input|safe_markdown }}</div></section>{% endif %}
+                {% if question.coding_prompt.expected_output %}<section><h3>Expected output</h3><div class="ipp-markdown-guidance">{{ question.coding_prompt.expected_output|safe_markdown }}</div></section>{% endif %}
+                {% if question.coding_prompt.explanation %}<section><h3>Explanation</h3><div class="ipp-markdown-guidance">{{ question.coding_prompt.explanation|safe_markdown }}</div></section>{% endif %}
+                {% if question.coding_prompt.constraints %}<section><h3>Constraints and edge cases</h3><div class="ipp-markdown-guidance">{{ question.coding_prompt.constraints|safe_markdown }}</div></section>{% endif %}
+                {% if question.coding_prompt.additional_requirements %}<section><h3>Additional requirements</h3><div class="ipp-markdown-guidance">{{ question.coding_prompt.additional_requirements|safe_markdown }}</div></section>{% endif %}
+              </article>
+              {% endif %}
+              {% if question.question_kind == 'coding' or question.question_kind == 'sql' %}{% if question.coding_solution %}<section class="ipp-coding-solution"><h3>Reference solution</h3><div class="ipp-markdown-guidance">{{ question.coding_solution|safe_markdown }}</div></section>{% endif %}{% endif %}
               {% if question.answer_content %}
               <article class="ipp-answer-document">
                 <section class="ipp-answer-direct"><h3>Direct answer</h3><div class="ipp-markdown-guidance">{{ question.answer_content.direct_answer|safe_markdown }}</div></section>
@@ -61,12 +79,13 @@
       </details>
       {% empty %}<section class="ipp-summary-card"><h2>No questions are available</h2><p>Return to your resume scan or contact support if this continues.</p></section>{% endfor %}
     </div>
-    <aside class="ipp-questions-sidebar">
-      <section class="ipp-question-index"><h2>Jump to a question</h2><p>Select a number to open it directly.</p>
+    <aside class="ipp-questions-sidebar" id="ipp-questions-sidebar">
+      <section class="ipp-question-index"><div class="ipp-sidebar-heading"><h2>Jump to a question</h2><button type="button" class="ipp-sidebar-toggle" aria-label="Collapse question navigation" title="Collapse question navigation" aria-expanded="true" aria-controls="ipp-question-index ipp-saved-list"><i class="fa-solid fa-angles-right" aria-hidden="true"></i></button></div><div id="ipp-question-index">
+        <p>Select a number to open it directly.</p>
         {% for question_round in question_rounds %}<div class="ipp-index-round"><h3>Round {{ forloop.counter }}</h3><div class="ipp-index-grid">{% for question in question_round.questions %}<a href="#{{ question.id }}" data-question-jump aria-label="Open round {{ forloop.parentloop.counter }}, question {{ forloop.counter }}" class="ipp-question-jump{% if question.id in saved_question_ids %} is-saved{% endif %}{% if question.id in completed_question_ids %} is-complete{% endif %}">{{ forloop.counter }}</a>{% endfor %}</div></div>{% endfor %}
         <div class="ipp-index-legend"><span><i class="ipp-legend-dot is-saved"></i>Saved</span><span><i class="ipp-legend-dot is-complete"></i>Practised</span></div>
-      </section>
-      <section class="ipp-saved-list"><h2>Saved for later <span>{{ saved_questions|length }}</span></h2>{% if saved_questions %}<p>These are the questions you saved in this preparation. Select one to review it.</p><ul>{% for question in saved_questions %}<li><a href="#{{ question.id }}" data-question-jump><small>Round {{ question.round_number }} · Question {{ question.question_number }}</small><span>{{ question.question|truncatewords:12 }}</span></a></li>{% endfor %}</ul>{% else %}<p>Use “Save for later” on a question and it will appear here.</p>{% endif %}</section>
+      </div></section>
+      <section class="ipp-saved-list" id="ipp-saved-list"><h2>Saved for later <span>{{ saved_questions|length }}</span></h2>{% if saved_questions %}<p>These are the questions you saved in this preparation. Select one to review it.</p><ul>{% for question in saved_questions %}<li><a href="#{{ question.id }}" data-question-jump><small>Round {{ question.round_number }} · Question {{ question.question_number }}</small><span>{{ question.question|truncatewords:12 }}</span></a></li>{% endfor %}</ul>{% else %}<p>Use “Save for later” on a question and it will appear here.</p>{% endif %}</section>
       <a class="ipp-secondary-button ipp-fit-link" href="{% url 'interview_prep:preparation_detail' preparation.pk %}">View resume scan</a>
     </aside>
   </section>
@@ -89,4 +108,17 @@ document.querySelectorAll('[data-question-jump]').forEach(function (link) {
     });
   });
 });
+var questionSidebar = document.getElementById('ipp-questions-sidebar');
+var questionSidebarToggle = questionSidebar && questionSidebar.querySelector('.ipp-sidebar-toggle');
+if (questionSidebar && questionSidebarToggle) {
+  var questionContent = questionSidebar.closest('.ipp-questions-content');
+  questionSidebarToggle.addEventListener('click', function () {
+    var collapsed = questionSidebar.classList.toggle('is-collapsed');
+    if (questionContent) questionContent.classList.toggle('has-collapsed-sidebar', collapsed);
+    questionSidebarToggle.setAttribute('aria-expanded', String(!collapsed));
+    questionSidebarToggle.setAttribute('aria-label', collapsed ? 'Expand question navigation' : 'Collapse question navigation');
+    questionSidebarToggle.setAttribute('title', collapsed ? 'Expand question navigation' : 'Collapse question navigation');
+    questionSidebarToggle.innerHTML = '<i class="fa-solid ' + (collapsed ? 'fa-angles-left' : 'fa-angles-right') + '" aria-hidden="true"></i>';
+  });
+}
 </script>{% endblock %}

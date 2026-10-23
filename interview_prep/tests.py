@@ -18,7 +18,9 @@ from .models import (
     PreparationSet,
     SavedQuestion,
 )
+from .forms import PreparationRequestForm
 from .openai_generator import PreparationProviderError, generate_preparation
+from .role_profiles import get_role_profile
 from .services import (
     MONTHLY_PREPARATION_SET_LIMIT,
     PreparationSetLimitReached,
@@ -33,6 +35,7 @@ from .services import (
     preparation_is_draft,
     save_generated_preparation_set,
     toggle_saved_question,
+    update_preparation_draft_target,
 )
 
 
@@ -144,8 +147,10 @@ class PremiumAccessServiceTests(TestCase):
 
         self.assertTrue(preparation_is_draft(draft))
         self.assertEqual(draft.generated_content['rounds'][0]['questions'], questions)
-        self.assertEqual(draft.generated_content['_generation_progress']['completed'], 1)
-        self.assertTrue(draft.generated_content['_generation_retry_all'])
+        self.assertEqual(draft.generated_content['_generation_progress']['completed'], 0)
+        self.assertEqual(draft.generated_content['_generation_state'], 'temporarily_unavailable')
+        self.assertEqual(draft.generated_content['_question_target'], 45)
+        self.assertNotIn('_generation_retry_all', draft.generated_content)
         self.assertEqual(draft.generated_content['_generation_fallback_rounds'][0]['questions'], questions)
         self.assertNotIn('resume_text', draft.generated_content)
         self.assertTrue(claim_preparation_draft(draft.pk))
@@ -158,6 +163,20 @@ class PremiumAccessServiceTests(TestCase):
         self.assertEqual(completed.pk, draft.pk)
         self.assertFalse(preparation_is_draft(completed))
         self.assertEqual(PreparationSet.objects.filter(owner=self.learner).count(), 1)
+
+    def test_question_target_defaults_to_45_and_is_validated_and_saved_on_draft(self):
+        self.assertEqual(PreparationRequestForm().fields['question_target'].initial, 45)
+        form = PreparationRequestForm({'question_target': 29})
+        self.assertFalse(form.is_valid())
+        self.assertIn('question_target', form.errors)
+
+        draft = create_preparation_draft(
+            self.learner, uuid.uuid4(), 'Acme', 'Analyst', 'Analyze sales data.',
+            target_question_count=45,
+        )
+        draft = update_preparation_draft_target(draft.pk, 40)
+        self.assertEqual(draft.generated_content['_question_target'], 40)
+        self.assertEqual(draft.generated_content['_generation_progress'], {'completed': 0, 'total': 40})
 
     def test_expired_or_rejected_access_does_not_allow_set_creation(self):
         self.period.ends_at = timezone.now() - timedelta(seconds=1)
@@ -184,6 +203,96 @@ class PremiumAccessServiceTests(TestCase):
                 'A role description.',
                 {'questions': [self.questions[0], self.questions[0]]},
             )
+
+    def test_round_based_assignment_rejects_fewer_than_30_valid_unique_questions(self):
+        def content_with_count(count):
+            questions = [{
+                'id': f'r1-q{index:02d}',
+                'question': f'How would you verify result {index}?',
+                'category': 'Data quality',
+                'question_type': 'standardized',
+                'question_kind': 'scenario',
+                'coding_solution': '',
+                'answer_content': {
+                    'direct_answer': 'Check the source and compare the result.',
+                    'sections': [],
+                    'interview_ready_answer': 'I would check the source and compare the result.',
+                    'interviewer_evaluation': {
+                        'what_interviewer_checks': ['Practical reasoning.'],
+                        'common_mistake': '', 'key_takeaway': '',
+                    },
+                    'practice_activity': '',
+                },
+                'explanation': 'Assesses practical reasoning.',
+                'evidence_refs': ['JD-01'],
+            } for index in range(1, count + 1)]
+            return {
+                'analysis': 'Role fit reviewed.', 'skill_gaps': [],
+                'rounds': [{'round_number': 1, 'title': 'Practice round 1', 'questions': questions}],
+            }
+
+        with self.assertRaisesMessage(ValidationError, 'valid, unique questions'):
+            save_generated_preparation_set(
+                self.learner, uuid.uuid4(), 'Acme', 'Analyst', 'Analyze data.',
+                content_with_count(29),
+            )
+
+    def test_round_based_assignment_requires_solution_for_coding_question(self):
+        content = self._valid_round_content_for_count(30)
+        content['rounds'][0]['questions'][0].update({
+            'question': 'Write a SQL query to select active learners.',
+            'question_kind': 'coding',
+        })
+        with self.assertRaisesMessage(ValidationError, 'valid, unique questions'):
+            save_generated_preparation_set(
+                self.learner, uuid.uuid4(), 'Acme', 'Analyst', 'Analyze data.', content,
+            )
+
+    def test_round_based_assignment_accepts_60_and_rejects_more_than_60_valid_questions(self):
+        complete = self._valid_round_content_for_count(60)
+        saved = save_generated_preparation_set(
+            self.learner, uuid.uuid4(), 'Acme', 'Analyst', 'Analyze data.', complete,
+        )
+        self.assertEqual(sum(len(row['questions']) for row in saved.generated_content['rounds']), 60)
+
+        with self.assertRaisesMessage(ValidationError, '30 to 60 valid, unique questions'):
+            save_generated_preparation_set(
+                self.learner, uuid.uuid4(), 'Acme', 'Analyst', 'Analyze data.',
+                self._valid_round_content_for_count(61),
+            )
+
+    def _valid_round_content_for_count(self, count):
+        rounds = []
+        for round_number, start in enumerate(range(1, count + 1, 30), start=1):
+            questions = [{
+                'id': f'r{round_number}-q{index - start + 1:02d}',
+                'question': f'How would you verify result {index}?',
+                'category': 'Data quality',
+                'question_type': 'standardized',
+                'question_kind': 'scenario',
+                'coding_solution': '',
+                'answer_content': {
+                    'direct_answer': 'Check the source and compare the result.',
+                    'sections': [],
+                    'interview_ready_answer': 'I would check the source and compare the result.',
+                    'interviewer_evaluation': {
+                        'what_interviewer_checks': ['Practical reasoning.'],
+                        'common_mistake': '', 'key_takeaway': '',
+                    },
+                    'practice_activity': '',
+                },
+                'explanation': 'Assesses practical reasoning.',
+                'evidence_refs': ['JD-01'],
+            } for index in range(start, min(start + 30, count + 1))]
+            rounds.append({
+                'round_number': round_number,
+                'title': f'Practice round {round_number}',
+                'questions': questions,
+            })
+        return {
+            'analysis': 'Role fit reviewed.', 'skill_gaps': [],
+            'rounds': rounds,
+        }
 
     def test_progress_and_saved_questions_require_set_owner_and_question_membership(self):
         preparation = self.save_set()
@@ -364,6 +473,69 @@ class OpenAIGenerationTests(TestCase):
 
     def mock_full_pipeline(self, post):
         counter = {'question': 0}
+        case_contexts = [
+            'a late supplier file changes the monthly totals',
+            'two departments report different customer counts',
+            'a product owner changes the success measure mid-project',
+            'an export drops several records after a schema update',
+            'a stakeholder disputes the figures in a quarterly review',
+            'a scheduled report arrives after its decision deadline',
+            'a new feature increases requests to an existing endpoint',
+            'a test passes locally but fails in continuous integration',
+            'a teammate proposes a faster approach with higher maintenance cost',
+            'a dashboard filter hides an important segment of users',
+            'an access request includes more permissions than the task needs',
+            'a data source changes its date and currency formats',
+            'a release is blocked by an intermittent validation failure',
+            'a business team needs an explanation before approving a decision',
+            'a second system reports a conflicting status for the same order',
+            'a planned dependency is unavailable on the delivery date',
+            'a query becomes slower as historical records accumulate',
+            'a customer reports a result that cannot be reproduced',
+            'a review finds that an assumption was never verified',
+            'a report must distinguish correlation from a causal explanation',
+            'a teammate asks to skip a check to meet a short deadline',
+            'an upstream service returns incomplete but valid responses',
+            'a metric definition differs between two team documents',
+            'a new requirement conflicts with a previously approved design',
+            'a small sample gives a different result from the full population',
+            'a code change affects an unrelated workflow',
+            'a review identifies duplicate records with different identifiers',
+            'an incident timeline contains gaps in the available evidence',
+            'a user asks for a conclusion before the data is checked',
+            'a proposed fix improves one measure but harms another',
+            'a privacy review limits which fields can be used',
+            'a migrated record no longer matches its source history',
+            'a project handoff omits the reason for a key decision',
+            'an experiment has uneven participation across groups',
+            'an API client retries a request after a timeout',
+            'a validation rule rejects a previously accepted input',
+            'a stakeholder changes the priority after work has started',
+            'a weekly trend shifts after the reporting window changes',
+            'a teammate finds a defect during the final review',
+            'an alert fires but the underlying service remains available',
+            'an unfamiliar dataset has unclear ownership and definitions',
+            'a deployment plan has no verified recovery step',
+            'two candidate solutions meet the requirement with different trade-offs',
+            'a source refresh completes but contains stale values',
+            'a user needs an accessible alternative to a visual report',
+            'a new constraint changes the safest implementation path',
+            'a test dataset omits a boundary condition',
+            'an estimate must be updated after a dependency slips',
+            'a repeated request creates more than one transaction',
+            'a team disagrees about which evidence supports a conclusion',
+            'a logging change exposes information that should stay private',
+            'a dashboard owner asks to compare incompatible time periods',
+            'a code review finds a workaround without an explanatory test',
+            'a batch job finishes successfully with fewer rows than expected',
+            'a new user group interprets an existing label differently',
+            'a specification leaves the expected error behavior unclear',
+            'a model output changes after the input distribution shifts',
+            'a meeting ends without an owner for the next action',
+            'a reconciliation process reports a small unexplained difference',
+            'a deadline requires choosing which checks must happen first',
+            'a proposed change needs evidence before it can be approved',
+        ]
 
         def respond(*args, **kwargs):
             is_chat = args[0].endswith('/chat/completions')
@@ -374,30 +546,67 @@ class OpenAIGenerationTests(TestCase):
             if 'resume_text' in dynamic:
                 result = {
                     'analysis': 'The resume shows API delivery experience against the supplied role requirements.',
-                    'resume_facts': [{'id': 'resume-a', 'fact': 'Built a Django API.', 'competencies': ['Programming and APIs']}],
+                    'resume_facts': [{'id': 'resume-a', 'fact': 'Built a Django API.', 'fact_type': 'experience', 'competencies': ['Programming and APIs']}],
                     'jd_requirements': [{'id': 'req-a', 'requirement': 'Build Python APIs.', 'mandatory': True, 'category': 'Programming and APIs'}],
                     'skill_gaps': [{'gap': 'Deployment depth needs review.', 'requirement_ref': 'req-a', 'resume_fact_refs': ['resume-a']}],
+                    'career_gaps': [], 'recommended_seniority': 'entry',
+                    'seniority_rationale': 'The resume shows project level evidence and no independent employment history.',
+                    'uncertain_information': ['The dates for the API project are not clear.'],
                 }
             else:
                 result = {'questions': []}
-                category_counts = dynamic['competency_blueprint']['per_round']['category_counts']
-                category_sequence = []
-                remaining = dict(category_counts)
-                while any(remaining.values()):
-                    for category in dynamic['allowed_categories']:
-                        if remaining.get(category, 0):
-                            category_sequence.append(category)
-                            remaining[category] -= 1
+                round_number = dynamic.get('current_round', 1)
+                category_sequence = dynamic['competency_blueprint']['round_allocations'][round_number - 1]['category_sequence']
                 category_start = dynamic['batch_start_index']
                 for number, kind in enumerate(dynamic['question_types_in_order']):
                     counter['question'] += 1
-                    question_number = (counter['question'] - 1) % 60 + 1
+                    question_number = dynamic['question_slots'][number]['question_number']
                     category = category_sequence[category_start + number]
+                    slot = dynamic['question_slots'][number]
+                    angle = slot.get('assessment_angle', f'case {question_number}')
+                    coverage_target = slot.get('coverage_target', category)
+                    absolute_question_number = category_start + number + 1
+                    context_index = ((round_number - 1) * 30 + absolute_question_number - 1) % len(case_contexts)
+                    case_context = case_contexts[context_index]
+                    question_kind = dynamic['question_slots'][number].get('question_kind') or 'scenario'
+                    exercise_skill = next((
+                        skill for skill in ('JavaScript', 'TypeScript', 'Python', 'Java', 'SQL', 'C++', 'C#')
+                        if skill.casefold() in str(slot.get('interview_focus', '')).casefold()
+                    ), 'Python')
+                    evidence = slot.get('resume_evidence') or {}
+                    evidence_term = str(evidence.get('fact', '')).split()[-1].strip('.,;:') if evidence.get('fact') else ''
+                    question_text = (
+                        f'Write a {exercise_skill} task to {angle} when {case_context}?'
+                        if question_kind in {'coding', 'sql'} and kind == 'standardized'
+                        else f'Using your {evidence_term} example, implement a {exercise_skill} task for {case_context}.'
+                        if question_kind in {'coding', 'sql'}
+                        else
+                        f'Using your {evidence_term} example, how would you {angle} when {case_context}?'
+                        if kind == 'personalized' and evidence_term
+                        else f'How would you {angle} when {case_context}?'
+                    )
+                    exercise_prompt = {
+                        'title': f'{exercise_skill} practical exercise',
+                        'language': exercise_skill,
+                        'difficulty': dynamic['seniority'].title(),
+                        'problem_statement': f'Complete a bounded {exercise_skill} task for the supplied scenario.',
+                        'function_signature': '```sql\n-- Write your query here\n```' if question_kind == 'sql' else f'```{exercise_skill.casefold()}\n// Write your solution here\n```',
+                        'example_input': '```text\n[]\n```',
+                        'expected_output': '```text\n[]\n```',
+                        'explanation': 'Return only the requested result and handle the empty input.',
+                        'constraints': 'An empty input returns an empty result.',
+                        'additional_requirements': '',
+                    } if question_kind in {'coding', 'sql'} else {
+                        key: '' for key in ('title', 'language', 'difficulty', 'problem_statement', 'function_signature', 'example_input', 'expected_output', 'explanation', 'constraints', 'additional_requirements')
+                    }
                     result['questions'].append({
-                        'question': f'Task{question_number} evaluation for {category}?',
-                        'assessment_focus': f'task{question_number} evaluation',
+                        'question': question_text,
+                        'assessment_focus': f'{coverage_target}: {case_context}',
                         'category': category,
                         'question_type': kind,
+                        'question_kind': question_kind,
+                        'coding_solution': ('```sql\nSELECT 1;\n```' if question_kind == 'sql' else f'```{exercise_skill.casefold()}\nreturn [];\n```') if question_kind in {'coding', 'sql'} else '',
+                        'coding_prompt': exercise_prompt,
                     'answer_content': _rich_answer(
                         'Compare the evidence before choosing a response.', [],
                         'I would compare the relevant evidence, explain the decision, and verify the result.',
@@ -405,7 +614,7 @@ class OpenAIGenerationTests(TestCase):
                     ),
                         'explanation': 'Assesses role-related reasoning and communication.',
                         'evidence_refs': [
-                            next((ref for ref in dynamic['valid_evidence_ids'] if ref.startswith('RES-')), dynamic['valid_evidence_ids'][0])
+                            evidence.get('id') or next((ref for ref in dynamic['valid_evidence_ids'] if ref.startswith('RES-')), dynamic['valid_evidence_ids'][0])
                             if kind == 'personalized' else dynamic['valid_evidence_ids'][0]
                         ],
                     })
@@ -422,12 +631,11 @@ class OpenAIGenerationTests(TestCase):
             role_family='general-software-engineering', seniority='entry',
         )
 
-        self.assertEqual(len(generated['rounds']), 2)
-        self.assertEqual([len(row['questions']) for row in generated['rounds']], [30, 30])
+        self.assertEqual([len(row['questions']) for row in generated['rounds']], [30])
         self.assertEqual(generated['rounds'][0]['questions'][0]['id'], 'r1-q01')
-        self.assertEqual(generated['rounds'][1]['questions'][0]['id'], 'r2-q01')
-        self.assertEqual(generated['generation_metrics']['input_tokens'], 6000)
-        self.assertEqual(post.call_count, 15)
+        self.assertEqual(sum(len(row['questions']) for row in generated['rounds']), 30)
+        self.assertEqual(generated['generation_metrics']['input_tokens'], 3200)
+        self.assertEqual(post.call_count, 8)
         for call in post.call_args_list:
             kwargs = call.kwargs
             self.assertEqual(call.args[0], 'https://api.openai.com/v1/responses')
@@ -435,6 +643,272 @@ class OpenAIGenerationTests(TestCase):
             self.assertIs(kwargs['json']['store'], False)
             self.assertEqual(kwargs['json']['model'], 'test-model')
             self.assertEqual(kwargs['json']['text']['format']['type'], 'json_schema')
+
+    @override_settings(INTERVIEW_PREP_AI_PROVIDER='openai', INTERVIEW_PREP_OPENAI_API_KEY='test-key', INTERVIEW_PREP_OPENAI_MODEL='test-model')
+    @patch('interview_prep.openai_generator.requests.post')
+    def test_unresolved_semantic_duplicate_fails_after_batch_and_single_question_retries(self, post):
+        self.mock_full_pipeline(post)
+        normal_response = post.side_effect
+
+        def respond(*args, **kwargs):
+            is_chat = args[0].endswith('/chat/completions')
+            dynamic = json.loads(
+                kwargs['json']['messages'][1]['content'] if is_chat else kwargs['json']['input']
+            )
+            dynamic.pop('required_output_schema', None)
+            if 'resume_text' in dynamic:
+                return normal_response(*args, **kwargs)
+            duplicate_pair = {
+                1: ('How would you diagnose a revenue decline after a dashboard update?', 'diagnose revenue decline after update'),
+                2: ('What would you investigate when sales fall following a reporting change?', 'diagnose revenue decline after update'),
+            }
+            distinct_questions = {
+                3: ('Which check would catch a missing customer identifier before import?', 'check missing customer identifier'),
+                4: ('How would you explain an unfamiliar result to a nontechnical teammate?', 'explain unfamiliar result to teammate'),
+                5: ('What test would confirm a saved change still behaves as expected?', 'test saved change behavior'),
+            }
+            questions = []
+            for slot in dynamic['question_slots']:
+                number = slot['question_number']
+                text, focus = duplicate_pair.get(number, distinct_questions.get(
+                    number, (f'How would you handle task {number} in this role?', f'handle distinct task {number}'),
+                ))
+                questions.append({
+                    'question': text,
+                    'assessment_focus': focus,
+                    'category': slot['category'],
+                    'question_type': slot['question_type'],
+                    'question_kind': slot.get('question_kind') or 'scenario',
+                    'coding_solution': '',
+                    'answer_content': _rich_answer(
+                        'Check the relevant evidence first.', [],
+                        'I would check the relevant evidence and explain my reasoning.',
+                        'Name the evidence you would inspect first.',
+                    ),
+                    'explanation': 'Assesses a role-related decision.',
+                    'evidence_refs': [dynamic['valid_evidence_ids'][0]],
+                })
+            return self.response({'questions': questions}, chat=is_chat)
+
+        post.side_effect = respond
+        with self.assertRaises(PreparationProviderError) as raised:
+            generate_preparation(
+                'Resume with API experience.', 'Build Python APIs.', 'Acme', 'Engineer',
+                role_family='general-software-engineering', seniority='entry',
+            )
+        self.assertIn('too similar', str(raised.exception))
+        # Extraction + initial batch + three batch retries + two focused recoveries.
+        self.assertEqual(post.call_count, 7)
+
+    @override_settings(INTERVIEW_PREP_AI_PROVIDER='openai', INTERVIEW_PREP_OPENAI_API_KEY='test-key', INTERVIEW_PREP_OPENAI_MODEL='test-model')
+    @patch('interview_prep.openai_generator.requests.post')
+    def test_selected_targets_30_45_and_60_control_round_sizes(self, post):
+        for target in (30, 45, 60):
+            with self.subTest(target=target):
+                self.mock_full_pipeline(post)
+                generated = generate_preparation(
+                    'Resume with API experience.', 'Build Python APIs.', 'Acme', 'Engineer',
+                    role_family='general-software-engineering', seniority='entry',
+                    target_question_count=target,
+                )
+                self.assertEqual(generated['_question_target'], target)
+                self.assertEqual(generated['_generation_state'], 'complete')
+                self.assertEqual([len(row['questions']) for row in generated['rounds']],
+                                 [min(30, target - start) for start in range(0, target, 30)])
+                self.assertEqual(generated['_generation_progress'], {'completed': target, 'total': target})
+
+    @override_settings(INTERVIEW_PREP_AI_PROVIDER='openai', INTERVIEW_PREP_OPENAI_API_KEY='test-key', INTERVIEW_PREP_OPENAI_MODEL='test-model')
+    @patch('interview_prep.openai_generator.requests.post')
+    def test_target_40_continuation_generates_only_missing_questions_and_keeps_legacy_fallback(self, post):
+        self.mock_full_pipeline(post)
+        categories = get_role_profile('data-analytics')['categories']
+        checkpoint_topics = [
+            'input validation', 'API status codes', 'database transactions', 'request parsing',
+            'test isolation', 'error messages', 'SQL joins', 'Git history', 'object methods',
+            'JSON serialization', 'form validation', 'HTTP authentication', 'query filtering',
+            'unit test boundaries', 'logging levels', 'data types', 'API pagination',
+            'database indexes', 'exception handling', 'code review', 'role permissions',
+            'request timeouts', 'ORM relationships', 'input sanitization',
+        ]
+        checkpoint_question_texts = [
+            'How would you reject malformed fields while giving a user useful validation feedback?',
+            'What response should an endpoint return when the requested record does not exist?',
+            'When should two related database updates be committed in one transaction?',
+            'Which risks would you check before parsing an uploaded request body?',
+            'How can a test avoid depending on records created by another test?',
+            'What should an API error message reveal, and what should it keep private?',
+            'When would an inner join incorrectly remove rows from a business report?',
+            'How would you find which change introduced a failing behavior in a branch?',
+            'Why can changing a shared object inside a method surprise its caller?',
+            'How do you handle an optional field when decoding a JSON payload?',
+            'What boundary cases should a form validate before saving a record?',
+            'How would you check that an authenticated endpoint enforces permissions?',
+            'Which query filters would you apply before returning a large result set?',
+            'What makes a unit test too dependent on implementation details?',
+            'Which log fields help diagnose a failure without exposing private values?',
+            'How should a parser handle an unexpected value without hiding the error?',
+            'What would you change to let a client navigate a long API result set?',
+            'How can an index help a lookup, and what cost does it add to writes?',
+            'When should an exception be handled locally instead of passed upward?',
+            'What evidence would you include in a code review for a risky change?',
+            'How do role checks differ from checking whether a user is signed in?',
+            'How should a client respond when a request times out but may have completed?',
+            'What problem does an ORM relationship solve between two stored records?',
+            'How would you prevent untrusted input from changing the meaning of a query?',
+        ]
+        saved_questions = []
+        for index in range(24):
+            kind = 'standardized' if index < 21 else 'personalized'
+            saved_questions.append({
+                'id': f'r1-q{index + 1:02d}',
+                'question': checkpoint_question_texts[index],
+                'assessment_focus': f'check {checkpoint_topics[index]}',
+                'category': categories[index % len(categories)],
+                'question_type': kind,
+                'question_kind': 'scenario',
+                'coding_solution': '',
+                'answer_content': _rich_answer(
+                    'Check the evidence first.', [], 'I would check the relevant evidence and explain my reasoning.',
+                    'Name the evidence you would check.',
+                ),
+                'explanation': 'Assesses a distinct review task.',
+                'evidence_refs': ['RES-01'] if kind == 'personalized' else ['JD-01'],
+            })
+        saved_round = {'round_number': 1, 'title': 'Practice round 1', 'questions': saved_questions}
+        extraction = {
+            'analysis': 'The confirmed profile supports the target role.',
+            'resume_facts': [{'id': 'RES-01', 'fact': 'Built a Django API.', 'fact_type': 'experience', 'competencies': ['Programming and APIs']}],
+            'jd_requirements': [{'id': 'JD-01', 'requirement': 'Build reliable reports.', 'mandatory': True,
+                                 'category': 'Role fundamentals', 'resume_fact_refs': [],
+                                 'match_level': 'not_evidenced', 'match_rationale': 'Not shown.',
+                                 'suggestion': 'Add a truthful example.'}],
+            'skill_gaps': [], 'career_gaps': [], 'recommended_seniority': 'entry',
+            'seniority_rationale': 'Foundational evidence.', 'uncertain_information': [],
+        }
+        progress = []
+        generated = generate_preparation(
+            'Saved profile summary.', 'Analyze reliable business data.', '', 'Data Analyst',
+            role_family='data-analytics', seniority='entry',
+            confirmed_extraction=extraction,
+            target_question_count=40,
+            resume_content={
+                '_question_target': 40,
+                '_generation_retry_all': True,
+                '_generation_fallback_rounds': [saved_round],
+                'rounds': [],
+            },
+            progress_callback=progress.append,
+        )
+        self.assertEqual([len(row['questions']) for row in generated['rounds']], [30, 10])
+        self.assertEqual(generated['_generation_progress'], {'completed': 40, 'total': 40})
+        self.assertEqual([row['question'] for row in generated['rounds'][0]['questions'][:24]],
+                         [row['question'] for row in saved_questions])
+        recovered_questions = generated['rounds'][0]['questions'][:24]
+        self.assertEqual([row['id'] for row in recovered_questions], [row['id'] for row in saved_questions])
+        self.assertEqual([row['answer_content'] for row in recovered_questions],
+                         [row['answer_content'] for row in saved_questions])
+        generated_new = sum(len(row['questions']) for row in generated['rounds']) - 24
+        self.assertEqual(generated_new, 16)
+
+    @override_settings(INTERVIEW_PREP_AI_PROVIDER='openai', INTERVIEW_PREP_OPENAI_API_KEY='test-key', INTERVIEW_PREP_OPENAI_MODEL='test-model')
+    @patch('interview_prep.openai_generator.research_job_market', return_value={'status': 'not_performed', 'sources': []})
+    @patch('interview_prep.openai_generator.requests.post')
+    def test_semantic_duplicates_in_a_recovered_checkpoint_block_completion(self, post, _research):
+        profile = get_role_profile('general-software-engineering')
+        topics = [
+            'input validation', 'API status codes', 'database transactions', 'request parsing',
+            'test isolation', 'error messages', 'SQL joins', 'Git history', 'object methods',
+            'JSON serialization', 'form validation', 'HTTP authentication', 'query filtering',
+            'unit test boundaries', 'logging levels', 'data types', 'API pagination',
+            'database indexes', 'exception handling', 'code review', 'role permissions',
+            'request timeouts', 'ORM relationships', 'input sanitization', 'test fixtures',
+            'version control branches', 'response validation', 'deployment configuration',
+        ]
+        questions = []
+        for index in range(30):
+            if index == 0:
+                text = 'How would you diagnose a revenue decline after a dashboard update?'
+                focus = 'diagnose revenue decline after update'
+            elif index == 1:
+                text = 'What would you investigate when sales fall following a reporting change?'
+                focus = 'diagnose revenue decline after update'
+            else:
+                topic = topics[index - 2]
+                text = f'How would you check {topic} before sharing findings?'
+                focus = f'check {topic}'
+            kind = 'standardized' if index < 21 else 'personalized'
+            questions.append({
+                'id': f'r1-q{index + 1:02d}',
+                'question': text,
+                'assessment_focus': focus,
+                'category': profile['categories'][index % len(profile['categories'])],
+                'question_type': kind,
+                'question_kind': 'scenario',
+                'coding_solution': '',
+                'answer_content': _rich_answer(
+                    'Check the relevant evidence first.', [],
+                    'I would check the relevant evidence and explain my reasoning.',
+                    'Name the evidence you would inspect first.',
+                ),
+                'explanation': 'Assesses a practical role-related decision.',
+                'evidence_refs': ['JD-01'] if kind == 'standardized' else ['RES-01'],
+            })
+        extraction = {
+            'analysis': 'The confirmed profile supports the role.',
+            'resume_facts': [{'id': 'RES-01', 'fact': 'Built a Django API.', 'fact_type': 'experience', 'competencies': ['Programming and APIs']}],
+            'jd_requirements': [{'id': 'JD-01', 'requirement': 'Build reliable APIs.', 'mandatory': True,
+                                 'category': 'Programming and APIs', 'resume_fact_refs': [],
+                                 'match_level': 'not_evidenced', 'match_rationale': 'Not shown.',
+                                 'suggestion': 'Add a truthful example.'}],
+            'skill_gaps': [], 'career_gaps': [], 'recommended_seniority': 'entry',
+            'seniority_rationale': 'Foundational evidence.', 'uncertain_information': [],
+        }
+        checkpoint = {
+            '_question_target': 30,
+            'rounds': [{'round_number': 1, 'title': 'Practice round 1', 'questions': questions}],
+        }
+        with self.assertRaises(PreparationProviderError) as raised:
+            generate_preparation(
+                'Confirmed profile.', 'Build reliable APIs.', '', 'Software Developer',
+                role_family='general-software-engineering', seniority='entry',
+                confirmed_extraction=extraction, target_question_count=30,
+                resume_content=checkpoint,
+            )
+        self.assertIn('too similar', str(raised.exception))
+        self.assertEqual(checkpoint['rounds'][0]['questions'], questions)
+        self.assertEqual([row['id'] for row in checkpoint['rounds'][0]['questions']],
+                         [f'r1-q{index + 1:02d}' for index in range(30)])
+        post.assert_not_called()
+
+    @override_settings(INTERVIEW_PREP_AI_PROVIDER='openai', INTERVIEW_PREP_OPENAI_API_KEY='test-key', INTERVIEW_PREP_OPENAI_MODEL='test-model')
+    @patch('interview_prep.openai_generator.requests.post')
+    def test_confirmed_profile_skips_a_second_resume_extraction(self, post):
+        self.mock_full_pipeline(post)
+        confirmed_extraction = {
+            'analysis': 'The candidate lists Python skills.',
+            'resume_facts': [{
+                'id': 'RES-01', 'fact': 'Python', 'fact_type': 'skill',
+                'competencies': ['Programming and APIs'],
+            }],
+            'jd_requirements': [{
+                'id': 'JD-01', 'requirement': 'Build Python APIs.', 'mandatory': True,
+                'category': 'Programming and APIs', 'resume_fact_refs': ['RES-01'],
+                'match_level': 'strong', 'match_rationale': 'Python appears in the confirmed profile.',
+                'suggestion': 'Give a specific Python example.',
+            }],
+            'skill_gaps': [], 'career_gaps': [],
+            'recommended_seniority': 'entry',
+            'seniority_rationale': 'The profile shows foundational evidence.',
+            'uncertain_information': [],
+        }
+        generated = generate_preparation(
+            'Skills: Python', 'Build Python APIs.', 'Acme', 'Python Developer',
+            role_family='general-software-engineering', seniority='entry',
+            confirmed_extraction=confirmed_extraction,
+        )
+        self.assertEqual(generated['generation_metrics']['api_calls'], post.call_count)
+        self.assertLess(post.call_count, 8)
+        self.assertEqual(sum(len(row['questions']) for row in generated['rounds']), 30)
 
     @override_settings(INTERVIEW_PREP_AI_PROVIDER='openai', INTERVIEW_PREP_OPENAI_API_KEY='test-key', INTERVIEW_PREP_OPENAI_MODEL='test-model')
     @patch('interview_prep.openai_generator.requests.post')
@@ -459,16 +933,18 @@ class OpenAIGenerationTests(TestCase):
         first_text = [question['question'] for row in first['rounds'] for question in row['questions']]
         second_text = [question['question'] for row in second['rounds'] for question in row['questions']]
         self.assertEqual(first_text, second_text)
-        self.assertEqual(len(second['rounds']), 2)
-        self.assertEqual(post.call_count, 30)
+        self.assertEqual(len(second['rounds']), 1)
+        # Targeted semantic-overlap retries can add bounded replacement calls.
+        self.assertGreaterEqual(post.call_count, 16)
+        self.assertLessEqual(post.call_count, 40)
 
     @override_settings(INTERVIEW_PREP_AI_PROVIDER='groq', INTERVIEW_PREP_GROQ_API_KEY='groq-test-key', INTERVIEW_PREP_GROQ_MODEL='openai/gpt-oss-20b')
     @patch('interview_prep.openai_generator.requests.post')
     def test_groq_uses_compatible_responses_endpoint_without_openai_storage_flag(self, post):
         self.mock_full_pipeline(post)
         result = generate_preparation('resume', 'requirements', '', 'Engineer')
-        self.assertEqual(len(result['rounds']), 2)
-        self.assertEqual(post.call_count, 15)
+        self.assertEqual(len(result['rounds']), 1)
+        self.assertEqual(post.call_count, 8)
         self.assertEqual(post.call_args_list[0].args[0], 'https://api.groq.com/openai/v1/responses')
         self.assertTrue(all(call.args[0] == 'https://api.groq.com/openai/v1/chat/completions' for call in post.call_args_list[1:]))
         for call in post.call_args_list:
@@ -489,8 +965,8 @@ class OpenAIGenerationTests(TestCase):
                 ],
             },
         )
-        self.assertEqual(len(result['rounds']), 2)
-        self.assertEqual(post.call_count, 15)
+        self.assertEqual(len(result['rounds']), 1)
+        self.assertEqual(post.call_count, 8)
 
     @override_settings(INTERVIEW_PREP_AI_PROVIDER='openai', INTERVIEW_PREP_OPENAI_API_KEY='')
     def test_missing_api_key_does_not_call_provider(self):
@@ -526,6 +1002,38 @@ class OpenAIGenerationTests(TestCase):
             starts_at=now - timedelta(minutes=1),
             ends_at=now + timedelta(days=29),
         )
+
+    def test_unmapped_jd_requirement_is_visible_on_preparation_detail(self):
+        preparation = PreparationSet.objects.create(
+            owner=self.learner,
+            access_period=PremiumAccessPeriod.objects.get(order__user=self.learner),
+            set_number=1,
+            company_name='Acme',
+            job_title='Data Analyst',
+            role_family='data-analytics',
+            seniority='entry',
+            job_description='Analyze reliable business data.',
+            generated_content={
+                'requirements': [{
+                    'id': 'JD-UNMAPPED',
+                    'requirement': 'Own lunar habitat operations.',
+                    'source_category': 'Unlisted category',
+                    'category': 'Role fundamentals',
+                    'mapping_status': 'unmapped',
+                    'mandatory': True,
+                    'match_level': 'strong',
+                    'match_rationale': 'The resume contains a related phrase.',
+                    'suggestion': 'Review the requirement.',
+                }],
+                'jd_match': {'score': 0, 'counts': {'strong': 0, 'partial': 0, 'not_evidenced': 1}},
+                'rounds': [],
+            },
+        )
+        self.client.force_login(self.learner)
+        response = self.client.get(reverse('interview_prep:preparation_detail', args=[preparation.pk]))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Role competency mapping needs review')
+        self.assertContains(response, 'does not receive resume coverage credit')
 
     def test_question_page_shows_saved_answer_and_keeps_practice_actions(self):
         preparation = PreparationSet.objects.create(
@@ -565,6 +1073,47 @@ class OpenAIGenerationTests(TestCase):
         self.assertContains(response, 'Mark practised')
         self.assertNotContains(response, 'Option A')
         self.assertNotContains(response, 'I would first clarify')
+
+    def test_structured_coding_question_renders_sections_safely_without_empty_headings(self):
+        preparation = PreparationSet.objects.create(
+            owner=self.learner,
+            access_period=PremiumAccessPeriod.objects.get(order__user=self.learner),
+            set_number=1, company_name='Acme', job_title='JavaScript Developer',
+            role_family='general-software-engineering', seniority='entry',
+            job_description='Build JavaScript features.',
+            generated_content={'rounds': [{
+                'round_number': 1, 'title': 'Practice round 1', 'questions': [{
+                    'id': 'r1-q01', 'category': 'Programming and APIs',
+                    'question': 'Write a function that selects users with more than two posts.',
+                    'question_kind': 'coding',
+                    'coding_solution': '```javascript\nreturn users.filter(user => user.posts.length > 2).map(({id, name}) => ({id, name}));\n```',
+                    'coding_prompt': {
+                        'title': 'Get Users With More Than Two Posts',
+                        'language': 'JavaScript', 'difficulty': 'Entry',
+                        'problem_statement': 'Return users with more than two posts. <script>alert(1)</script>',
+                        'function_signature': '```javascript\nfunction getUsersWithMultiplePosts(users) {}\n```',
+                        'example_input': '```javascript\n[]\n```',
+                        'expected_output': '```javascript\n[]\n```',
+                        'explanation': 'The empty list returns an empty list.',
+                        'constraints': '', 'additional_requirements': '',
+                    },
+                    'answer_guidance': 'Filter by post count and project id and name.',
+                    'explanation': 'Assesses array transformation.', 'evidence_refs': ['JD-01'],
+                }],
+            }]},
+        )
+        self.client.force_login(self.learner)
+        response = self.client.get(reverse('interview_prep:preparation_questions', args=[preparation.pk]))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Get Users With More Than Two Posts')
+        self.assertContains(response, 'Problem statement')
+        self.assertContains(response, 'Function signature or starter code')
+        self.assertContains(response, '<pre><code>function getUsersWithMultiplePosts(users) {}</code></pre>', html=True)
+        self.assertContains(response, 'Reference solution')
+        self.assertContains(response, 'user.posts.length &gt; 2')
+        self.assertNotContains(response, 'Constraints and edge cases')
+        self.assertNotContains(response, 'Additional requirements')
+        self.assertNotContains(response, '<script>alert(1)</script>')
 
     def test_representative_structured_answers_render_distinct_formats(self):
         pipeline_answer = _rich_answer(
@@ -641,6 +1190,7 @@ ORDER BY total_revenue DESC;
         questions = [{
             'id': f'r1-q{index:02d}', 'question': title, 'category': category,
             'question_type': 'standardized', 'answer_content': answer,
+            'question_kind': 'scenario', 'coding_solution': '',
             'explanation': f'Assesses the reasoning needed for {category}.', 'evidence_refs': ['JD-01'],
         } for index, (title, category, answer) in enumerate(examples, start=1)]
         preparation = PreparationSet.objects.create(
@@ -729,6 +1279,146 @@ ORDER BY total_revenue DESC;
         self.assertNotContains(response, 'AI service')
         self.assertNotContains(response, 'â€™')
         generate.assert_not_called()
+
+    @override_settings(INTERVIEW_PREP_OPENAI_API_KEY='test-key')
+    @patch('interview_prep.views.generate_preparation')
+    @patch('interview_prep.views.extract_candidate_profile')
+    def test_candidate_reviews_profile_and_resumed_generation_reuses_confirmed_facts(self, extract_profile, generate):
+        profile = {
+            'skills': [{'id': 'RES-01', 'text': 'Python'}],
+            'education': [], 'projects': [], 'experience': [], 'employment_history': [],
+            'certifications': [], 'other_details': [],
+            'summary': 'The resume lists Python experience.',
+            'recommended_seniority': 'entry',
+            'seniority_rationale': 'The resume shows foundational skills and a personal project.',
+            'uncertain_information': ['The project dates are unclear.'],
+            'career_gaps': [],
+            'extraction': {
+                'analysis': 'The resume lists Python experience.',
+                'resume_facts': [{
+                    'id': 'RES-01', 'fact': 'Python', 'fact_type': 'skill',
+                    'competencies': ['Programming'],
+                }],
+                'jd_requirements': [{
+                    'id': 'JD-01', 'requirement': 'Use Python.', 'mandatory': True,
+                    'category': 'Programming', 'resume_fact_refs': ['RES-01'],
+                    'match_level': 'strong', 'match_rationale': 'Python is listed.',
+                    'suggestion': 'Give an example.',
+                }],
+                'skill_gaps': [], 'career_gaps': [],
+                'recommended_seniority': 'entry',
+                'seniority_rationale': 'Foundational evidence.',
+                'uncertain_information': ['The project dates are unclear.'],
+            },
+        }
+        extract_profile.return_value = profile
+        reference = uuid.uuid4()
+        form_data = {
+            'request_reference': reference,
+            'company_name': 'Acme', 'job_title': 'Python Developer',
+            'role_family': 'general-software-engineering', 'seniority': 'entry',
+            'question_target': 30,
+            'job_description': 'Build Python services.',
+            'resume_text': 'Private original resume text.',
+            'consent_to_ai_provider': 'on', 'preparation_action': 'review',
+        }
+        self.client.force_login(self.learner)
+        review = self.client.post(reverse('interview_prep:create_preparation'), form_data)
+        self.assertEqual(review.status_code, 200)
+        self.assertContains(review, 'Review your resume profile')
+        self.assertContains(review, 'The project dates are unclear.')
+        draft = PreparationSet.objects.get(owner=self.learner)
+        self.assertNotIn('Private original resume text.', str(draft.generated_content))
+        self.assertEqual(draft.generated_content['_candidate_profile_state'], 'review')
+
+        resume_summary = 'Skills:\n- Python\n- SQL'
+        confirmed_post = {
+            **form_data,
+            'preparation_action': 'generate', 'resume_draft_id': draft.pk,
+            'seniority': 'mid', 'resume_text': resume_summary,
+            'profile_skills': 'Python\nSQL', 'profile_education': '',
+            'profile_projects': '', 'profile_experience': '',
+            'profile_employment_history': '', 'profile_certifications': '',
+            'profile_other_details': '',
+        }
+
+        def make_question(index):
+            return {
+                'id': f'r1-q{index:02d}',
+                'question': f'How would you verify Python task {index}?',
+                'category': 'Programming',
+                'question_type': 'standardized',
+                'question_kind': 'scenario',
+                'coding_solution': '',
+                'answer_content': _rich_answer(
+                    'Check the input and explain the result.', [],
+                    'I would check the input, explain the result, and verify it.',
+                    'Name one test case.',
+                ),
+                'explanation': 'Assesses practical reasoning.',
+                'evidence_refs': ['JD-01'],
+            }
+
+        checkpoint_questions = [make_question(index) for index in range(1, 25)]
+
+        def fail_after_confirmation(**kwargs):
+            self.assertEqual(kwargs['confirmed_extraction']['resume_facts'][1]['fact'], 'SQL')
+            kwargs['progress_callback']({
+                'phase': 'questions', 'completed': 24, 'total': 30,
+                'round_number': 1,
+                'round_questions': checkpoint_questions,
+                'validated_questions': checkpoint_questions,
+                'preview_questions': [row['question'] for row in checkpoint_questions[-5:]],
+            })
+            raise PreparationProviderError('Temporary provider interruption.')
+
+        generate.side_effect = fail_after_confirmation
+        failed = self.client.post(
+            reverse('interview_prep:create_preparation'), confirmed_post,
+            HTTP_ACCEPT='text/event-stream',
+        )
+        list(failed.streaming_content)
+        draft.refresh_from_db()
+        self.assertEqual(draft.generated_content['_candidate_profile_state'], 'confirmed')
+        saved_extraction = draft.generated_content['_confirmed_extraction']
+        self.assertEqual(draft.seniority, 'mid')
+        self.assertEqual(draft.generated_content['_question_target'], 30)
+        self.assertEqual(len(draft.generated_content['rounds'][0]['questions']), 24)
+        self.assertEqual(draft.generated_content['_generation_progress'], {'completed': 24, 'total': 30})
+
+        generate.side_effect = None
+        generate.return_value = {
+            'analysis': 'Confirmed profile reviewed.',
+            'rounds': [{
+                'round_number': 1,
+                'title': 'Practice round 1',
+                'questions': [make_question(index) for index in range(1, 31)],
+            }],
+            '_question_target': 30,
+            '_generation_state': 'complete',
+            '_generation_progress': {'completed': 30, 'total': 30},
+        }
+        resume_post = {
+            **confirmed_post,
+            'resume_text': 'Ignored raw text; saved profile is authoritative.',
+        }
+        resumed = self.client.post(reverse('interview_prep:create_preparation'), resume_post)
+        self.assertEqual(resumed.status_code, 302)
+        self.assertEqual(generate.call_args.kwargs['confirmed_extraction'], saved_extraction)
+        self.assertIn('Python', generate.call_args.kwargs['resume_text'])
+        self.assertIn('SQL', generate.call_args.kwargs['resume_text'])
+        self.assertEqual(generate.call_args.kwargs['target_question_count'], 30)
+        self.assertEqual(len(generate.call_args.kwargs['resume_content']['rounds'][0]['questions']), 24)
+
+        draft.refresh_from_db()
+        self.assertEqual(draft.generated_content['_generation_state'], 'complete')
+        self.assertEqual(draft.generated_content['_generation_progress'], {'completed': 30, 'total': 30})
+        self.assertEqual(len(draft.generated_content['rounds'][0]['questions']), 30)
+        detail = self.client.get(reverse('interview_prep:preparation_detail', args=[draft.pk]))
+        questions_page = self.client.get(reverse('interview_prep:preparation_questions', args=[draft.pk]))
+        self.assertEqual(detail.status_code, 200)
+        self.assertEqual(questions_page.status_code, 200)
+        self.assertContains(questions_page, '30 of 30 valid questions are ready')
 
     @override_settings(INTERVIEW_PREP_OPENAI_API_KEY='test-key')
     @patch('interview_prep.views.generate_preparation')

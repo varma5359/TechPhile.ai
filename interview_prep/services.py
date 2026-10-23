@@ -8,10 +8,15 @@ from django.core.exceptions import PermissionDenied, ValidationError
 from django.db import IntegrityError, transaction
 from django.utils import timezone
 
+from .intelligence_schema import count_valid_unique_questions
+
 from .models import PremiumAccessPeriod, PremiumOrder, PreparationSet, SavedQuestion
 
 
 MONTHLY_PREPARATION_SET_LIMIT = 2
+MIN_PREPARATION_QUESTIONS = 30
+MAX_PREPARATION_QUESTIONS = 60
+DEFAULT_PREPARATION_QUESTIONS = 45
 
 
 class PremiumPreparationRequired(PermissionDenied):
@@ -106,13 +111,14 @@ def get_preparation_access(user, at=None):
 def preparation_is_draft(preparation_set):
     """Whether a preparation row is an incomplete, resumable generation draft."""
     return (preparation_set.generated_content or {}).get('_generation_state') in {
-        'in_progress', 'interrupted',
+        'in_progress', 'incomplete', 'temporarily_unavailable', 'interrupted',
     }
 
 
 def create_preparation_draft(
     user, request_reference, company_name, job_title, job_description,
     role_family='general-software-engineering', seniority='entry', input_fingerprint=None,
+    target_question_count=DEFAULT_PREPARATION_QUESTIONS,
 ):
     """Reserve one monthly slot and persist an empty, resumable preparation draft."""
     if not user or not user.is_authenticated:
@@ -121,6 +127,12 @@ def create_preparation_draft(
         request_reference = uuid.UUID(str(request_reference))
     except (TypeError, ValueError, AttributeError) as exc:
         raise ValidationError('A valid preparation request reference is required.') from exc
+    if (
+        isinstance(target_question_count, bool)
+        or not isinstance(target_question_count, int)
+        or not MIN_PREPARATION_QUESTIONS <= target_question_count <= MAX_PREPARATION_QUESTIONS
+    ):
+        raise ValidationError('Choose between 30 and 60 interview questions.')
 
     with transaction.atomic():
         period = get_active_access_period(user, lock=True)
@@ -154,11 +166,41 @@ def create_preparation_draft(
             job_description=job_description.strip(),
             input_fingerprint=input_fingerprint,
             generated_content={
-                '_generation_state': 'in_progress',
-                '_generation_progress': {'completed': 0, 'total': 60},
+                '_generation_state': 'incomplete',
+                '_question_target': target_question_count,
+                '_generation_progress': {'completed': 0, 'total': target_question_count},
                 'rounds': [],
             },
         )
+
+
+def update_preparation_draft_target(preparation_id, target_question_count):
+    """Persist a validated target before a draft is claimed for generation."""
+    if (
+        isinstance(target_question_count, bool)
+        or not isinstance(target_question_count, int)
+        or not MIN_PREPARATION_QUESTIONS <= target_question_count <= MAX_PREPARATION_QUESTIONS
+    ):
+        raise ValidationError('Choose between 30 and 60 interview questions.')
+    with transaction.atomic():
+        draft = PreparationSet.objects.select_for_update().get(pk=preparation_id)
+        if not preparation_is_draft(draft):
+            raise ValidationError('This preparation is already complete and its target cannot be changed.')
+        content = dict(draft.generated_content or {})
+        completed = count_valid_unique_questions(content.get('rounds') or [])
+        if target_question_count < completed:
+            raise ValidationError(f'The target cannot be lower than the {completed} valid questions already saved.')
+        current = content.get('_question_target')
+        lease_until = content.get('_generation_lease_until', 0)
+        if current != target_question_count and content.get('_generation_state') == 'in_progress' and lease_until > timezone.now().timestamp():
+            raise ValidationError('Generation is already running. Wait for it to finish before changing the target.')
+        content['_question_target'] = target_question_count
+        content['_generation_progress'] = {'completed': completed, 'total': target_question_count}
+        if content.get('_generation_state') not in {'in_progress'}:
+            content['_generation_state'] = 'incomplete'
+        draft.generated_content = content
+        draft.save(update_fields=['generated_content', 'updated_at'])
+        return draft
 
 
 def claim_preparation_draft(preparation_id, lease_seconds=1800):
@@ -171,6 +213,11 @@ def claim_preparation_draft(preparation_id, lease_seconds=1800):
         lease_until = content.get('_generation_lease_until', 0)
         if content.get('_generation_state') == 'in_progress' and lease_until > timezone.now().timestamp():
             return False
+        legacy_fallback = content.get('_generation_fallback_rounds')
+        if isinstance(legacy_fallback, list):
+            content['rounds'] = legacy_fallback
+        content.pop('_generation_retry_all', None)
+        content.pop('_generation_fallback_rounds', None)
         content['_generation_state'] = 'in_progress'
         content['_generation_lease_until'] = timezone.now().timestamp() + lease_seconds
         draft.generated_content = content
@@ -197,7 +244,9 @@ def checkpoint_preparation_draft(preparation_id, round_number, questions, comple
         }
         content['rounds'] = rounds
         content['_generation_state'] = 'in_progress'
-        content['_generation_progress'] = {'completed': completed, 'total': total}
+        target = content.get('_question_target', total)
+        content['_question_target'] = target
+        content['_generation_progress'] = {'completed': count_valid_unique_questions(rounds), 'total': target}
         content['_generation_lease_until'] = timezone.now().timestamp() + 1800
         draft.generated_content = content
         draft.save(update_fields=['generated_content', 'updated_at'])
@@ -209,17 +258,15 @@ def mark_preparation_draft_interrupted(preparation_id, message=''):
     with transaction.atomic():
         draft = PreparationSet.objects.select_for_update().get(pk=preparation_id)
         content = dict(draft.generated_content or {})
-        if content.get('_generation_state') == 'in_progress':
+        if content.get('_generation_state') in {'in_progress', 'incomplete'}:
             if 'final quality check' in message.casefold():
-                content['_generation_fallback_rounds'] = content.get('_generation_fallback_rounds') or list(content.get('rounds') or [])
-                content['_generation_retry_all'] = True
-            fallback_rounds = content.get('_generation_fallback_rounds')
-            if fallback_rounds:
-                content['rounds'] = fallback_rounds
-                content['_generation_progress'] = {'completed': sum(
-                    len(row.get('questions', [])) for row in fallback_rounds if isinstance(row, dict)
-                ), 'total': 60}
-            content['_generation_state'] = 'interrupted'
+                content['_generation_fallback_rounds'] = list(content.get('rounds') or [])
+            rounds = content.get('rounds') or []
+            content['_generation_progress'] = {
+                'completed': count_valid_unique_questions(rounds),
+                'total': content.get('_question_target', content.get('_generation_progress', {}).get('total', 60)),
+            }
+            content['_generation_state'] = 'temporarily_unavailable'
             content['_generation_message'] = message[:240]
             content.pop('_generation_lease_until', None)
             draft.generated_content = content
@@ -289,11 +336,29 @@ def save_generated_preparation_set(
         raise ValidationError('Complete generated preparation content is required.')
     rounds = generated_content.get('rounds')
     if rounds is not None:
-        if not isinstance(rounds, list) or len(rounds) != 2 or any(
-            not isinstance(row, dict) or not isinstance(row.get('questions'), list) or len(row['questions']) != 30
+        raw_question_count = sum(
+            len(row.get('questions', [])) for row in rounds if isinstance(row, dict) and isinstance(row.get('questions'), list)
+        ) if isinstance(rounds, list) else 0
+        valid_question_count = count_valid_unique_questions(rounds)
+        target_question_count = generated_content.get('_question_target')
+        invalid_target = target_question_count is not None and (
+            isinstance(target_question_count, bool)
+            or not isinstance(target_question_count, int)
+            or not MIN_PREPARATION_QUESTIONS <= target_question_count <= MAX_PREPARATION_QUESTIONS
+            or valid_question_count != target_question_count
+        )
+        if not isinstance(rounds, list) or len(rounds) not in {1, 2} or any(
+            not isinstance(row, dict) or not isinstance(row.get('questions'), list) or not 1 <= len(row['questions']) <= 30
             for row in rounds
-        ):
-            raise ValidationError('A complete preparation needs two rounds of 30 questions.')
+        ) or not 30 <= raw_question_count <= 60 or valid_question_count != raw_question_count or invalid_target:
+            raise ValidationError('A complete preparation needs 30 to 60 valid, unique questions with answers.')
+        generated_content = dict(generated_content)
+        if target_question_count is not None:
+            generated_content['_generation_state'] = 'complete'
+            generated_content['_generation_progress'] = {
+                'completed': valid_question_count,
+                'total': target_question_count,
+            }
         questions = [question for row in rounds for question in row['questions']]
     else:
         # Read old persisted content during the transition; all new pipeline

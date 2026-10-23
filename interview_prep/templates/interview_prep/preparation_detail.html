@@ -39,6 +39,7 @@
           {% for requirement in fit_requirements %}
           <article class="ipp-requirement ipp-requirement-{{ requirement.match_level }}">
             <div><div class="ipp-requirement-badges"><span class="ipp-requirement-status">{% if requirement.match_level == 'strong' %}Shown in resume{% elif requirement.match_level == 'partial' %}Partly shown{% else %}Not mentioned in resume{% endif %}</span>{% if requirement.mandatory %}<span class="ipp-required-tag">Important for this role</span>{% endif %}</div><h3>{{ requirement.requirement }}</h3>
+              {% if requirement.mapping_status == 'unmapped' %}<p class="ipp-match-suggestion"><strong>Role competency mapping needs review</strong><br>This requirement is included under Role fundamentals for practice, but it does not receive resume coverage credit until it is mapped to a role competency.</p>{% endif %}
               {% if requirement.match_rationale %}<div class="ipp-requirement-evidence"><strong>What we found</strong><p>{{ requirement.match_rationale }}</p></div>{% endif %}
               {% if requirement.match_level != 'strong' %}<div class="ipp-match-suggestion"><strong>What to do next</strong><p>{{ requirement.student_suggestion }}</p></div>{% endif %}
             </div>

@@ -10,8 +10,8 @@
       <div class="ipp-create-heading">
         <div>
           <span class="ipp-eyebrow"><i class="fa-solid fa-sparkles" aria-hidden="true"></i> PREMIUM PREPARATION</span>
-          <h1>Check your role fit, then prepare</h1>
-          <p>Review your resume-to-job fit, then practise for your selected role with questions focused on its requirements and skill gaps.</p>
+          <h1>{% if candidate_profile %}Review your resume profile{% else %}Check your role fit, then prepare{% endif %}</h1>
+          <p>{% if candidate_profile %}Check the extracted details, correct anything that is inaccurate, and confirm your target experience level before questions are generated.{% else %}Review your resume-to-job fit, then practise for your selected role with questions focused on its requirements and skill gaps.{% endif %}</p>
         </div>
         <div class="ipp-usage-card" aria-label="Monthly preparation usage">
           <span class="ipp-usage-label">THIS MONTH</span>
@@ -47,6 +47,41 @@
 
       <form method="post" class="ipp-preparation-form" data-streaming-preparation>
         {% csrf_token %}{{ form.request_reference }}{{ form.resume_draft_id }}
+        {% if candidate_profile %}
+        {{ form.company_name.as_hidden }}{{ form.job_title.as_hidden }}{{ form.role_family.as_hidden }}
+        {{ form.job_description.as_hidden }}{{ form.resume_text.as_hidden }}
+        <section class="ipp-form-section ipp-profile-review" aria-labelledby="candidate-profile-heading">
+          <div class="ipp-section-heading">
+            <span class="ipp-step-number">01</span>
+            <div><h2 id="candidate-profile-heading">Candidate profile</h2><p>Edit the extracted facts below. Remove details that do not describe you, and add anything important that was missed.</p></div>
+          </div>
+          <div class="ipp-profile-summary"><strong>Resume summary</strong><p>{{ candidate_profile.summary }}</p></div>
+          {% if candidate_profile.uncertain_information %}
+            <div class="ipp-not-ready ipp-profile-uncertain"><strong>Details to check</strong><ul>{% for item in candidate_profile.uncertain_information %}<li>{{ item }}</li>{% endfor %}</ul></div>
+          {% endif %}
+          <div class="ipp-field-grid ipp-field-grid-two">
+            {% for section in profile_review_sections %}
+              <div class="ipp-field ipp-profile-field">
+                <label for="{{ section.name }}">{{ section.label }}</label>
+                <textarea class="form-control" id="{{ section.name }}" name="{{ section.name }}" rows="5" maxlength="15000">{{ section.value }}</textarea>
+                <small class="ipp-field-help">One detail per line. These confirmed details are saved with your draft.</small>
+              </div>
+            {% endfor %}
+          </div>
+          <div class="ipp-field ipp-profile-seniority">
+            <label for="{{ form.seniority.id_for_label }}">Recommended experience level: {{ candidate_profile.recommended_seniority|title }}</label>
+            <p>{{ candidate_profile.seniority_rationale }}</p>
+            {{ form.seniority }}
+            {% for error in form.seniority.errors %}<small class="ipp-error-text" role="alert">{{ error }}</small>{% endfor %}
+          </div>
+          <div class="ipp-field ipp-profile-seniority">
+            <label for="{{ form.question_target.id_for_label }}">Your question target</label>
+            <p>Choose the size of your complete practice set. You can resume from saved questions if generation pauses.</p>
+            {{ form.question_target }}
+            {% for error in form.question_target.errors %}<small class="ipp-error-text" role="alert">{{ error }}</small>{% endfor %}
+          </div>
+        </section>
+        {% else %}
         <section class="ipp-form-section" aria-labelledby="role-details-heading">
           <div class="ipp-section-heading">
             <span class="ipp-step-number">01</span>
@@ -54,7 +89,7 @@
           </div>
           <div class="ipp-field-grid ipp-field-grid-two">
             {% for field in form.visible_fields %}
-              {% if field.name == 'job_title' or field.name == 'company_name' or field.name == 'role_family' or field.name == 'seniority' %}
+              {% if field.name == 'job_title' or field.name == 'company_name' or field.name == 'role_family' or field.name == 'seniority' or field.name == 'question_target' %}
                 <div class="ipp-field{% if field.errors %} ipp-field-error{% endif %}">
                   <label for="{{ field.id_for_label }}">{{ field.label }}{% if field.field.required %}<span aria-hidden="true">*</span>{% endif %}</label>
                   {{ field }}
@@ -84,12 +119,13 @@
             {% endfor %}
           </div>
         </section>
+        {% endif %}
 
-        <section class="ipp-consent-section" aria-labelledby="privacy-heading">
+        {% if not candidate_profile %}<section class="ipp-consent-section" aria-labelledby="privacy-heading">
           <div class="ipp-privacy-icon"><i class="fa-solid fa-shield-halved" aria-hidden="true"></i></div>
           <div class="ipp-privacy-copy">
             <h2 id="privacy-heading">Your information and consent</h2>
-            <p>{% if resuming_draft %}Your resume is not stored in this draft. Paste the same resume text again so generation can continue using the saved questions.{% else %}Your resume text is sent to the selected question-generation provider to create this set and is not saved in your TechPhile account. Remove contact details or other private information before pasting.{% endif %}</p>
+            <p>{% if saved_profile %}Your original resume text is not stored. The confirmed profile below is saved with this draft and will be used to continue generation.{% elif resuming_draft %}Your resume is not stored in this draft. Paste the same resume text again so generation can continue using the saved questions.{% else %}Your resume text is sent to the selected question-generation provider to create this set and is not saved in your TechPhile account. Remove contact details or other private information before pasting.{% endif %}</p>
             {% for field in form.visible_fields %}
               {% if field.name == 'consent_to_ai_provider' %}
                 <div class="ipp-consent-check{% if field.errors %} ipp-field-error{% endif %}">
@@ -99,21 +135,28 @@
               {% endif %}
             {% endfor %}
           </div>
-        </section>
+        </section>{% else %}<input type="hidden" name="consent_to_ai_provider" value="on">{% endif %}
 
         <div class="ipp-form-submit">
-          <button type="submit" class="ipp-primary-button" {% if not generation_configured or access.sets_remaining == 0 and not resuming_draft %}disabled{% endif %}>
-            <i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true"></i> <span>Generate my question sets</span>
+          <button type="submit" name="preparation_action" value="{% if candidate_profile or saved_profile %}generate{% else %}review{% endif %}" class="ipp-primary-button" {% if not generation_configured or access.sets_remaining == 0 and not resuming_draft %}disabled{% endif %}>
+            <i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true"></i> <span>{% if candidate_profile %}Confirm profile and generate questions{% elif saved_profile %}Continue generation with confirmed profile{% else %}Review my extracted profile{% endif %}</span>
           </button>
-          <span><i class="fa-solid fa-layer-group" aria-hidden="true"></i> 2 rounds - 30 questions each - 1 monthly set</span>
+          {% if not candidate_profile and not saved_profile %}<span><i class="fa-solid fa-layer-group" aria-hidden="true"></i> Review your profile before question generation</span>{% else %}<span>Your resume text is not saved; this confirmed profile is kept with your draft.</span>{% endif %}
         </div>
         <section class="ipp-generation-status" data-generation-status role="status" aria-live="polite" hidden>
           <div class="ipp-generation-status-heading"><span data-generation-message>Starting your role-fit review...</span><strong data-generation-count>0 of 60</strong></div>
           <progress data-generation-progress max="60" value="0" aria-label="Preparation generation progress"></progress>
-          <p>Validated questions are saved as a private draft as they are completed. You can keep practising them if generation is interrupted.</p>
+          <p>Your selected target is saved with this preparation. Only complete, valid questions count toward it; saved questions remain available if generation pauses.</p>
           <ol class="ipp-generation-preview" data-generation-preview aria-label="Questions ready so far"></ol>
           <div data-generation-error role="alert" hidden></div>
-          <p data-generation-links hidden><a data-draft-link>Open saved questions</a> | <a data-resume-link>Resume unfinished questions</a></p>
+          <div class="ipp-generation-paused" data-generation-paused role="status" hidden>
+            <strong data-generation-paused-heading>Your progress is saved.</strong>
+            <p data-generation-paused-copy>Review the questions that are ready, or continue generating the rest.</p>
+          </div>
+          <div class="ipp-generation-links" data-generation-links hidden>
+            <a class="ipp-secondary-button" data-draft-link>Review questions ready</a>
+            <a class="ipp-primary-button" data-resume-link>Continue generation</a>
+          </div>
         </section>
       </form>
     </div>
@@ -121,11 +164,11 @@
     <aside class="ipp-create-aside" aria-label="What you will receive">
       <div class="ipp-aside-icon"><i class="fa-solid fa-list-check" aria-hidden="true"></i></div>
       <span class="ipp-eyebrow">YOUR PRACTICE SET</span>
-      <h2>Practice with a clear plan</h2>
-      <p>Questions are tailored to your target role, experience level, resume and the requirements in the job description.</p>
+      <h2>{% if candidate_profile %}You review before practice{% else %}Practice with a clear plan{% endif %}</h2>
+      <p>{% if candidate_profile %}Your confirmed skills, projects, education, and experience are saved with this draft and guide the interview questions.{% else %}Questions are tailored to your target role, experience level, resume and the requirements in the job description.{% endif %}</p>
       <ol class="ipp-step-list">
         <li><span>1</span><div><strong>Role fit summary</strong><small>See how your experience maps to the role.</small></div></li>
-        <li><span>2</span><div><strong>Two practice rounds</strong><small>30 questions in each round, with answer guidance.</small></div></li>
+        <li><span>2</span><div><strong>Practice matched to your level</strong><small>30 to 60 questions, with answer guidance and resume-based examples.</small></div></li>
         <li><span>3</span><div><strong>Track your practice</strong><small>Save questions and mark them practised.</small></div></li>
       </ol>
       <div class="ipp-aside-footnote"><i class="fa-solid fa-circle-info" aria-hidden="true"></i><span>Review interviewer guidance and adapt it to your own experience.</span></div>
@@ -147,26 +190,59 @@
   const links = form.querySelector('[data-generation-links]');
   const draftLink = form.querySelector('[data-draft-link]');
   const resumeLink = form.querySelector('[data-resume-link]');
+  const paused = form.querySelector('[data-generation-paused]');
+  const pausedHeading = form.querySelector('[data-generation-paused-heading]');
+  const pausedCopy = form.querySelector('[data-generation-paused-copy]');
   const button = form.querySelector('button[type="submit"]');
   const buttonLabel = button.querySelector('span');
   const icon = button.querySelector('i');
+  const targetField = form.querySelector('[name="question_target"]');
+
+  const showPausedState = (completed, detail) => {
+    if (completed > 0) {
+      pausedHeading.textContent = `${completed} question${completed === 1 ? '' : 's'} saved and ready to practise`;
+      pausedCopy.textContent = detail || 'Your progress is safe. Review these questions now or continue generating the rest.';
+      paused.hidden = false;
+      error.hidden = true;
+      message.textContent = 'Your preparation is saved and can be continued.';
+      buttonLabel.textContent = 'Continue generation';
+      button.disabled = false;
+    } else {
+      error.textContent = detail || 'We could not start this preparation. Please try again.';
+      error.hidden = false;
+      paused.hidden = true;
+      buttonLabel.textContent = 'Try again';
+      button.disabled = false;
+    }
+    icon.classList.remove('fa-spinner', 'fa-spin');
+    icon.classList.add('fa-wand-magic-sparkles');
+  };
 
   form.addEventListener('submit', async (event) => {
     event.preventDefault();
     status.hidden = false;
     error.hidden = true;
+    paused.hidden = true;
+    links.hidden = true;
+    resumeLink.hidden = false;
+    draftLink.textContent = 'Review questions ready';
+    resumeLink.textContent = 'Continue generation';
     error.textContent = '';
+    const selectedTarget = Math.min(60, Math.max(30, Number(targetField && targetField.value) || 45));
+    progress.max = selectedTarget;
     progress.value = 0;
-    count.textContent = `0 of ${progress.max}`;
+    count.textContent = `0 of ${selectedTarget}`;
     preview.replaceChildren();
     button.disabled = true;
     buttonLabel.textContent = 'Preparing your questions...';
     icon.classList.remove('fa-wand-magic-sparkles');
     icon.classList.add('fa-spinner', 'fa-spin');
     try {
+      const body = new FormData(form);
+      if (event.submitter && event.submitter.name) body.set(event.submitter.name, event.submitter.value);
       const response = await fetch(form.action || window.location.href, {
         method: 'POST',
-        body: new FormData(form),
+        body,
         headers: {'Accept': 'text/event-stream'},
         credentials: 'same-origin',
       });
@@ -192,9 +268,16 @@
             resumeLink.href = payload.resume_url;
           }
           message.textContent = payload.message || 'Preparing your questions...';
+          if (payload.total) progress.max = Number(payload.total);
           const completed = Number(payload.completed || 0);
           progress.value = completed;
           count.textContent = `${completed} of ${progress.max}`;
+          if (payload.phase === 'round_complete' && payload.round === 1 && payload.total > 30 && draftLink.hasAttribute('href')) {
+            links.hidden = false;
+            resumeLink.hidden = true;
+            draftLink.textContent = 'Review round 1';
+            message.textContent = 'Round 1 is saved. Round 2 is starting.';
+          }
           for (const question of (payload.preview_questions || [])) {
             const item = document.createElement('li');
             const title = document.createElement('strong');
@@ -210,18 +293,18 @@
             preview.appendChild(item);
           }
         } else if (payload.type === 'error') {
-          error.textContent = payload.message || 'Preparation failed. Please try again.';
-          error.hidden = false;
+          const completed = Number(payload.completed || progress.value || 0);
+          progress.value = completed;
+          count.textContent = `${completed} of ${progress.max}`;
           if (payload.draft_url && payload.resume_url) {
             draftLink.href = payload.draft_url;
             resumeLink.href = payload.resume_url;
             links.hidden = false;
+            resumeLink.hidden = false;
+            draftLink.textContent = 'Review questions ready';
+            resumeLink.textContent = 'Continue generation';
           }
-          message.textContent = 'Your interviewer could not finish this preparation.';
-          button.disabled = false;
-          buttonLabel.textContent = 'Try again';
-          icon.classList.remove('fa-spinner', 'fa-spin');
-          icon.classList.add('fa-wand-magic-sparkles');
+          showPausedState(completed, payload.message);
           return true;
         } else if (payload.type === 'complete' && payload.redirect_url) {
           message.textContent = payload.message || 'Your preparation is ready.';
@@ -242,14 +325,11 @@
       }
       if (!finished) throw new Error('The connection ended early. Your saved draft is still available; resume when you are ready.');
     } catch (err) {
-      error.textContent = err.message || 'Your interviewer could not finish this preparation. Please check your saved draft.';
-      error.hidden = false;
-      if (draftLink.href && resumeLink.href) links.hidden = false;
-      message.textContent = 'Your interviewer could not finish this preparation.';
-      button.disabled = false;
-      buttonLabel.textContent = 'Try again';
-      icon.classList.remove('fa-spinner', 'fa-spin');
-      icon.classList.add('fa-wand-magic-sparkles');
+      const completed = Number(progress.value || 0);
+      if (draftLink.hasAttribute('href') && resumeLink.hasAttribute('href')) links.hidden = false;
+      showPausedState(completed, completed > 0
+        ? 'The connection stopped, but completed questions are saved. Review them now or continue generation.'
+        : (err.message || 'We could not start this preparation. Please try again.'));
     }
   });
 })();
