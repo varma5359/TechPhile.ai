@@ -171,6 +171,40 @@ class PremiumAccessPeriod(models.Model):
         return f'{self.order.user} — {self.starts_at:%Y-%m-%d} to {self.ends_at:%Y-%m-%d}'
 
 
+class TrialUsage(models.Model):
+    """Record one durable, idempotent student trial start independently of payment."""
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        related_name='interview_prep_trial_usages',
+    )
+    feature_code = models.CharField(max_length=64, default='interview_prep')
+    idempotency_key = models.UUIDField()
+    request_fingerprint = models.CharField(max_length=64)
+    started_at = models.DateTimeField(default=timezone.now, db_index=True)
+    preparation = models.OneToOneField(
+        'PreparationSet',
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='trial_usage',
+    )
+
+    class Meta:
+        ordering = ['-started_at']
+        constraints = [
+            models.UniqueConstraint(
+                fields=['user', 'feature_code', 'idempotency_key'],
+                name='interview_prep_trial_unique_request',
+            ),
+        ]
+        indexes = [models.Index(fields=['user', 'started_at'], name='ipp_trial_user_started_idx')]
+
+    def __str__(self):
+        return f'{self.feature_code} trial for {self.user} at {self.started_at:%Y-%m-%d %H:%M UTC}'
+
+
 class PreparationSet(models.Model):
     """Persist one generated preparation set for its owner and access month."""
 
@@ -183,6 +217,8 @@ class PreparationSet(models.Model):
         PremiumAccessPeriod,
         on_delete=models.PROTECT,
         related_name='preparation_sets',
+        null=True,
+        blank=True,
     )
     request_reference = models.UUIDField(default=uuid.uuid4, editable=False)
     set_number = models.PositiveSmallIntegerField(editable=False)

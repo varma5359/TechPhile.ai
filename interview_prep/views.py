@@ -9,9 +9,10 @@ from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied, ValidationError
-from django.http import Http404, JsonResponse, StreamingHttpResponse
+from django.http import Http404, StreamingHttpResponse
 from django.contrib.staticfiles import finders
 from django.db import IntegrityError, close_old_connections, connections, transaction
+from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect, render, reverse
 from django.views.decorators.http import require_POST
 from django.utils import timezone
@@ -22,7 +23,7 @@ from .blueprint import map_jd_requirements
 from .forms import PaymentSubmissionForm, PreparationRequestForm
 from .intelligence_schema import count_valid_unique_questions
 from .learning_aids import build_learning_aid
-from .models import PaymentSubmission, PreparationSet, PremiumOrder
+from .models import PaymentSubmission, PreparationSet, PremiumOrder, TrialUsage
 from .openai_generator import PreparationProviderError, extract_candidate_profile, generate_preparation, is_provider_configured, preparation_fingerprint
 from .services import (
     PreparationSetLimitReached,
@@ -32,11 +33,12 @@ from .services import (
     checkpoint_preparation_draft,
     create_preparation_draft,
     get_preparation_access,
-    mark_trial_attempt_opened,
+    historical_trial_period_query,
     mark_preparation_draft_interrupted,
     mark_question_completed,
     preparation_is_draft,
     save_generated_preparation_set,
+    start_trial_preparation,
     toggle_saved_question,
     update_preparation_draft_target,
 )
@@ -89,9 +91,12 @@ def _candidate_profile_match(profile, role_family):
 
 
 def _preparation_form_context(request, form, access, candidate_profile=None, resuming_draft=False, saved_profile=None):
+    previous_filter = Q(trial_usage__isnull=False) | historical_trial_period_query()
+    if access['access_period']:
+        previous_filter |= Q(access_period=access['access_period'])
     previous_sets = list(PreparationSet.objects.filter(
-        owner=request.user, access_period=access['access_period'],
-    ).order_by('-created_at')) if access['access_period'] else []
+        owner=request.user,
+    ).filter(previous_filter).order_by('-created_at'))
     for item in previous_sets:
         item.is_draft = preparation_is_draft(item)
         item.generation_progress = (item.generated_content or {}).get('_generation_progress', {})
@@ -262,7 +267,7 @@ def monthly_plan(request):
 def start_order(request):
     """Create or resume the learner's pending monthly order at server price."""
     access = get_preparation_access(request.user)
-    if access['is_trial'] and access['premium_active']:
+    if access['plan'] == 'local_test_trial' and access['premium_active']:
         messages.info(request, 'Use your two free preparation sets before starting a monthly plan.')
         return redirect('interview_prep:create_preparation')
     if not _payments_ready():
@@ -362,7 +367,12 @@ def create_preparation(request):
     draft_id = request.GET.get('resume', '')
     if request.method == 'GET' and draft_id.isdigit():
         requested_draft = PreparationSet.objects.filter(
-            pk=int(draft_id), owner=request.user, access_period=access['access_period'],
+            pk=int(draft_id), owner=request.user,
+        ).filter(
+            Q(trial_usage__isnull=False) | historical_trial_period_query()
+            | Q(access_period=access['access_period'])
+            if access['access_period'] else Q(trial_usage__isnull=False)
+            | historical_trial_period_query()
         ).first()
         if requested_draft and not preparation_is_draft(requested_draft):
             return redirect('interview_prep:preparation_detail', preparation_id=requested_draft.pk)
@@ -405,7 +415,30 @@ def create_preparation(request):
         if form.is_valid():
             data = form.cleaned_data
             action = request.POST.get('preparation_action', 'generate')
-            if not access['premium_active']:
+            request_fingerprint = preparation_fingerprint(
+                data['resume_text'], data['job_description'], data['company_name'],
+                data['job_title'], data['role_family'], data['seniority'],
+                target_question_count=data['question_target'],
+            )
+            prior_trial = TrialUsage.objects.select_related('preparation').filter(
+                user=request.user,
+                feature_code='interview_prep',
+                idempotency_key=data['request_reference'],
+            ).first()
+            continuing_prior_trial = bool(
+                prior_trial and prior_trial.preparation_id
+                and str(data.get('resume_draft_id') or '') == str(prior_trial.preparation_id)
+            )
+            if prior_trial and prior_trial.request_fingerprint != request_fingerprint and not continuing_prior_trial:
+                form.add_error(None, 'This request key was already used for different preparation details.')
+            historical_resume = None
+            if data.get('resume_draft_id'):
+                historical_resume = PreparationSet.objects.filter(
+                    pk=data['resume_draft_id'], owner=request.user,
+                ).filter(historical_trial_period_query()).first()
+                if historical_resume and not preparation_is_draft(historical_resume):
+                    historical_resume = None
+            if not access['premium_active'] and not prior_trial and not historical_resume:
                 request.session['interview_prep_pending_request'] = {
                     key: (str(data[key]) if key == 'request_reference' else data[key]) for key in (
                         'request_reference', 'question_target', 'company_name', 'job_title',
@@ -416,13 +449,39 @@ def create_preparation(request):
                 messages.info(request, 'Your interview details are ready. Choose the monthly plan to continue to preparation.')
                 return redirect('interview_prep:monthly_plan')
             request.session.pop('interview_prep_pending_request', None)
-            if action == 'review':
+            if action == 'review' and not form.errors:
                 try:
                     prior_request = PreparationSet.objects.filter(
                         owner=request.user,
-                        access_period=access['access_period'],
                         request_reference=data['request_reference'],
+                    ).filter(
+                        Q(trial_usage__isnull=False) | historical_trial_period_query()
+                        | Q(access_period=access['access_period'])
+                        if access['access_period'] else Q(trial_usage__isnull=False)
+                        | historical_trial_period_query()
                     ).first()
+                    prior_request_details_match = bool(
+                        prior_request
+                        and data['company_name'].strip() == prior_request.company_name
+                        and data['job_title'].strip() == prior_request.job_title
+                        and data['role_family'] == prior_request.role_family
+                        and data['job_description'].strip() == prior_request.job_description
+                    )
+                    historical_prior_request = bool(
+                        prior_request
+                        and prior_request.access_period_id
+                        and prior_request.access_period.order.plan_code == 'free_trial'
+                    )
+                    if prior_request and (
+                        (prior_trial and prior_trial.request_fingerprint != request_fingerprint and (
+                            not continuing_prior_trial or not prior_request_details_match
+                        ))
+                        or (historical_prior_request and (
+                            str(data.get('resume_draft_id') or '') != str(prior_request.pk)
+                            or not prior_request_details_match
+                        ))
+                    ):
+                        raise ValidationError('This request key belongs to a different preparation. Resume the saved draft or start with a new request key.')
                     if prior_request and not preparation_is_draft(prior_request):
                         return redirect('interview_prep:preparation_detail', preparation_id=prior_request.pk)
                     if prior_request and (prior_request.generated_content or {}).get('_candidate_profile'):
@@ -447,19 +506,27 @@ def create_preparation(request):
                         data['job_title'], data['role_family'], data['seniority'],
                         target_question_count=data['question_target'],
                     )
-                    draft = create_preparation_draft(
-                        request.user, data['request_reference'], data['company_name'],
-                        data['job_title'], data['job_description'], data['role_family'],
-                        data['seniority'], fingerprint,
-                        target_question_count=data['question_target'],
+                    draft = (
+                        start_trial_preparation(
+                            request.user, data['request_reference'], request_fingerprint,
+                            data['company_name'], data['job_title'], data['job_description'],
+                            data['role_family'], data['seniority'],
+                            target_question_count=data['question_target'], candidate_profile=profile,
+                        ) if access['access_period'] is None else create_preparation_draft(
+                            request.user, data['request_reference'], data['company_name'],
+                            data['job_title'], data['job_description'], data['role_family'],
+                            data['seniority'], fingerprint,
+                            target_question_count=data['question_target'],
+                        )
                     )
                     if not preparation_is_draft(draft):
                         return redirect('interview_prep:preparation_detail', preparation_id=draft.pk)
-                    draft_content = dict(draft.generated_content or {})
-                    draft_content['_candidate_profile'] = profile
-                    draft_content['_candidate_profile_state'] = 'review'
-                    draft.generated_content = draft_content
-                    draft.save(update_fields=['generated_content', 'updated_at'])
+                    if access['access_period'] is not None:
+                        draft_content = dict(draft.generated_content or {})
+                        draft_content['_candidate_profile'] = profile
+                        draft_content['_candidate_profile_state'] = 'review'
+                        draft.generated_content = draft_content
+                        draft.save(update_fields=['generated_content', 'updated_at'])
                     candidate_profile = profile
                     form = PreparationRequestForm(initial={
                         **data,
@@ -478,7 +545,11 @@ def create_preparation(request):
             if data.get('resume_draft_id'):
                 draft = PreparationSet.objects.filter(
                     pk=data['resume_draft_id'], owner=request.user,
-                    access_period=access['access_period'],
+                ).filter(
+                    Q(trial_usage__isnull=False) | historical_trial_period_query()
+                    | Q(access_period=access['access_period'])
+                    if access['access_period'] else Q(trial_usage__isnull=False)
+                    | historical_trial_period_query()
                 ).first()
                 if not draft or not preparation_is_draft(draft):
                     form.add_error(None, 'That preparation draft is no longer available. Please start a new preparation.')
@@ -547,7 +618,11 @@ def create_preparation(request):
             existing = PreparationSet.objects.filter(
                 owner=request.user,
                 request_reference=data['request_reference'],
-                access_period=access['access_period'],
+            ).filter(
+                Q(trial_usage__isnull=False) | historical_trial_period_query()
+                | Q(access_period=access['access_period'])
+                if access['access_period'] else Q(trial_usage__isnull=False)
+                | historical_trial_period_query()
             ).first()
             if existing is None and fingerprint:
                 existing = PreparationSet.objects.filter(
@@ -555,9 +630,9 @@ def create_preparation(request):
                     access_period=access['access_period'],
                     input_fingerprint=fingerprint,
                 ).first()
-            if existing and not preparation_is_draft(existing):
+            if existing and not form.errors and not preparation_is_draft(existing):
                 return redirect('interview_prep:preparation_detail', preparation_id=existing.pk)
-            if existing and preparation_is_draft(existing):
+            if existing and not form.errors and preparation_is_draft(existing):
                 draft = existing
 
             if draft and not form.errors:
@@ -576,11 +651,18 @@ def create_preparation(request):
             elif request.headers.get('Accept') == 'text/event-stream':
                 if draft is None:
                     try:
-                        draft = create_preparation_draft(
-                            request.user, data['request_reference'], data['company_name'],
-                            data['job_title'], data['job_description'], data['role_family'],
-                            data['seniority'], fingerprint,
-                            target_question_count=data['question_target'],
+                        draft = (
+                            start_trial_preparation(
+                                request.user, data['request_reference'], request_fingerprint,
+                                data['company_name'], data['job_title'], data['job_description'],
+                                data['role_family'], data['seniority'],
+                                target_question_count=data['question_target'],
+                            ) if access['access_period'] is None else create_preparation_draft(
+                                request.user, data['request_reference'], data['company_name'],
+                                data['job_title'], data['job_description'], data['role_family'],
+                                data['seniority'], fingerprint,
+                                target_question_count=data['question_target'],
+                            )
                         )
                     except (PremiumPreparationRequired, PreparationSetLimitReached, ValidationError) as exc:
                         form.add_error(None, str(exc))
@@ -605,11 +687,18 @@ def create_preparation(request):
                 draft_claimed = False
                 try:
                     if draft is None:
-                        draft = create_preparation_draft(
-                            request.user, data['request_reference'], data['company_name'],
-                            data['job_title'], data['job_description'], data['role_family'],
-                            data['seniority'], fingerprint,
-                            target_question_count=data['question_target'],
+                        draft = (
+                            start_trial_preparation(
+                                request.user, data['request_reference'], request_fingerprint,
+                                data['company_name'], data['job_title'], data['job_description'],
+                                data['role_family'], data['seniority'],
+                                target_question_count=data['question_target'],
+                            ) if access['access_period'] is None else create_preparation_draft(
+                                request.user, data['request_reference'], data['company_name'],
+                                data['job_title'], data['job_description'], data['role_family'],
+                                data['seniority'], fingerprint,
+                                target_question_count=data['question_target'],
+                            )
                         )
                     if draft:
                         draft = update_preparation_draft_target(draft.pk, data['question_target'])
@@ -702,16 +791,24 @@ def preparation_detail(request, preparation_id):
 
 
 def _active_owned_preparation(user, preparation_id):
-    """Return an owned preparation while its approved monthly access is active."""
+    """Return an owned started trial or a preparation with current paid access."""
     now = timezone.now()
-    return get_object_or_404(
-        PreparationSet.objects.select_related('access_period'),
+    preparation = PreparationSet.objects.select_related('access_period').filter(
         pk=preparation_id,
         owner=user,
-        access_period__order__status=PremiumOrder.Status.APPROVED,
-        access_period__starts_at__lte=now,
-        access_period__ends_at__gt=now,
-    )
+    ).filter(
+        Q(trial_usage__isnull=False)
+        | historical_trial_period_query()
+        | Q(
+            access_period__order__status=PremiumOrder.Status.APPROVED,
+            access_period__order__plan_code__in=['premium_monthly', 'local_test_monthly'],
+            access_period__starts_at__lte=now,
+            access_period__ends_at__gt=now,
+        )
+    ).first()
+    if preparation is None:
+        raise Http404
+    return preparation
 
 
 @login_required
@@ -762,16 +859,6 @@ def preparation_questions(request, preparation_id):
         'generation_state': content.get('_generation_state') if is_draft else 'complete',
         'target_question_count': target_question_count,
     })
-
-
-@login_required
-@require_POST
-def mark_trial_attempt_opened_view(request, preparation_id):
-    """Count a free attempt after the complete questions page has loaded."""
-    preparation = _active_owned_preparation(request.user, preparation_id)
-    preparation = mark_trial_attempt_opened(preparation.pk)
-    content = preparation.generated_content or {}
-    return JsonResponse({'counted': bool(content.get('_trial_attempt_consumed_at'))})
 
 
 @login_required

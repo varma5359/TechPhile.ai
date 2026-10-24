@@ -1,12 +1,19 @@
 import json
+import importlib
+import threading
 import uuid
+from concurrent.futures import ThreadPoolExecutor
 from datetime import timedelta
 from decimal import Decimal
+from types import SimpleNamespace
+from unittest import skipUnless
 from unittest.mock import Mock, patch
+from django.apps import apps
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import AnonymousUser, Permission
 from django.core.exceptions import ValidationError
-from django.test import TestCase, override_settings
+from django.db import connection
+from django.test import TestCase, TransactionTestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
 
@@ -17,6 +24,7 @@ from .models import (
     PremiumOrder,
     PreparationSet,
     SavedQuestion,
+    TrialUsage,
 )
 from .forms import PreparationRequestForm
 from .openai_generator import PreparationProviderError, generate_preparation
@@ -29,11 +37,13 @@ from .services import (
     claim_preparation_draft,
     create_preparation_draft,
     get_preparation_access,
+    get_active_access_period,
     get_saved_questions,
     mark_preparation_draft_interrupted,
     mark_question_completed,
     preparation_is_draft,
     save_generated_preparation_set,
+    start_trial_preparation,
     toggle_saved_question,
     update_preparation_draft_target,
 )
@@ -61,7 +71,10 @@ def _answer_block(kind, *, title='', text='', items=None, headers=None, rows=Non
     }
 
 
-@override_settings(STATICFILES_STORAGE='django.contrib.staticfiles.storage.StaticFilesStorage')
+@override_settings(
+    STATICFILES_STORAGE='django.contrib.staticfiles.storage.StaticFilesStorage',
+    INTERVIEW_PREP_TEST_ACCESS=False,
+)
 class PremiumAccessServiceTests(TestCase):
     def setUp(self):
         user_model = get_user_model()
@@ -103,9 +116,9 @@ class PremiumAccessServiceTests(TestCase):
 
     def test_free_account_has_no_premium_set_slots(self):
         access = get_preparation_access(self.other_learner)
-        self.assertEqual(access['plan'], 'free')
-        self.assertFalse(access['premium_active'])
-        self.assertEqual(access['sets_remaining'], 0)
+        self.assertEqual(access['plan'], 'free_trial')
+        self.assertTrue(access['premium_active'])
+        self.assertEqual(access['sets_remaining'], 2)
         with self.assertRaises(PremiumPreparationRequired):
             save_generated_preparation_set(
                 self.other_learner,
@@ -115,6 +128,217 @@ class PremiumAccessServiceTests(TestCase):
                 'A role description.',
                 {'questions': self.questions},
             )
+
+    def test_trial_start_is_idempotent_rejects_key_reuse_and_consumes_at_creation(self):
+        reference = uuid.uuid4()
+        fingerprint = 'a' * 64
+        preparation = start_trial_preparation(
+            self.other_learner, reference, fingerprint, 'Acme', 'Engineer', 'Build APIs.',
+        )
+        retried = start_trial_preparation(
+            self.other_learner, reference, fingerprint, 'Acme', 'Engineer', 'Build APIs.',
+        )
+        self.assertEqual(retried.pk, preparation.pk)
+        self.assertEqual(TrialUsage.objects.filter(user=self.other_learner).count(), 1)
+        access = get_preparation_access(self.other_learner)
+        self.assertEqual(access['sets_remaining'], 1)
+        with self.assertRaisesMessage(ValidationError, 'different preparation details'):
+            start_trial_preparation(
+                self.other_learner, reference, 'b' * 64, 'Other', 'Analyst', 'Analyze data.',
+            )
+
+    def test_third_distinct_trial_start_is_rejected(self):
+        for index in range(2):
+            start_trial_preparation(
+                self.other_learner, uuid.uuid4(), str(index) * 64,
+                'Acme', f'Engineer {index}', 'Build APIs.',
+            )
+        with self.assertRaises(PreparationSetLimitReached):
+            start_trial_preparation(
+                self.other_learner, uuid.uuid4(), 'c' * 64,
+                'Acme', 'Engineer 3', 'Build APIs.',
+            )
+        self.assertEqual(TrialUsage.objects.filter(user=self.other_learner).count(), 2)
+
+    def test_trial_allowance_excludes_exact_20_day_boundary(self):
+        now = timezone.now()
+        TrialUsage.objects.create(
+            user=self.other_learner, feature_code='interview_prep',
+            idempotency_key=uuid.uuid4(), request_fingerprint='a' * 64,
+            started_at=now - timedelta(days=20),
+        )
+        TrialUsage.objects.create(
+            user=self.other_learner, feature_code='interview_prep',
+            idempotency_key=uuid.uuid4(), request_fingerprint='b' * 64,
+            started_at=now - timedelta(days=20) + timedelta(microseconds=1),
+        )
+        access = get_preparation_access(self.other_learner, at=now)
+        self.assertEqual(access['sets_used'], 1)
+        self.assertEqual(access['sets_remaining'], 1)
+        self.assertEqual(access['trial_resets_at'], now + timedelta(microseconds=1))
+
+    def test_trial_allowance_is_shared_across_feature_codes(self):
+        TrialUsage.objects.create(
+            user=self.other_learner, feature_code='another_eligible_feature',
+            idempotency_key=uuid.uuid4(), request_fingerprint='a' * 64,
+            started_at=timezone.now(),
+        )
+        self.assertEqual(get_preparation_access(self.other_learner)['sets_remaining'], 1)
+
+    def test_staff_and_superusers_are_not_granted_student_trials(self):
+        staff = get_user_model().objects.create_user(username='staff', password='test-password', is_staff=True)
+        admin = get_user_model().objects.create_superuser(
+            username='admin', email='admin@example.com', password='test-password',
+        )
+        for user in (staff, admin):
+            access = get_preparation_access(user)
+            self.assertFalse(access['is_trial'])
+            self.assertFalse(access['premium_active'])
+            with self.assertRaises(PremiumPreparationRequired):
+                start_trial_preparation(user, uuid.uuid4(), 'a' * 64, 'Acme', 'Engineer', 'Build APIs.')
+
+    @override_settings(INTERVIEW_PREP_TEST_ACCESS=True)
+    def test_debug_local_test_plan_keeps_two_start_limit_without_page_beacon(self):
+        access = get_preparation_access(self.other_learner)
+        self.assertEqual(access['plan'], 'local_test_trial')
+        self.assertEqual(access['slots_available'], 2)
+        for index in range(2):
+            create_preparation_draft(
+                self.other_learner, uuid.uuid4(), 'Acme', f'Engineer {index}', 'Build APIs.',
+            )
+        access = get_preparation_access(self.other_learner)
+        self.assertEqual(access['sets_remaining'], 0)
+        self.assertEqual(access['slots_available'], 0)
+        self.assertFalse(access['premium_active'])
+
+    def test_failed_atomic_trial_creation_does_not_consume_allowance(self):
+        reference = uuid.uuid4()
+        with patch('interview_prep.services.TrialUsage.objects.create', side_effect=RuntimeError('ledger write failed')):
+            with self.assertRaisesMessage(RuntimeError, 'ledger write failed'):
+                start_trial_preparation(
+                    self.other_learner, reference, 'a' * 64, 'Acme', 'Engineer', 'Build APIs.',
+                )
+        self.assertFalse(PreparationSet.objects.filter(owner=self.other_learner).exists())
+        self.assertFalse(TrialUsage.objects.filter(user=self.other_learner).exists())
+
+    def test_deleting_preparation_keeps_trial_usage_history(self):
+        preparation = start_trial_preparation(
+            self.other_learner, uuid.uuid4(), 'a' * 64, 'Acme', 'Engineer', 'Build APIs.',
+        )
+        usage = TrialUsage.objects.get(preparation=preparation)
+        preparation.delete()
+        usage.refresh_from_db()
+        self.assertIsNone(usage.preparation_id)
+        self.assertEqual(get_preparation_access(self.other_learner)['sets_remaining'], 1)
+
+    def test_trial_generation_still_rejects_duplicate_question_ids(self):
+        reference = uuid.uuid4()
+        draft = start_trial_preparation(
+            self.other_learner, reference, 'a' * 64, 'Acme', 'Engineer', 'Build APIs.',
+        )
+        repeated = {'id': 'same-id', 'question': 'How do you design a reliable API?'}
+        with self.assertRaisesMessage(ValidationError, 'Generated question IDs must be unique'):
+            save_generated_preparation_set(
+                self.other_learner, reference, 'Acme', 'Engineer', 'Build APIs.',
+                {'questions': [repeated, repeated]},
+            )
+        draft.refresh_from_db()
+        self.assertTrue(preparation_is_draft(draft))
+
+    def test_migration_reverse_guard_refuses_before_trial_history_can_be_dropped(self):
+        migration_module = importlib.import_module(
+            'interview_prep.migrations.0007_trialusage_and_nullable_access_period',
+        )
+        usage = TrialUsage.objects.create(
+            user=self.other_learner,
+            feature_code='interview_prep',
+            idempotency_key=uuid.uuid4(),
+            request_fingerprint='a' * 64,
+            started_at=timezone.now(),
+        )
+        self.assertIs(
+            migration_module.Migration.operations[-1].reverse_code,
+            migration_module.refuse_unsafe_reverse,
+        )
+        with self.assertRaisesRegex(RuntimeError, 'cannot be reversed while TrialUsage history exists'):
+            migration_module.refuse_unsafe_reverse(
+                apps,
+                SimpleNamespace(connection=connection),
+            )
+        self.assertTrue(TrialUsage.objects.filter(pk=usage.pk).exists())
+
+    def test_historical_trial_preparation_is_accessible_but_cannot_bypass_new_start_limit(self):
+        now = timezone.now()
+        legacy_order = PremiumOrder.objects.create(
+            user=self.other_learner,
+            plan_code='free_trial',
+            amount=Decimal('0.00'),
+            status=PremiumOrder.Status.APPROVED,
+        )
+        legacy_period = PremiumAccessPeriod.objects.create(
+            order=legacy_order,
+            starts_at=now - timedelta(days=1),
+            ends_at=now + timedelta(days=1),
+        )
+        preparation = PreparationSet.objects.create(
+            owner=self.other_learner,
+            access_period=legacy_period,
+            request_reference=uuid.uuid4(),
+            set_number=1,
+            company_name='Legacy Co',
+            job_title='Analyst',
+            role_family='data-analytics',
+            seniority='entry',
+            job_description='Analyze business data.',
+            generated_content={'questions': [{
+                'id': 'legacy-q1',
+                'question': 'How would you validate a business metric?',
+            }]},
+        )
+        for index in range(2):
+            TrialUsage.objects.create(
+                user=self.other_learner,
+                feature_code='interview_prep',
+                idempotency_key=uuid.uuid4(),
+                request_fingerprint=str(index) * 64,
+                started_at=now,
+            )
+
+        self.assertIsNone(get_active_access_period(self.other_learner))
+        with self.assertRaises(PreparationSetLimitReached):
+            start_trial_preparation(
+                self.other_learner, uuid.uuid4(), 'c' * 64,
+                'New Co', 'Engineer', 'Build APIs.',
+            )
+        with self.assertRaises(PremiumPreparationRequired):
+            create_preparation_draft(
+                self.other_learner, uuid.uuid4(), 'New Co', 'Engineer', 'Build APIs.',
+            )
+
+        self.client.force_login(self.other_learner)
+        detail = self.client.get(reverse('interview_prep:preparation_detail', args=[preparation.pk]))
+        questions = self.client.get(reverse('interview_prep:preparation_questions', args=[preparation.pk]))
+        self.assertEqual(detail.status_code, 200)
+        self.assertEqual(questions.status_code, 200)
+
+        save_response = self.client.post(reverse(
+            'interview_prep:preparation_question_action', args=[preparation.pk, 'save'],
+        ), {'question_id': 'legacy-q1'})
+        complete_response = self.client.post(reverse(
+            'interview_prep:preparation_question_action', args=[preparation.pk, 'complete'],
+        ), {'question_id': 'legacy-q1', 'completed': 'true'})
+        self.assertEqual(save_response.status_code, 302)
+        self.assertEqual(complete_response.status_code, 302)
+        self.assertEqual(get_saved_questions(self.other_learner).count(), 1)
+        preparation.refresh_from_db()
+        self.assertEqual(preparation.completed_question_ids, ['legacy-q1'])
+
+        self.client.force_login(self.learner)
+        self.assertEqual(
+            self.client.get(reverse('interview_prep:preparation_detail', args=[preparation.pk])).status_code,
+            404,
+        )
+        self.assertEqual(get_saved_questions(self.learner).count(), 0)
 
     def test_premium_limit_is_two_sets_across_companies_and_retry_is_idempotent(self):
         first_reference = uuid.uuid4()
@@ -190,8 +414,8 @@ class PremiumAccessServiceTests(TestCase):
         self.order.save(update_fields=['status'])
 
         access = get_preparation_access(self.learner)
-        self.assertFalse(access['premium_active'])
-        self.assertEqual(access['sets_remaining'], 0)
+        self.assertEqual(access['plan'], 'free_trial')
+        self.assertEqual(access['sets_remaining'], 2)
         with self.assertRaises(PremiumPreparationRequired):
             self.save_set()
         with self.assertRaises(PremiumPreparationRequired):
@@ -1048,6 +1272,119 @@ class OpenAIGenerationTests(TestCase):
             ends_at=now + timedelta(days=29),
         )
 
+    @override_settings(
+        INTERVIEW_PREP_TEST_ACCESS=False,
+        INTERVIEW_PREP_OPENAI_API_KEY='test-key',
+    )
+    def test_trial_page_visit_does_not_consume_and_failed_generation_keeps_one_start(self):
+        from .models import TrialUsage
+
+        student = get_user_model().objects.create_user(
+            username='trial-student', password='test-password',
+        )
+        self.client.force_login(student)
+        page = self.client.get(reverse('interview_prep:create_preparation'))
+        self.assertEqual(page.status_code, 200)
+        self.assertEqual(TrialUsage.objects.filter(user=student).count(), 0)
+
+        review_data = {
+            'request_reference': uuid.uuid4(),
+            'company_name': 'Acme', 'job_title': 'Engineer',
+            'role_family': 'general-software-engineering', 'seniority': 'entry',
+            'question_target': 30,
+            'job_description': 'Build backend services.',
+            'resume_text': 'Built backend services.',
+            'consent_to_ai_provider': 'on', 'preparation_action': 'review',
+        }
+        with patch('interview_prep.views.extract_candidate_profile', side_effect=PreparationProviderError('Extraction failed.')):
+            rejected_review = self.client.post(
+                reverse('interview_prep:create_preparation'), review_data,
+            )
+        self.assertEqual(rejected_review.status_code, 200)
+        self.assertEqual(TrialUsage.objects.filter(user=student).count(), 0)
+
+        reference = uuid.uuid4()
+        form_data = {
+            'request_reference': reference,
+            'company_name': 'Acme', 'job_title': 'Engineer',
+            'role_family': 'general-software-engineering', 'seniority': 'entry',
+            'question_target': 30,
+            'job_description': 'Build backend services.',
+            'resume_text': 'Built backend services.',
+            'consent_to_ai_provider': 'on',
+        }
+        with patch('interview_prep.views.generate_preparation', side_effect=PreparationProviderError('Provider down.')):
+            failed = self.client.post(
+                reverse('interview_prep:create_preparation'), form_data,
+                HTTP_ACCEPT='text/event-stream',
+            )
+            b''.join(failed.streaming_content)
+            self.assertEqual(TrialUsage.objects.filter(user=student).count(), 1)
+            retry = self.client.post(
+                reverse('interview_prep:create_preparation'), form_data,
+                HTTP_ACCEPT='text/event-stream',
+            )
+            b''.join(retry.streaming_content)
+        self.assertEqual(TrialUsage.objects.filter(user=student).count(), 1)
+        preparation = PreparationSet.objects.get(owner=student)
+        self.assertEqual(preparation.request_reference, reference)
+        usage = TrialUsage.objects.get(user=student)
+        usage.started_at = timezone.now() - timedelta(days=21)
+        usage.save(update_fields=['started_at'])
+        resumed_page = self.client.get(
+            reverse('interview_prep:create_preparation'), {'resume': preparation.pk},
+        )
+        self.assertEqual(resumed_page.status_code, 200)
+
+        resumed_form = {**form_data, 'resume_draft_id': preparation.pk}
+        completed_content = {
+            'analysis': 'Saved trial resumed after its allowance window.',
+            'questions': [{
+                'id': 'resumed-q1',
+                'question': 'How would you test an API response?',
+            }],
+        }
+        with patch('interview_prep.views.generate_preparation', return_value=completed_content):
+            resumed_generation = self.client.post(
+                reverse('interview_prep:create_preparation'), resumed_form,
+                HTTP_ACCEPT='text/event-stream',
+            )
+            events = b''.join(resumed_generation.streaming_content).decode()
+        self.assertIn('"type": "complete"', events)
+        self.assertEqual(TrialUsage.objects.filter(user=student).count(), 1)
+        preparation.refresh_from_db()
+        self.assertFalse(preparation_is_draft(preparation))
+
+    @override_settings(INTERVIEW_PREP_TEST_ACCESS=False)
+    def test_expired_trial_preparations_are_listed_only_for_their_owner(self):
+        from .models import TrialUsage
+
+        student = get_user_model().objects.create_user(
+            username='returning-trial-student', password='test-password',
+        )
+        preparation = start_trial_preparation(
+            student, uuid.uuid4(), 'd' * 64, 'Acme', 'Returning Engineer', 'Build APIs.',
+        )
+        usage = TrialUsage.objects.get(preparation=preparation)
+        usage.started_at = timezone.now() - timedelta(days=21)
+        usage.save(update_fields=['started_at'])
+
+        self.client.force_login(student)
+        response = self.client.get(reverse('interview_prep:create_preparation'))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual([item.pk for item in response.context['previous_sets']], [preparation.pk])
+        self.assertContains(response, 'Returning Engineer')
+
+        other_student = get_user_model().objects.create_user(
+            username='different-trial-student', password='test-password',
+        )
+        self.client.force_login(other_student)
+        other_response = self.client.get(reverse('interview_prep:create_preparation'))
+        self.assertEqual(other_response.status_code, 200)
+        self.assertEqual(other_response.context['previous_sets'], [])
+        self.assertNotContains(other_response, 'Returning Engineer')
+
+
     def test_unmapped_jd_requirement_is_visible_on_preparation_detail(self):
         preparation = PreparationSet.objects.create(
             owner=self.learner,
@@ -1661,4 +1998,76 @@ ORDER BY total_revenue DESC;
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'used both preparation sets')
         generate.assert_not_called()
+
+
+@skipUnless(connection.vendor == 'mysql', 'Row-lock concurrency guarantee requires MySQL.')
+@override_settings(INTERVIEW_PREP_TEST_ACCESS=False)
+class TrialConcurrentStartTests(TransactionTestCase):
+    """Exercise competing trial starts against MySQL row locking."""
+
+    reset_sequences = True
+
+    def test_only_one_of_two_competing_starts_can_use_the_last_trial(self):
+        student = get_user_model().objects.create_user(
+            username='concurrent-trial', password='test-password',
+        )
+        TrialUsage.objects.create(
+            user=student,
+            feature_code='interview_prep',
+            idempotency_key=uuid.uuid4(),
+            request_fingerprint='a' * 64,
+            started_at=timezone.now(),
+        )
+        barrier = threading.Barrier(2)
+
+        def start(index):
+            from django.db import close_old_connections
+
+            close_old_connections()
+            try:
+                barrier.wait(timeout=10)
+                start_trial_preparation(
+                    get_user_model().objects.get(pk=student.pk), uuid.uuid4(),
+                    str(index) * 64, 'Acme', f'Engineer {index}', 'Build APIs.',
+                )
+                return 'started'
+            except PreparationSetLimitReached:
+                return 'exhausted'
+            finally:
+                close_old_connections()
+
+        with ThreadPoolExecutor(max_workers=2) as workers:
+            outcomes = sorted(workers.map(start, (1, 2)))
+
+        self.assertEqual(outcomes, ['exhausted', 'started'])
+        self.assertEqual(TrialUsage.objects.filter(user=student).count(), 2)
+
+
+    def test_concurrent_retries_with_same_key_create_one_trial_and_one_preparation(self):
+        student = get_user_model().objects.create_user(
+            username='concurrent-idempotency', password='test-password',
+        )
+        reference = uuid.uuid4()
+        fingerprint = 'e' * 64
+        barrier = threading.Barrier(2)
+
+        def start():
+            from django.db import close_old_connections
+
+            close_old_connections()
+            try:
+                barrier.wait(timeout=10)
+                return start_trial_preparation(
+                    get_user_model().objects.get(pk=student.pk), reference, fingerprint,
+                    'Acme', 'Engineer', 'Build APIs.',
+                ).pk
+            finally:
+                close_old_connections()
+
+        with ThreadPoolExecutor(max_workers=2) as workers:
+            preparation_ids = list(workers.map(lambda _index: start(), (1, 2)))
+
+        self.assertEqual(preparation_ids[0], preparation_ids[1])
+        self.assertEqual(PreparationSet.objects.filter(owner=student).count(), 1)
+        self.assertEqual(TrialUsage.objects.filter(user=student).count(), 1)
 

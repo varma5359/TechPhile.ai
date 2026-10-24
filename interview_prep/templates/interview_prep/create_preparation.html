@@ -11,12 +11,12 @@
         <div>
           <span class="ipp-eyebrow"><i class="fa-solid fa-sparkles" aria-hidden="true"></i> PREMIUM PREPARATION</span>
           <h1>{% if candidate_profile %}Your resume match{% else %}Check your role fit, then prepare{% endif %}</h1>
-          <p>{% if candidate_profile %}Review your role match, choose your experience level and question count, then generate focused interview practice.{% elif access.is_trial %}Start with two free preparation sets. After both are used, you can choose a monthly plan to continue.{% elif not access.premium_active %}Add your resume and job description first. You’ll see the monthly plan before any questions are generated.{% else %}Review your resume-to-job fit, then practise for your selected role with questions focused on its requirements and skill gaps.{% endif %}</p>
+          <p>{% if candidate_profile %}Review your role match, choose your experience level and question count, then generate focused interview practice.{% elif access.is_trial %}Start two free preparations in each rolling 20-day period. Choose a monthly plan after both starts are used.{% elif not access.premium_active %}Add your resume and job description first. You’ll see the monthly plan before any questions are generated.{% else %}Review your resume-to-job fit, then practise for your selected role with questions focused on its requirements and skill gaps.{% endif %}</p>
         </div>
         <div class="ipp-usage-card{% if access.is_trial %} ipp-trial-usage{% endif %}" aria-label="{% if access.is_trial %}Free preview: {{ access.sets_remaining }} of {{ access.set_limit }} attempts remaining{% else %}Monthly preparation usage{% endif %}">
           <span class="ipp-usage-label">{% if access.is_trial %}<span class="ipp-preview-badge"><span class="ipp-preview-sparkle" aria-hidden="true">✦</span> YOUR FREE PREVIEW</span>{% elif access.premium_active %}THIS MONTH{% else %}MONTHLY PLAN{% endif %}</span>
           {% if access.premium_active %}
-            {% if access.is_trial %}<strong class="ipp-trial-count">{{ access.sets_remaining }} <small>of {{ access.set_limit }} free attempts left</small></strong><span class="ipp-trial-explainer">An attempt is counted when you open its generated questions. Interrupted generation does not use an attempt.</span>
+            {% if access.is_trial %}<strong class="ipp-trial-count">{{ access.sets_remaining }} <small>of {{ access.set_limit }} free starts left</small></strong><span class="ipp-trial-explainer">A trial is used when your validated preparation draft starts. Returning to that preparation does not use another trial.{% if access.trial_resets_at %} Your next trial becomes available {{ access.trial_resets_at|date:'M j, Y, g:i A' }}.{% endif %}</span>
             {% else %}<strong>{{ access.sets_remaining }} <small>of {{ access.set_limit }} sets left</small></strong><span>{{ access.sets_completed }} completed - {{ access.drafts_reserved }} draft slots reserved</span>{% endif %}
           {% else %}<strong>{{ access.set_limit }} <small>sets per month</small></strong><span>Choose up to two roles to prepare for each month</span>{% endif %}
         </div>
@@ -44,8 +44,6 @@
         <div class="ipp-not-ready" role="status"><i class="fa-solid fa-circle-info" aria-hidden="true"></i><div><strong>Interview preparation is not available right now.</strong><br>Set an API key for the selected provider before generating a set.</div></div>
       {% elif access.premium_active and access.sets_remaining == 0 %}
         <div class="ipp-not-ready" role="status"><i class="fa-solid fa-circle-info" aria-hidden="true"></i><div>You have used both preparation sets for this subscription month.</div></div>
-      {% elif access.is_trial and access.slots_available == 0 and access.unopened_sets > 0 %}
-        <div class="ipp-not-ready" role="status"><i class="fa-solid fa-circle-info" aria-hidden="true"></i><div>Your free attempts are not used yet. Open the questions for one of your completed preparations to count that attempt and continue.</div></div>
       {% endif %}
       {% if form.non_field_errors %}<div class="ipp-form-errors" role="alert">{{ form.non_field_errors }}</div>{% endif %}
 

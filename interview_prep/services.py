@@ -4,19 +4,24 @@ import uuid
 from datetime import timedelta
 
 from django.conf import settings
+from django.contrib.auth import get_user_model
 from django.core.exceptions import PermissionDenied, ValidationError
-from django.db import IntegrityError, transaction
+from django.db import IntegrityError, models, transaction
 from django.utils import timezone
 
 from .intelligence_schema import count_valid_unique_questions
+from .role_profiles import SENIORITY_LEVELS, profile_choices
 
-from .models import PremiumAccessPeriod, PremiumOrder, PreparationSet, SavedQuestion
+from .models import PremiumAccessPeriod, PremiumOrder, PreparationSet, SavedQuestion, TrialUsage
 
 
 MONTHLY_PREPARATION_SET_LIMIT = 2
 MIN_PREPARATION_QUESTIONS = 30
 MAX_PREPARATION_QUESTIONS = 60
 DEFAULT_PREPARATION_QUESTIONS = 45
+TRIAL_ALLOWANCE = 2
+TRIAL_WINDOW = timedelta(days=20)
+TRIAL_FEATURE_CODE = 'interview_prep'
 
 
 class PremiumPreparationRequired(PermissionDenied):
@@ -75,10 +80,46 @@ def get_active_access_period(user, at=None, lock=False):
     # No active paid or explicitly enabled local test access exists.
     return None
 
+
+def historical_trial_period_query(prefix='', at=None):
+    """Match only existing preparations on an approved, date-active legacy trial period."""
+    at = at or timezone.now()
+    return models.Q(**{
+        f'{prefix}access_period__order__plan_code': 'free_trial',
+        f'{prefix}access_period__order__status': PremiumOrder.Status.APPROVED,
+        f'{prefix}access_period__starts_at__lte': at,
+        f'{prefix}access_period__ends_at__gt': at,
+    })
+
+
 def get_preparation_access(user, at=None):
     """Summarize free or active Premium access and the remaining monthly sets."""
     period = get_active_access_period(user, at=at)
     if period is None:
+        if user and user.is_authenticated and not (user.is_staff or user.is_superuser):
+            at = at or timezone.now()
+            cutoff = at - TRIAL_WINDOW
+            usages = TrialUsage.objects.filter(
+                user=user,
+                started_at__gt=cutoff,
+            )
+            used = usages.count()
+            remaining = max(0, TRIAL_ALLOWANCE - used)
+            oldest = usages.order_by('started_at').values_list('started_at', flat=True).first()
+            return {
+                'plan': 'free_trial',
+                'premium_active': remaining > 0,
+                'access_period': None,
+                'sets_used': used,
+                'sets_completed': used,
+                'drafts_reserved': 0,
+                'sets_remaining': remaining,
+                'slots_available': remaining,
+                'unopened_sets': 0,
+                'set_limit': TRIAL_ALLOWANCE,
+                'is_trial': True,
+                'trial_resets_at': oldest + TRIAL_WINDOW if oldest else None,
+            }
         return {
             'plan': 'free',
             'premium_active': False,
@@ -91,6 +132,7 @@ def get_preparation_access(user, at=None):
             'unopened_sets': 0,
             'set_limit': MONTHLY_PREPARATION_SET_LIMIT,
             'is_trial': False,
+            'trial_resets_at': None,
         }
 
     preparations = list(PreparationSet.objects.filter(access_period=period).only(
@@ -98,22 +140,15 @@ def get_preparation_access(user, at=None):
     ))
     used = len(preparations)
     drafts_reserved = sum(1 for item in preparations if preparation_is_draft(item))
-    is_trial = period.order.plan_code in {'free_trial', 'local_test_monthly'}
+    is_trial = period.order.plan_code == 'local_test_monthly'
     if is_trial:
-        attempts_consumed = sum(
-            bool((item.generated_content or {}).get('_trial_attempt_consumed_at') or item.completed_question_ids)
-            for item in preparations
-        )
-        unopened_sets = sum(
-            not (item.generated_content or {}).get('_trial_attempt_consumed_at')
-            and not item.completed_question_ids
-            and not preparation_is_draft(item)
-            for item in preparations
-        )
-        remaining = max(0, MONTHLY_PREPARATION_SET_LIMIT - attempts_consumed)
-        slots_available = max(0, MONTHLY_PREPARATION_SET_LIMIT - used)
-        premium_active = attempts_consumed < MONTHLY_PREPARATION_SET_LIMIT or used > attempts_consumed
-        completed = attempts_consumed
+        # The DEBUG-only test plan counts durable preparation starts, without the
+        # removed browser page-open beacon used by the historical trial flow.
+        remaining = max(0, MONTHLY_PREPARATION_SET_LIMIT - used)
+        slots_available = remaining
+        premium_active = remaining > 0
+        unopened_sets = 0
+        completed = used - drafts_reserved
     else:
         remaining = max(0, MONTHLY_PREPARATION_SET_LIMIT - used)
         slots_available = remaining
@@ -132,6 +167,7 @@ def get_preparation_access(user, at=None):
         'unopened_sets': unopened_sets,
         'set_limit': MONTHLY_PREPARATION_SET_LIMIT,
         'is_trial': is_trial,
+        'trial_resets_at': None,
     }
 
 
@@ -140,28 +176,6 @@ def preparation_is_draft(preparation_set):
     return (preparation_set.generated_content or {}).get('_generation_state') in {
         'in_progress', 'incomplete', 'temporarily_unavailable', 'interrupted',
     }
-
-
-def mark_trial_attempt_opened(preparation_id):
-    """Consume one free attempt only after its completed questions are opened."""
-    with transaction.atomic():
-        preparation = PreparationSet.objects.select_for_update().select_related(
-            'access_period__order',
-        ).get(pk=preparation_id)
-        if preparation.access_period.order.plan_code not in {'free_trial', 'local_test_monthly'}:
-            return preparation
-        content = dict(preparation.generated_content or {})
-        if content.get('_trial_attempt_consumed_at') or preparation.completed_question_ids or preparation_is_draft(preparation):
-            return preparation
-        rounds = content.get('rounds') or []
-        if not rounds and content.get('questions'):
-            rounds = [{'questions': content['questions']}]
-        if count_valid_unique_questions(rounds) < 1:
-            return preparation
-        content['_trial_attempt_consumed_at'] = timezone.now().isoformat()
-        preparation.generated_content = content
-        preparation.save(update_fields=['generated_content', 'updated_at'])
-        return preparation
 
 
 def create_preparation_draft(
@@ -221,6 +235,108 @@ def create_preparation_draft(
                 'rounds': [],
             },
         )
+
+
+def start_trial_preparation(
+    user, request_reference, request_fingerprint, company_name, job_title,
+    job_description, role_family='general-software-engineering', seniority='entry',
+    target_question_count=DEFAULT_PREPARATION_QUESTIONS, candidate_profile=None,
+):
+    """Atomically reserve one rolling-window trial and create its resumable draft."""
+    if not user or not user.is_authenticated:
+        raise PremiumPreparationRequired('Sign in to use Interview Preparation.')
+    if user.is_staff or user.is_superuser:
+        raise PremiumPreparationRequired('Free trials are available to student accounts.')
+    try:
+        request_reference = uuid.UUID(str(request_reference))
+    except (TypeError, ValueError, AttributeError) as exc:
+        raise ValidationError('A valid preparation request reference is required.') from exc
+    if not isinstance(request_fingerprint, str) or len(request_fingerprint) != 64:
+        raise ValidationError('A valid request fingerprint is required.')
+    if (
+        isinstance(target_question_count, bool)
+        or not isinstance(target_question_count, int)
+        or not MIN_PREPARATION_QUESTIONS <= target_question_count <= MAX_PREPARATION_QUESTIONS
+    ):
+        raise ValidationError('Choose between 30 and 60 interview questions.')
+    company_name = (company_name or '').strip()
+    job_title = (job_title or '').strip()
+    job_description = (job_description or '').strip()
+    valid_roles = {value for value, _label in profile_choices()}
+    if (
+        len(company_name) > 120
+        or not job_title
+        or len(job_title) > 150
+        or not job_description
+        or len(job_description) > 25000
+        or role_family not in valid_roles
+        or seniority not in SENIORITY_LEVELS
+    ):
+        raise ValidationError('A valid company, job title, and job description are required.')
+
+    with transaction.atomic():
+        # A stable user row serializes starts even when there are no ledger rows to lock.
+        get_user_model().objects.select_for_update().get(pk=user.pk)
+        prior = TrialUsage.objects.select_related('preparation').filter(
+            user=user,
+            feature_code=TRIAL_FEATURE_CODE,
+            idempotency_key=request_reference,
+        ).first()
+        if prior:
+            if prior.request_fingerprint != request_fingerprint:
+                raise ValidationError('This request key was already used for different preparation details.')
+            if prior.preparation_id is None:
+                raise ValidationError('This started preparation is no longer available to resume.')
+            return prior.preparation
+
+        paid_period = get_active_access_period(user, lock=True)
+        if paid_period:
+            return create_preparation_draft(
+                user, request_reference, company_name, job_title, job_description,
+                role_family, seniority, request_fingerprint,
+                target_question_count=target_question_count,
+            )
+
+        now = timezone.now()
+        cutoff = now - TRIAL_WINDOW
+        usages = TrialUsage.objects.filter(
+            user=user,
+            started_at__gt=cutoff,
+        )
+        if usages.count() >= TRIAL_ALLOWANCE:
+            raise PreparationSetLimitReached('You have used both free preparation trials in the last 20 days.')
+
+        initial_content = {
+            '_generation_state': 'incomplete',
+            '_question_target': target_question_count,
+            '_generation_progress': {'completed': 0, 'total': target_question_count},
+            'rounds': [],
+        }
+        if candidate_profile is not None:
+            initial_content['_candidate_profile'] = candidate_profile
+            initial_content['_candidate_profile_state'] = 'review'
+        preparation = PreparationSet.objects.create(
+            owner=user,
+            access_period=None,
+            request_reference=request_reference,
+            set_number=usages.count() + 1,
+            company_name=company_name,
+            job_title=job_title,
+            role_family=role_family,
+            seniority=seniority,
+            job_description=job_description,
+            input_fingerprint=request_fingerprint,
+            generated_content=initial_content,
+        )
+        TrialUsage.objects.create(
+            user=user,
+            feature_code=TRIAL_FEATURE_CODE,
+            idempotency_key=request_reference,
+            request_fingerprint=request_fingerprint,
+            started_at=now,
+            preparation=preparation,
+        )
+        return preparation
 
 
 def update_preparation_draft_target(preparation_id, target_question_count):
@@ -334,7 +450,7 @@ def save_generated_preparation_set(
     seniority='entry',
     input_fingerprint=None,
 ):
-    """Persist completed generator output under active Premium access.
+    """Persist completed output under active Premium access or a started trial.
 
     Callers must create and retain one request reference for a generation
     attempt, then reuse it when retrying persistence. The database uniqueness
@@ -344,20 +460,29 @@ def save_generated_preparation_set(
     if not user or not user.is_authenticated:
         raise PremiumPreparationRequired('Sign in to use Premium preparation.')
 
-    active_period = get_active_access_period(user)
-    if active_period is None:
-        raise PremiumPreparationRequired('An approved, active monthly plan is required.')
-
     try:
         request_reference = uuid.UUID(str(request_reference))
     except (TypeError, ValueError, AttributeError) as exc:
         raise ValidationError('A valid preparation request reference is required.') from exc
 
-    existing = PreparationSet.objects.filter(
+    existing = PreparationSet.objects.select_related('access_period__order').filter(
         owner=user,
         request_reference=request_reference,
     ).first()
+    is_trial_draft = bool(existing and hasattr(existing, 'trial_usage'))
+    legacy_period_active = bool(
+        existing
+        and existing.access_period_id
+        and existing.access_period.order.plan_code == 'free_trial'
+        and existing.access_period.order.status == PremiumOrder.Status.APPROVED
+        and existing.access_period.starts_at <= timezone.now() < existing.access_period.ends_at
+    )
+    active_period = get_active_access_period(user)
+    if active_period is None and not is_trial_draft and not legacy_period_active:
+        raise PremiumPreparationRequired('An approved, active monthly plan is required.')
     if existing is not None and not preparation_is_draft(existing):
+        if is_trial_draft or legacy_period_active:
+            return existing
         if existing.access_period_id != active_period.pk:
             raise PremiumPreparationRequired('This request belongs to a different subscription month.')
         return existing
@@ -426,6 +551,33 @@ def save_generated_preparation_set(
         if question_id in seen_question_ids:
             raise ValidationError('Generated question IDs must be unique within a set.')
         seen_question_ids.add(question_id)
+
+    if is_trial_draft:
+        # Generation resumes an already charged trial; it never charges again.
+        existing.generated_content = generated_content
+        existing.input_fingerprint = input_fingerprint or existing.input_fingerprint
+        existing.save(update_fields=['generated_content', 'input_fingerprint', 'updated_at'])
+        return existing
+
+    if legacy_period_active:
+        # Resume a historical started set only while its original trial period is active.
+        with transaction.atomic():
+            existing = PreparationSet.objects.select_for_update().select_related(
+                'access_period__order',
+            ).get(pk=existing.pk, owner=user)
+            if not (
+                existing.access_period
+                and existing.access_period.order.plan_code == 'free_trial'
+                and existing.access_period.order.status == PremiumOrder.Status.APPROVED
+                and existing.access_period.starts_at <= timezone.now() < existing.access_period.ends_at
+            ):
+                raise PremiumPreparationRequired('This historical trial period has ended.')
+            if not preparation_is_draft(existing):
+                return existing
+            existing.generated_content = generated_content
+            existing.input_fingerprint = input_fingerprint or existing.input_fingerprint
+            existing.save(update_fields=['generated_content', 'input_fingerprint', 'updated_at'])
+            return existing
 
     try:
         with transaction.atomic():
@@ -501,9 +653,15 @@ def _get_owned_active_set(user, preparation_set_id, at=None, lock=False):
     sets = PreparationSet.objects.filter(
         pk=preparation_set_id,
         owner=user,
-        access_period__order__status=PremiumOrder.Status.APPROVED,
-        access_period__starts_at__lte=at,
-        access_period__ends_at__gt=at,
+    ).filter(
+        models.Q(trial_usage__isnull=False)
+        | historical_trial_period_query()
+        | models.Q(
+            access_period__order__status=PremiumOrder.Status.APPROVED,
+            access_period__order__plan_code__in=['premium_monthly', 'local_test_monthly'],
+            access_period__starts_at__lte=at,
+            access_period__ends_at__gt=at,
+        )
     )
     if lock:
         sets = sets.select_for_update()
@@ -583,7 +741,13 @@ def get_saved_questions(user):
     now = timezone.now()
     return SavedQuestion.objects.filter(
         preparation_set__owner=user,
-        preparation_set__access_period__order__status=PremiumOrder.Status.APPROVED,
-        preparation_set__access_period__starts_at__lte=now,
-        preparation_set__access_period__ends_at__gt=now,
+    ).filter(
+        models.Q(preparation_set__trial_usage__isnull=False)
+        | historical_trial_period_query(prefix='preparation_set__', at=now)
+        | models.Q(
+            preparation_set__access_period__order__status=PremiumOrder.Status.APPROVED,
+            preparation_set__access_period__order__plan_code__in=['premium_monthly', 'local_test_monthly'],
+            preparation_set__access_period__starts_at__lte=now,
+            preparation_set__access_period__ends_at__gt=now,
+        )
     ).select_related('preparation_set').order_by('-saved_at')

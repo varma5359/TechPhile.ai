@@ -14,7 +14,7 @@ from django.utils import timezone
 from django.utils.html import format_html
 from unfold.admin import ModelAdmin
 
-from .models import PaymentReview, PaymentSubmission, PremiumAccessPeriod, PremiumOrder, PreparationSet
+from .models import PaymentReview, PaymentSubmission, PremiumAccessPeriod, PremiumOrder, PreparationSet, TrialUsage
 
 
 class PaymentDecisionForm(forms.Form):
@@ -258,6 +258,16 @@ class PremiumAccessPeriodAdmin(ReadOnlyModelAdmin):
     list_filter = ('starts_at', 'ends_at')
     search_fields = ('order__public_reference', 'order__user__email')
     list_select_related = ('order', 'order__user')
+
+
+@admin.register(TrialUsage)
+class TrialUsageAdmin(ReadOnlyModelAdmin):
+    """Expose immutable trial history for support and auditing."""
+
+    list_display = ('user', 'feature_code', 'started_at', 'preparation')
+    list_filter = ('feature_code', 'started_at')
+    search_fields = ('user__email', 'user__username', 'idempotency_key')
+    list_select_related = ('user', 'preparation')
 
 
 @admin.register(PreparationSet)

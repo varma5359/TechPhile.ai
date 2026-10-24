@@ -4,7 +4,6 @@
 {% block extra_css %}<link rel="stylesheet" href="{% static 'css/interview-prep.css' %}">{% endblock %}
 {% block content %}
 <main class="ipp-page ipp-questions-page">
-  {% if not is_draft and total_question_count %}<span hidden data-trial-attempt-opened data-url="{% url 'interview_prep:mark_trial_attempt_opened' preparation.pk %}"></span>{% endif %}
   <section class="ipp-hero ipp-result-hero"><div class="container ipp-container">
     <a class="ipp-back-link" href="{% if is_draft %}{% url 'interview_prep:create_preparation' %}{% else %}{% url 'interview_prep:preparation_detail' preparation.pk %}{% endif %}"><i class="fa-solid fa-arrow-left" aria-hidden="true"></i> {% if is_draft %}My preparations{% else %}Back to resume scan{% endif %}</a>
     <div class="ipp-not-ready ipp-question-count-status" role="status">
@@ -93,17 +92,6 @@
 </main>
 {% endblock %}
 {% block extra_js %}<script>
-var trialAttemptOpened = document.querySelector('[data-trial-attempt-opened]');
-if (trialAttemptOpened) {
-  var csrfField = document.querySelector('input[name="csrfmiddlewaretoken"]');
-  if (csrfField) {
-    fetch(trialAttemptOpened.dataset.url, {
-      method: 'POST',
-      credentials: 'same-origin',
-      headers: { 'X-CSRFToken': csrfField.value, 'X-Requested-With': 'XMLHttpRequest' }
-    }).catch(function () {});
-  }
-}
 document.querySelectorAll('[data-question-jump]').forEach(function (link) {
   link.addEventListener('click', function (event) {
     var target = document.getElementById(link.getAttribute('href').slice(1));

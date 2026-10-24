@@ -51,7 +51,7 @@
 
       <section class="ipp-summary-card ipp-next-step-card">
         <span class="ipp-eyebrow">STEP 2 OF 2: LEARN AND PRACTISE</span><h2>Prepare for this role</h2>
-        {% if preparation.access_period.order.plan_code == 'free_trial' or preparation.access_period.order.plan_code == 'local_test_monthly' %}<p class="ipp-next-step-count">One free attempt is counted after the generated questions page opens. Interrupted or incomplete generation does not use an attempt.</p>{% endif %}
+        {% if preparation.trial_usage %}<p class="ipp-next-step-count">This preparation used one trial when its validated draft started. You can return and resume it without using another trial.</p>{% endif %}
         {% with match=preparation.generated_content.jd_match %}{% if match %}
           {% if match.score < foundation_match_score %}<p>Start with the basics, then work through questions about the role's requirements. The score does not limit your access to practice.</p>{% elif match.score < minimum_match_score %}<p>Focus on job skills that are only partly covered or not mentioned, while building on the experience your resume already shows.</p>{% else %}<p>Practise a broad range of role, job description, and experience-based questions.</p>{% endif %}
         {% else %}<p>Review the questions and practice each answer at your own pace.</p>{% endif %}{% endwith %}
