@@ -157,8 +157,17 @@
             </form>
             <script>
                 (function () {
+                    var careerRole = document.getElementById('{{ path_form.career_role.id_for_label }}');
                     var experience = document.getElementById('{{ path_form.experience_band.id_for_label }}');
                     var learningPath = document.getElementById('{{ path_form.learning_path.id_for_label }}');
+                    if (careerRole && !careerRole.querySelector('[data-dropdown-spacer]')) {
+                        var spacer = document.createElement('option');
+                        spacer.disabled = true;
+                        spacer.textContent = '\u00a0';
+                        spacer.setAttribute('aria-hidden', 'true');
+                        spacer.dataset.dropdownSpacer = '';
+                        careerRole.appendChild(spacer);
+                    }
                     if (!experience || !learningPath) return;
                     experience.addEventListener('change', function () {
                         if (this.value === 'fresher') {

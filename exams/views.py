@@ -4,6 +4,7 @@ from django.http import Http404, HttpResponseForbidden, JsonResponse
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 from django.db.models import Count
+from django.db.models.functions import Lower
 from .models import Category, Exam, Profile, Question, Answer, ExamAttempt, UserAnswer
 from .forms import AssignInterviewerForm, ExamAttemptForm, InterviewStatusForm, UserAnswerForm
 from django.contrib import messages
@@ -107,7 +108,8 @@ def exam_list(request):
             )
         exams = Exam.objects.filter(category=category)
         active_filter = category.slug
-    categories = Category.objects.all()
+    exams = exams.select_related('category').order_by(Lower('title'), 'title', 'pk')
+    categories = Category.objects.order_by(Lower('name'), 'name')
     levels = ['beginner', 'intermediate', 'advanced']
     set_numbers = [1, 2, 3]
     return render(request, 'exams/exam_list.html', {
@@ -1255,8 +1257,18 @@ def update_career_preferences(request):
     """Save a learner's explicit role, experience, and learning-path choices."""
     form = CareerLearningPreferencesForm(request.POST, instance=request.user.profile)
     if form.is_valid():
-        form.save()
+        profile = form.save()
         messages.success(request, 'Career learning preferences saved.')
+        if profile.career_role and profile.experience_band:
+            from careers.selection import effective_learning_path
+
+            level = effective_learning_path(
+                profile.experience_band, profile.learning_path)
+            return redirect(
+                'careers:level_role_detail',
+                slug=profile.career_role.slug,
+                level=level,
+            )
     else:
         for field, errors in form.errors.items():
             for error in errors:

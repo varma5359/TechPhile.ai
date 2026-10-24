@@ -45,7 +45,9 @@ class CareerLearningPreferencesForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields['career_role'].queryset = CareerRole.objects.filter(is_published=True)
+        self.fields['career_role'].queryset = CareerRole.objects.filter(
+            is_published=True,
+        ).order_by('title')
         self.fields['career_role'].required = False
         self.fields['experience_band'].required = False
         self.fields['learning_path'].required = False

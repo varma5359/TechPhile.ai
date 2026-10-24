@@ -379,7 +379,8 @@ body.auth-shell{min-height:100vh;margin:0;background:#f4f7fb;color:#162238;font-
 .career-workspace .career-path-field{display:grid;gap:.45rem;min-width:0}
 .career-workspace .career-path-field:first-child{grid-column:1/-1}
 .career-workspace .career-path-field label{color:#25334b;font-size:.83rem;font-weight:700}
-.career-workspace .career-path-field select{width:100%;min-height:46px;padding:.65rem .8rem;border:1px solid #cfd8e5;border-radius:9px;background-color:#fff;color:#17243b;font:inherit}
+.career-workspace .career-path-field select{width:100%;min-height:46px;padding:.65rem 2.5rem .65rem .8rem;border:1px solid #cfd8e5;border-radius:9px;appearance:none;background-color:#fff;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16' fill='none'%3E%3Cpath d='m4 6 4 4 4-4' stroke='%23334155' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right .8rem center;color:#17243b;font:inherit;text-align:left;text-overflow:ellipsis}
+.career-workspace .career-path-field select option:last-child{padding-bottom:.5rem}
 .career-workspace .career-path-field select:focus{border-color:#2563eb;outline:3px solid rgba(37,99,235,.16)}
 .career-workspace .career-path-field-error,.career-workspace .career-path-form-errors{margin:0;color:#b42318;font-size:.82rem}
 .career-workspace .career-path-form-errors{padding:.7rem .85rem;border:1px solid #fecaca;border-radius:9px;background:#fff5f5}
@@ -493,7 +494,10 @@ body.auth-shell{min-height:100vh;margin:0;background:#f4f7fb;color:#162238;font-
 .exam-learning-shell .ew-set-card.is-completed .ew-set-icon { background:#d9f3e4;color:#21834c; }
 .exam-learning-shell .ew-set-card.is-completed .ew-set-copy small { color:#328252; }
 .exam-learning-shell .ew-set-card.is-completed .ew-set-arrow { color:#328252; }
-@media(max-width:480px){.exam-learning-shell .ew-level-accordion .ew-set-grid{grid-template-columns:repeat(2,minmax(0,1fr));}.exam-learning-shell .ew-set-copy small{font-size:.68rem;}}
+@media(max-width:480px){
+    .exam-learning-shell .ew-level-accordion .ew-set-grid{grid-template-columns:1fr;}
+    .exam-learning-shell .ew-set-copy small{font-size:.75rem;}
+}
 
 /* Explicit answered, current, and unanswered states during a practice set */
 .exam-learning-shell .eq-nav-item { background:#f3f5f8;border-color:#e0e5ec;color:#68778b;position:relative; }

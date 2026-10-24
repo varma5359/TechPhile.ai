@@ -21,8 +21,10 @@
         <article class="ipp-plan-card">
             <div class="ipp-plan-topline"><span class="ipp-plan-badge">INDIVIDUAL MONTHLY ACCESS</span><span class="ipp-plan-price">{% if currency == 'INR' %}₹{% else %}{{ currency }} {% endif %}{{ monthly_price|floatformat:'-2' }}<small> / month</small></span></div>
             <h2>Premium Interview Preparation</h2>
-            {% if access.plan == 'local_test_monthly' %}<p class="ipp-payment-note" role="status">Local test access is active. No payment was made; this access is only available while development mode is enabled.</p>{% endif %}
+            {% if access.is_trial and access.premium_active %}<p class="ipp-payment-note" role="status">Your free preview is active. You have {{ access.sets_remaining }} of {{ access.set_limit }} attempts left. An attempt is counted when you open its generated questions.{% if access.unopened_sets %} You have {{ access.unopened_sets }} completed preparation{% if access.unopened_sets != 1 %}s{% endif %} ready to open.{% endif %}</p>{% elif access.is_trial %}<p class="ipp-payment-note" role="status">You’ve used both free preparation attempts by opening their questions. Choose the monthly plan to create more.</p>{% endif %}
             <p class="ipp-plan-intro">A monthly subscription for one learner. Access applies to your account rather than a single company purchase.</p>
+            {% if pending_preparation %}<p class="ipp-payment-note" role="status">Your resume and job description are ready. Continue with the monthly plan to generate your preparation.</p>{% endif %}
+            <h3 class="ipp-feature-heading">What’s included</h3>
             <ul class="ipp-feature-list">
                 <li><i class="fas fa-check" aria-hidden="true"></i><span>Up to {{ preparation_set_limit }} preparation sets total per subscription month</span></li>
                 <li><i class="fas fa-check" aria-hidden="true"></i><span>Use your sets for the companies and job descriptions you choose</span></li>
@@ -30,9 +32,13 @@
                 <li><i class="fas fa-check" aria-hidden="true"></i><span>Technical and scenario questions with answer guidance</span></li>
             </ul>
             <div class="ipp-payment-note"><i class="fas fa-shield-halved" aria-hidden="true"></i><span>UPI payments are checked by a TechPhile.ai administrator. Submitting a transaction reference does not activate Premium; access starts only after approval.</span></div>
-            {% if access.premium_active %}
+            <div class="ipp-plan-next-step">
+                <h3>{% if access.is_trial and access.premium_active %}Continue your free preview{% elif access.premium_active %}Your plan is ready{% else %}Ready to get started?{% endif %}</h3>
+            {% if access.is_trial and access.premium_active %}
+                <a class="edu-btn edu-btn-primary ipp-cta" href="{% url 'interview_prep:create_preparation' %}">Continue free preparation <i class="fas fa-arrow-right ms-1" aria-hidden="true"></i></a>
+            {% elif access.premium_active %}
                 <p class="ipp-payment-note">Your monthly plan is active. {{ access.sets_remaining }} of {{ access.set_limit }} preparation sets remain.</p>
-                <a class="edu-btn edu-btn-primary ipp-cta" href="{% url 'interview_prep:create_preparation' %}">Create interview preparation <i class="fas fa-arrow-right ms-1" aria-hidden="true"></i></a>
+                <a class="edu-btn edu-btn-primary ipp-cta" href="{% url 'interview_prep:create_preparation' %}">{% if pending_preparation %}Continue your preparation{% else %}Create interview preparation{% endif %} <i class="fas fa-arrow-right ms-1" aria-hidden="true"></i></a>
             {% elif payments_ready %}
                 {% if user.is_authenticated %}
                     <form method="post" action="{% url 'interview_prep:start_order' %}">
@@ -46,6 +52,7 @@
             {% else %}
                 <div class="ipp-not-ready" role="status"><i class="fas fa-circle-info" aria-hidden="true"></i><span>Monthly payments are not open yet. The verified payment details and preparation service must be ready before payment can be submitted.</span></div>
             {% endif %}
+            </div>
         </article>
 
         <aside class="ipp-how-card">

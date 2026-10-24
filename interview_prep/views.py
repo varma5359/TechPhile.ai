@@ -9,7 +9,7 @@ from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied, ValidationError
-from django.http import Http404, StreamingHttpResponse
+from django.http import Http404, JsonResponse, StreamingHttpResponse
 from django.contrib.staticfiles import finders
 from django.db import IntegrityError, close_old_connections, connections, transaction
 from django.shortcuts import get_object_or_404, redirect, render, reverse
@@ -18,6 +18,7 @@ from django.utils import timezone
 
 from .answer_content import normalize_answer_content
 from .candidate_profile import PROFILE_SECTIONS, confirm_profile_edits, profile_to_resume_text
+from .blueprint import map_jd_requirements
 from .forms import PaymentSubmissionForm, PreparationRequestForm
 from .intelligence_schema import count_valid_unique_questions
 from .learning_aids import build_learning_aid
@@ -31,6 +32,7 @@ from .services import (
     checkpoint_preparation_draft,
     create_preparation_draft,
     get_preparation_access,
+    mark_trial_attempt_opened,
     mark_preparation_draft_interrupted,
     mark_question_completed,
     preparation_is_draft,
@@ -59,6 +61,33 @@ def _profile_review_sections(profile):
     return sections
 
 
+def _candidate_profile_match(profile, role_family):
+    """Build a transparent resume evidence score and match counts."""
+    extraction = profile.get('extraction', {}) if isinstance(profile, dict) else {}
+    requirements = extraction.get('jd_requirements', []) if isinstance(extraction, dict) else []
+    if not isinstance(requirements, list) or not requirements:
+        return None
+    requirements, _diagnostics = map_jd_requirements(role_family, requirements)
+    counts = {'strong': 0, 'partial': 0, 'not_evidenced': 0}
+    matched_requirements = {'strong': [], 'partial': [], 'not_evidenced': []}
+    total_weight = matched_weight = 0
+    for requirement in requirements:
+        level = requirement.get('match_level', 'not_evidenced')
+        if requirement.get('mapping_status') == 'unmapped' or level not in counts:
+            level = 'not_evidenced'
+        counts[level] += 1
+        matched_requirements[level].append(requirement.get('requirement', ''))
+        weight = 2 if requirement.get('mandatory') else 1
+        total_weight += weight
+        matched_weight += weight * {'strong': 1, 'partial': .5, 'not_evidenced': 0}[level]
+    return {
+        'score': round(100 * matched_weight / total_weight) if total_weight else 0,
+        'counts': counts,
+        'requirements': matched_requirements,
+        'total': len(requirements),
+    }
+
+
 def _preparation_form_context(request, form, access, candidate_profile=None, resuming_draft=False, saved_profile=None):
     previous_sets = list(PreparationSet.objects.filter(
         owner=request.user, access_period=access['access_period'],
@@ -66,13 +95,16 @@ def _preparation_form_context(request, form, access, candidate_profile=None, res
     for item in previous_sets:
         item.is_draft = preparation_is_draft(item)
         item.generation_progress = (item.generated_content or {}).get('_generation_progress', {})
+    role_family = form['role_family'].value() or 'general-software-engineering'
     return {
         'form': form,
         'access': access,
         'generation_configured': is_provider_configured(),
         'resuming_draft': resuming_draft,
         'candidate_profile': candidate_profile,
+        'profile_match': _candidate_profile_match(candidate_profile, role_family) if candidate_profile else None,
         'saved_profile': saved_profile,
+        'pending_preparation': bool(request.session.get('interview_prep_pending_request')),
         'profile_review_sections': _profile_review_sections(candidate_profile) if candidate_profile else [],
         'previous_sets': previous_sets,
     }
@@ -219,6 +251,7 @@ def monthly_plan(request):
         'preparation_set_limit': 2,
         'payments_ready': payments_ready,
         'access': get_preparation_access(request.user),
+        'pending_preparation': bool(request.session.get('interview_prep_pending_request')),
     })
 
 
@@ -226,6 +259,10 @@ def monthly_plan(request):
 @require_POST
 def start_order(request):
     """Create or resume the learner's pending monthly order at server price."""
+    access = get_preparation_access(request.user)
+    if access['is_trial'] and access['premium_active']:
+        messages.info(request, 'Use your two free preparation sets before starting a monthly plan.')
+        return redirect('interview_prep:create_preparation')
     if not _payments_ready():
         messages.info(request, 'Monthly Premium payments are not open yet.')
         return redirect('interview_prep:monthly_plan')
@@ -316,11 +353,8 @@ def order_detail(request, public_reference):
 
 @login_required
 def create_preparation(request):
-    """Generate and save one preparation set for an active Premium learner."""
+    """Allow two free sets, then require an active monthly plan to continue."""
     access = get_preparation_access(request.user)
-    if not access['premium_active']:
-        messages.info(request, 'An approved monthly Premium plan is required to prepare an interview set.')
-        return redirect('interview_prep:monthly_plan')
 
     requested_draft = None
     draft_id = request.GET.get('resume', '')
@@ -330,6 +364,8 @@ def create_preparation(request):
         ).first()
         if requested_draft and not preparation_is_draft(requested_draft):
             return redirect('interview_prep:preparation_detail', preparation_id=requested_draft.pk)
+    if access['is_trial'] and not access['premium_active'] and not requested_draft:
+        return redirect('interview_prep:monthly_plan')
     saved_profile = (requested_draft.generated_content or {}).get('_candidate_profile') if requested_draft else None
     candidate_profile = (
         saved_profile if saved_profile and (requested_draft.generated_content or {}).get('_candidate_profile_state') != 'confirmed'
@@ -339,6 +375,9 @@ def create_preparation(request):
         'request_reference': requested_draft.request_reference if requested_draft else uuid.uuid4(),
         'resume_draft_id': requested_draft.pk if requested_draft else '',
     }
+    pending_request = request.session.get('interview_prep_pending_request')
+    if pending_request and not requested_draft:
+        initial.update(pending_request)
     if requested_draft:
         saved_target = (requested_draft.generated_content or {}).get('_question_target')
         if not isinstance(saved_target, int) or isinstance(saved_target, bool) or not 30 <= saved_target <= 60:
@@ -360,10 +399,21 @@ def create_preparation(request):
             initial['seniority'] = candidate_profile.get('recommended_seniority', requested_draft.seniority)
     form = PreparationRequestForm(initial=initial)
     if request.method == 'POST':
-        form = PreparationRequestForm(request.POST)
+        form = PreparationRequestForm(request.POST, request.FILES)
         if form.is_valid():
             data = form.cleaned_data
             action = request.POST.get('preparation_action', 'generate')
+            if not access['premium_active']:
+                request.session['interview_prep_pending_request'] = {
+                    key: (str(data[key]) if key == 'request_reference' else data[key]) for key in (
+                        'request_reference', 'question_target', 'company_name', 'job_title',
+                        'role_family', 'seniority', 'job_description', 'resume_text',
+                        'consent_to_ai_provider',
+                    )
+                }
+                messages.info(request, 'Your interview details are ready. Choose the monthly plan to continue to preparation.')
+                return redirect('interview_prep:monthly_plan')
+            request.session.pop('interview_prep_pending_request', None)
             if action == 'review':
                 try:
                     prior_request = PreparationSet.objects.filter(
@@ -517,7 +567,7 @@ def create_preparation(request):
             access = get_preparation_access(request.user)
             if form.errors:
                 pass
-            elif access['sets_remaining'] <= 0 and not draft:
+            elif access['slots_available'] <= 0 and not draft:
                 form.add_error(None, 'You have used both preparation sets for this subscription month.')
             elif not is_provider_configured():
                 form.add_error(None, 'Interview preparation is not available right now. Please check back later.')
@@ -710,6 +760,16 @@ def preparation_questions(request, preparation_id):
         'generation_state': content.get('_generation_state') if is_draft else 'complete',
         'target_question_count': target_question_count,
     })
+
+
+@login_required
+@require_POST
+def mark_trial_attempt_opened_view(request, preparation_id):
+    """Count a free attempt after the complete questions page has loaded."""
+    preparation = _active_owned_preparation(request.user, preparation_id)
+    preparation = mark_trial_attempt_opened(preparation.pk)
+    content = preparation.generated_content or {}
+    return JsonResponse({'counted': bool(content.get('_trial_attempt_consumed_at'))})
 
 
 @login_required

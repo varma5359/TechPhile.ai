@@ -13,6 +13,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="{% static 'css/design-system.css' %}" rel="stylesheet">
     {% block extra_css %}{% endblock %}
+    <link rel="stylesheet" href="{% static 'css/modern-ui.css' %}">
     {% if request.resolver_match.namespace == 'exams' and request.resolver_match.url_name not in 'cancel_interview edit_interview interview_feedback interview_form interviewer_dashboard join_interview reschedule_interview view_interview' and user.is_authenticated %}<script>try{if(localStorage.getItem('tp-sidebar')==='collapsed')document.documentElement.classList.add('sidebar-collapsed')}catch(error){}</script>{% endif %}
 </head>
 <body class="exam-shell{% if request.resolver_match.namespace == 'exams' and request.resolver_match.url_name not in 'cancel_interview edit_interview interview_feedback interview_form interviewer_dashboard join_interview reschedule_interview view_interview' %} exam-learning-shell{% endif %}">

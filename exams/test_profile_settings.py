@@ -152,9 +152,13 @@ class ProfileSettingsEndpointTests(TestCase):
         day = LearningDay.objects.create(role=role_a, day_number=1, title='Existing progress', is_published=True)
         attempt = DayAttempt.objects.create(user=self.user, day=day, correct_marks=1,
                                            total_marks=1, score_percent=100)
-        self.client.post(reverse('exams:update_career_preferences'), {
-            'career_role': role_b.pk, 'experience_band': '1_2', 'learning_path': LEVEL_BEGINNER,
+        response = self.client.post(reverse('exams:update_career_preferences'), {
+            'career_role': role_b.pk, 'experience_band': '1_2', 'learning_path': '',
         })
+        self.assertRedirects(
+            response,
+            reverse('careers:level_role_detail', args=[role_b.slug, 'experienced']),
+        )
         self.user.profile.refresh_from_db()
         self.assertEqual(self.user.profile.career_role_id, role_b.pk)
         self.assertTrue(DayAttempt.objects.filter(pk=attempt.pk, user=self.user, day=day).exists())

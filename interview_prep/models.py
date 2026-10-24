@@ -36,7 +36,7 @@ class PremiumOrder(models.Model):
     amount = models.DecimalField(
         max_digits=8,
         decimal_places=2,
-        validators=[MinValueValidator(0.01)],
+        validators=[MinValueValidator(0)],
     )
     currency = models.CharField(
         max_length=3,
@@ -54,8 +54,13 @@ class PremiumOrder(models.Model):
         ordering = ['-created_at']
         constraints = [
             models.CheckConstraint(
-                check=models.Q(amount__gt=0),
-                name='interview_prep_order_amount_positive',
+                check=models.Q(amount__gte=0),
+                name='interview_prep_order_amount_nonnegative',
+            ),
+            models.UniqueConstraint(
+                fields=['user'],
+                condition=models.Q(plan_code='free_trial'),
+                name='interview_prep_one_free_trial_per_user',
             ),
         ]
 

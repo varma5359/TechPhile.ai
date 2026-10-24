@@ -28,54 +28,69 @@ class PreparationSetLimitReached(PermissionDenied):
 
 
 def get_active_access_period(user, at=None, lock=False):
-    """Return this account's current approved monthly access period, if any."""
+    """Return the current paid or free-trial access period for this account."""
     if not user or not user.is_authenticated:
         return None
 
     at = at or timezone.now()
-    allowed_plan_codes = ['premium_monthly']
-    if settings.INTERVIEW_PREP_TEST_ACCESS:
-        allowed_plan_codes.append('local_test_monthly')
-
     periods = PremiumAccessPeriod.objects.filter(
         order__user=user,
         order__status=PremiumOrder.Status.APPROVED,
-        order__plan_code__in=allowed_plan_codes,
+        order__plan_code='premium_monthly',
         starts_at__lte=at,
         ends_at__gt=at,
     ).order_by('-ends_at')
     if lock:
         periods = periods.select_for_update()
     period = periods.first()
-    if period or not settings.INTERVIEW_PREP_TEST_ACCESS:
+    if period:
         return period
 
-    # Explicit local-only access creates a distinct plan code so it cannot be
-    # mistaken for a payment approved by an administrator.
-    with transaction.atomic():
-        order = PremiumOrder.objects.filter(
-            user=user,
-            plan_code='local_test_monthly',
-            status=PremiumOrder.Status.APPROVED,
-        ).order_by('-created_at').first()
-        if order is None:
-            order = PremiumOrder.objects.create(
+    # A local test entitlement is still available in development, but it uses
+    # the same two-set limit as the normal free preview.
+    if settings.INTERVIEW_PREP_TEST_ACCESS:
+        with transaction.atomic():
+            order = PremiumOrder.objects.filter(
                 user=user,
                 plan_code='local_test_monthly',
-                amount=settings.INTERVIEW_PREP_MONTHLY_PRICE,
-                currency=settings.INTERVIEW_PREP_CURRENCY,
                 status=PremiumOrder.Status.APPROVED,
+            ).order_by('-created_at').first()
+            if order is None:
+                order = PremiumOrder.objects.create(
+                    user=user,
+                    plan_code='local_test_monthly',
+                    amount=settings.INTERVIEW_PREP_MONTHLY_PRICE,
+                    currency=settings.INTERVIEW_PREP_CURRENCY,
+                    status=PremiumOrder.Status.APPROVED,
+                )
+            period, _ = PremiumAccessPeriod.objects.get_or_create(
+                order=order,
+                defaults={'starts_at': at, 'ends_at': at + timedelta(days=36500)},
             )
-        period, _ = PremiumAccessPeriod.objects.get_or_create(
-            order=order,
+            if lock:
+                period = PremiumAccessPeriod.objects.select_for_update().get(pk=period.pk)
+        if period.starts_at <= at < period.ends_at:
+            return period
+
+    # Keep a single account-level trial entitlement. Its zero-value order is
+    # internal bookkeeping only and never appears in the payment flow.
+    with transaction.atomic():
+        order, _ = PremiumOrder.objects.get_or_create(
+            user=user,
+            plan_code='free_trial',
             defaults={
-                'starts_at': at,
-                'ends_at': at + timedelta(days=30),
+                'amount': 0,
+                'currency': settings.INTERVIEW_PREP_CURRENCY,
+                'status': PremiumOrder.Status.APPROVED,
             },
         )
-    if period.starts_at <= at < period.ends_at:
-        return period
-    return None
+        period, _ = PremiumAccessPeriod.objects.get_or_create(
+            order=order,
+            defaults={'starts_at': at, 'ends_at': at + timedelta(days=36500)},
+        )
+        if lock:
+            period = PremiumAccessPeriod.objects.select_for_update().get(pk=period.pk)
+    return period if period.starts_at <= at < period.ends_at else None
 
 
 def get_preparation_access(user, at=None):
@@ -90,21 +105,51 @@ def get_preparation_access(user, at=None):
             'sets_completed': 0,
             'drafts_reserved': 0,
             'sets_remaining': 0,
+            'slots_available': 0,
+            'unopened_sets': 0,
             'set_limit': MONTHLY_PREPARATION_SET_LIMIT,
+            'is_trial': False,
         }
 
-    preparations = PreparationSet.objects.filter(access_period=period).only('generated_content')
-    used = preparations.count()
+    preparations = list(PreparationSet.objects.filter(access_period=period).only(
+        'generated_content', 'completed_question_ids',
+    ))
+    used = len(preparations)
     drafts_reserved = sum(1 for item in preparations if preparation_is_draft(item))
+    is_trial = period.order.plan_code in {'free_trial', 'local_test_monthly'}
+    if is_trial:
+        attempts_consumed = sum(
+            bool((item.generated_content or {}).get('_trial_attempt_consumed_at') or item.completed_question_ids)
+            for item in preparations
+        )
+        unopened_sets = sum(
+            not (item.generated_content or {}).get('_trial_attempt_consumed_at')
+            and not item.completed_question_ids
+            and not preparation_is_draft(item)
+            for item in preparations
+        )
+        remaining = max(0, MONTHLY_PREPARATION_SET_LIMIT - attempts_consumed)
+        slots_available = max(0, MONTHLY_PREPARATION_SET_LIMIT - used)
+        premium_active = attempts_consumed < MONTHLY_PREPARATION_SET_LIMIT or used > attempts_consumed
+        completed = attempts_consumed
+    else:
+        remaining = max(0, MONTHLY_PREPARATION_SET_LIMIT - used)
+        slots_available = remaining
+        unopened_sets = 0
+        premium_active = True
+        completed = used - drafts_reserved
     return {
-        'plan': 'local_test_monthly' if period.order.plan_code == 'local_test_monthly' else 'premium_monthly',
-        'premium_active': True,
+        'plan': ('local_test_trial' if period.order.plan_code == 'local_test_monthly' else 'free_trial') if is_trial else 'premium_monthly',
+        'premium_active': premium_active,
         'access_period': period,
-        'sets_used': used,
-        'sets_completed': used - drafts_reserved,
+        'sets_used': completed if is_trial else used,
+        'sets_completed': completed,
         'drafts_reserved': drafts_reserved,
-        'sets_remaining': max(0, MONTHLY_PREPARATION_SET_LIMIT - used),
+        'sets_remaining': remaining,
+        'slots_available': slots_available,
+        'unopened_sets': unopened_sets,
         'set_limit': MONTHLY_PREPARATION_SET_LIMIT,
+        'is_trial': is_trial,
     }
 
 
@@ -113,6 +158,28 @@ def preparation_is_draft(preparation_set):
     return (preparation_set.generated_content or {}).get('_generation_state') in {
         'in_progress', 'incomplete', 'temporarily_unavailable', 'interrupted',
     }
+
+
+def mark_trial_attempt_opened(preparation_id):
+    """Consume one free attempt only after its completed questions are opened."""
+    with transaction.atomic():
+        preparation = PreparationSet.objects.select_for_update().select_related(
+            'access_period__order',
+        ).get(pk=preparation_id)
+        if preparation.access_period.order.plan_code not in {'free_trial', 'local_test_monthly'}:
+            return preparation
+        content = dict(preparation.generated_content or {})
+        if content.get('_trial_attempt_consumed_at') or preparation.completed_question_ids or preparation_is_draft(preparation):
+            return preparation
+        rounds = content.get('rounds') or []
+        if not rounds and content.get('questions'):
+            rounds = [{'questions': content['questions']}]
+        if count_valid_unique_questions(rounds) < 1:
+            return preparation
+        content['_trial_attempt_consumed_at'] = timezone.now().isoformat()
+        preparation.generated_content = content
+        preparation.save(update_fields=['generated_content', 'updated_at'])
+        return preparation
 
 
 def create_preparation_draft(

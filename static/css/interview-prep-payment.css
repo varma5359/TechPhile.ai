@@ -10,6 +10,9 @@
 .ipp-plan-badge{background:#e8f7f8;border-radius:999px;color:#087f94;font-size:.68rem;font-weight:800;letter-spacing:.08em;padding:.5rem .75rem}
 .ipp-plan-price{color:#14243b;font-size:2rem;font-weight:800;letter-spacing:-.04em}.ipp-plan-price small{color:#748198;font-size:.9rem;font-weight:600;letter-spacing:0}
 .ipp-plan-card h2,.ipp-how-card h2{color:#1a2c44;font-size:1.35rem;font-weight:750;margin:1.5rem 0 .55rem}
+.ipp-feature-heading{color:#263b54;font-size:1rem;font-weight:750;margin:1.35rem 0 .35rem}
+.ipp-plan-next-step{border-top:1px solid #e8edf2;margin-top:1.35rem;padding-top:.35rem}
+.ipp-plan-next-step h3{color:#1a2c44;font-size:1.05rem;font-weight:750;margin:1rem 0 .5rem}
 .ipp-plan-intro{color:#66768b;line-height:1.7;margin-bottom:1.4rem}
 .ipp-feature-list{border-top:1px solid #e8edf2;list-style:none;margin:0;padding:1rem 0 0}
 .ipp-feature-list li{align-items:flex-start;color:#35465d;display:flex;gap:.75rem;line-height:1.55;padding:.6rem 0}

@@ -10,6 +10,7 @@ urlpatterns = [
     path('prepare/', views.create_preparation, name='create_preparation'),
     path('preparations/<int:preparation_id>/', views.preparation_detail, name='preparation_detail'),
     path('preparations/<int:preparation_id>/questions/', views.preparation_questions, name='preparation_questions'),
+    path('preparations/<int:preparation_id>/questions/opened/', views.mark_trial_attempt_opened_view, name='mark_trial_attempt_opened'),
     path(
         'preparations/<int:preparation_id>/questions/<str:action>/',
         views.preparation_question_action,
