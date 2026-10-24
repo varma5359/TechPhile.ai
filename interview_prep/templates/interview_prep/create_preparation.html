@@ -71,6 +71,15 @@
               <div class="ipp-match-explainer"><span>Score guide</span> Required skills count twice. Clear evidence earns full credit, partial evidence earns half, and skills not mentioned in the resume earn none. Your preparation will help you work on the gaps.</div>
             </section>
           {% endif %}
+          {% if candidate_profile.uncertain_information %}
+            <section class="ipp-profile-summary ipp-profile-uncertain" aria-labelledby="uncertain-information-heading">
+              <h3 id="uncertain-information-heading">Details to confirm</h3>
+              <p>Some details could not be determined confidently from your resume. Review them before continuing.</p>
+              <ul>
+                {% for item in candidate_profile.uncertain_information %}<li>{{ item }}</li>{% endfor %}
+              </ul>
+            </section>
+          {% endif %}
           <div class="ipp-profile-data-preserved" hidden aria-hidden="true">
             {% for section in profile_review_sections %}
               <textarea name="{{ section.name }}">{{ section.value }}</textarea>

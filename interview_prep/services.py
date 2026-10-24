@@ -28,7 +28,7 @@ class PreparationSetLimitReached(PermissionDenied):
 
 
 def get_active_access_period(user, at=None, lock=False):
-    """Return the current paid or free-trial access period for this account."""
+    """Return this account's active paid or explicitly enabled test period."""
     if not user or not user.is_authenticated:
         return None
 
@@ -72,26 +72,8 @@ def get_active_access_period(user, at=None, lock=False):
         if period.starts_at <= at < period.ends_at:
             return period
 
-    # Keep a single account-level trial entitlement. Its zero-value order is
-    # internal bookkeeping only and never appears in the payment flow.
-    with transaction.atomic():
-        order, _ = PremiumOrder.objects.get_or_create(
-            user=user,
-            plan_code='free_trial',
-            defaults={
-                'amount': 0,
-                'currency': settings.INTERVIEW_PREP_CURRENCY,
-                'status': PremiumOrder.Status.APPROVED,
-            },
-        )
-        period, _ = PremiumAccessPeriod.objects.get_or_create(
-            order=order,
-            defaults={'starts_at': at, 'ends_at': at + timedelta(days=36500)},
-        )
-        if lock:
-            period = PremiumAccessPeriod.objects.select_for_update().get(pk=period.pk)
-    return period if period.starts_at <= at < period.ends_at else None
-
+    # No active paid or explicitly enabled local test access exists.
+    return None
 
 def get_preparation_access(user, at=None):
     """Summarize free or active Premium access and the remaining monthly sets."""

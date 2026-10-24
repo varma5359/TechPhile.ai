@@ -173,7 +173,9 @@ def _preparation_progress_stream(*, user, data, previous_questions, fingerprint,
             if manage_connections:
                 close_old_connections()
 
-    if connections['default'].vendor == 'sqlite':
+    if connections['default'].vendor == 'sqlite' or connections['default'].in_atomic_block:
+        # Keep generation in the current transaction context during Django
+        # transactional tests to avoid cross-thread database lock contention.
         run_generation(manage_connections=False)
     else:
         worker = threading.Thread(target=run_generation, name='interview-prep-generation', daemon=True)

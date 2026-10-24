@@ -4,7 +4,7 @@ from datetime import timedelta
 from decimal import Decimal
 from unittest.mock import Mock, patch
 from django.contrib.auth import get_user_model
-from django.contrib.auth.models import Permission
+from django.contrib.auth.models import AnonymousUser, Permission
 from django.core.exceptions import ValidationError
 from django.test import TestCase, override_settings
 from django.urls import reverse
@@ -61,6 +61,7 @@ def _answer_block(kind, *, title='', text='', items=None, headers=None, rows=Non
     }
 
 
+@override_settings(STATICFILES_STORAGE='django.contrib.staticfiles.storage.StaticFilesStorage')
 class PremiumAccessServiceTests(TestCase):
     def setUp(self):
         user_model = get_user_model()
@@ -178,11 +179,36 @@ class PremiumAccessServiceTests(TestCase):
         self.assertEqual(draft.generated_content['_question_target'], 40)
         self.assertEqual(draft.generated_content['_generation_progress'], {'completed': 0, 'total': 40})
 
-    def test_expired_or_rejected_access_does_not_allow_set_creation(self):
+    def test_expired_access_does_not_allow_set_creation(self):
         self.period.ends_at = timezone.now() - timedelta(seconds=1)
         self.period.save(update_fields=['ends_at'])
         with self.assertRaises(PremiumPreparationRequired):
             self.save_set()
+
+    def test_rejected_order_does_not_grant_access_or_allow_set_creation(self):
+        self.order.status = PremiumOrder.Status.REJECTED
+        self.order.save(update_fields=['status'])
+
+        access = get_preparation_access(self.learner)
+        self.assertFalse(access['premium_active'])
+        self.assertEqual(access['sets_remaining'], 0)
+        with self.assertRaises(PremiumPreparationRequired):
+            self.save_set()
+        with self.assertRaises(PremiumPreparationRequired):
+            create_preparation_draft(
+                self.learner, uuid.uuid4(), 'Acme', 'Analyst', 'Analyze sales data.',
+            )
+
+    def test_anonymous_user_cannot_create_draft_through_service_or_view(self):
+        with self.assertRaises(PremiumPreparationRequired):
+            create_preparation_draft(
+                AnonymousUser(), uuid.uuid4(), 'Acme', 'Analyst', 'Analyze sales data.',
+            )
+
+        response = self.client.post(reverse('interview_prep:create_preparation'))
+        self.assertEqual(response.status_code, 302)
+        self.assertTrue(response.url.startswith(reverse('login')))
+        self.assertEqual(PreparationSet.objects.count(), 0)
 
     def test_generation_requires_complete_questions_with_unique_ids(self):
         with self.assertRaisesMessage(ValidationError, 'Each generated question needs'):
@@ -322,6 +348,7 @@ class PremiumAccessServiceTests(TestCase):
         self.assertEqual(get_saved_questions(self.learner).count(), 0)
 
 
+@override_settings(STATICFILES_STORAGE='django.contrib.staticfiles.storage.StaticFilesStorage')
 class PremiumPaymentWorkflowTests(TestCase):
     def setUp(self):
         user_model = get_user_model()
@@ -451,6 +478,7 @@ class PremiumPaymentWorkflowTests(TestCase):
         self.assertEqual(response.status_code, 403)
 
 
+@override_settings(STATICFILES_STORAGE='django.contrib.staticfiles.storage.StaticFilesStorage')
 class OpenAIGenerationTests(TestCase):
     def response(self, output, chat=False):
         result = Mock()
@@ -673,13 +701,30 @@ class OpenAIGenerationTests(TestCase):
                 text, focus = duplicate_pair.get(number, distinct_questions.get(
                     number, (f'How would you handle task {number} in this role?', f'handle distinct task {number}'),
                 ))
+                question_kind = slot.get('question_kind') or 'scenario'
+                is_coding = question_kind in {'coding', 'sql'}
+                language = 'SQL' if question_kind == 'sql' else 'Python'
+                coding_prompt = {
+                    'title': f'{language} revenue analysis exercise',
+                    'language': language,
+                    'difficulty': 'Entry',
+                    'problem_statement': 'Analyze the supplied sales records and return the requested result.',
+                    'example_input': 'records = []',
+                    'expected_output': '[]',
+                    'explanation': 'Return a clear result for the supplied records.',
+                } if is_coding else {}
                 questions.append({
                     'question': text,
                     'assessment_focus': focus,
                     'category': slot['category'],
                     'question_type': slot['question_type'],
-                    'question_kind': slot.get('question_kind') or 'scenario',
-                    'coding_solution': '',
+                    'question_kind': question_kind,
+                    'coding_solution': (
+                        '```sql\nSELECT 1;\n```' if question_kind == 'sql'
+                        else '```python\nreturn [];\n```' if question_kind == 'coding'
+                        else ''
+                    ),
+                    'coding_prompt': coding_prompt,
                     'answer_content': _rich_answer(
                         'Check the relevant evidence first.', [],
                         'I would check the relevant evidence and explain my reasoning.',
@@ -1280,7 +1325,7 @@ ORDER BY total_revenue DESC;
         self.assertNotContains(response, 'â€™')
         generate.assert_not_called()
 
-    @override_settings(INTERVIEW_PREP_OPENAI_API_KEY='test-key')
+    @override_settings(INTERVIEW_PREP_OPENAI_API_KEY='test-key', INTERVIEW_PREP_TEST_ACCESS=True)
     @patch('interview_prep.views.generate_preparation')
     @patch('interview_prep.views.extract_candidate_profile')
     def test_candidate_reviews_profile_and_resumed_generation_reuses_confirmed_facts(self, extract_profile, generate):
@@ -1291,7 +1336,10 @@ ORDER BY total_revenue DESC;
             'summary': 'The resume lists Python experience.',
             'recommended_seniority': 'entry',
             'seniority_rationale': 'The resume shows foundational skills and a personal project.',
-            'uncertain_information': ['The project dates are unclear.'],
+            'uncertain_information': [
+                'The project dates are unclear.',
+                '<script>alert("x")</script>',
+            ],
             'career_gaps': [],
             'extraction': {
                 'analysis': 'The resume lists Python experience.',
@@ -1325,8 +1373,11 @@ ORDER BY total_revenue DESC;
         self.client.force_login(self.learner)
         review = self.client.post(reverse('interview_prep:create_preparation'), form_data)
         self.assertEqual(review.status_code, 200)
-        self.assertContains(review, 'Review your resume profile')
+        self.assertContains(review, 'Your resume match')
+        self.assertContains(review, 'Details to confirm')
         self.assertContains(review, 'The project dates are unclear.')
+        self.assertContains(review, '&lt;script&gt;alert(&quot;x&quot;)&lt;/script&gt;')
+        self.assertNotContains(review, '<script>alert("x")</script>')
         draft = PreparationSet.objects.get(owner=self.learner)
         self.assertNotIn('Private original resume text.', str(draft.generated_content))
         self.assertEqual(draft.generated_content['_candidate_profile_state'], 'review')
@@ -1420,7 +1471,10 @@ ORDER BY total_revenue DESC;
         self.assertEqual(questions_page.status_code, 200)
         self.assertContains(questions_page, '30 of 30 valid questions are ready')
 
-    @override_settings(INTERVIEW_PREP_OPENAI_API_KEY='test-key')
+    @override_settings(
+        INTERVIEW_PREP_OPENAI_API_KEY='test-key',
+        INTERVIEW_PREP_TEST_ACCESS=True,
+    )
     @patch('interview_prep.views.generate_preparation')
     def test_stream_failure_keeps_batch_and_retry_resumes_same_draft(self, generate):
         reference = uuid.uuid4()

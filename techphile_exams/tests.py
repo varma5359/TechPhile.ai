@@ -4,7 +4,7 @@ from unittest.mock import patch
 from django.contrib import admin
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Permission
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from django.test import RequestFactory
 from django.urls import reverse
 from django.utils import timezone
@@ -31,6 +31,7 @@ class AdminDebugToolbarVisibilityTests(TestCase):
             self.assertTrue(show_debug_toolbar(request_factory.get('/')))
 
 
+@override_settings(STATICFILES_STORAGE='django.contrib.staticfiles.storage.StaticFilesStorage')
 class TechPhileAdminDashboardTests(TestCase):
     @classmethod
     def setUpTestData(cls):
@@ -99,7 +100,7 @@ class TechPhileAdminDashboardTests(TestCase):
         self.assertContains(response, 'id="tp-activity-chart"')
         self.assertContains(response, 'tp-activity-data')
         self.assertContains(response, 'View daily values')
-        self.assertContains(response, 'class="tp-kpi-dot tone-1"')
+        self.assertContains(response, 'class="tp-kpi-icon tone-1 material-symbols-outlined"')
         for model in (CareerRole, LearningDay, ScenarioQuestion, DayProgress):
             self.assertTrue(admin.site.is_registered(model))
 

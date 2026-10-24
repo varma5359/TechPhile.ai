@@ -184,6 +184,7 @@
 .ipp-profile-review{display:grid;gap:1rem}
 .ipp-profile-summary{background:#f4f9fb;border:1px solid #dce8ee;border-radius:12px;color:#40576e;padding:1rem 1.1rem}
 .ipp-profile-summary strong{color:#20364f;display:block;font-size:.9rem;margin-bottom:.35rem}
+.ipp-profile-uncertain h3{color:#20364f;font-size:.9rem;font-weight:700;margin:0 0 .35rem}
 .ipp-profile-summary p,.ipp-profile-seniority p{font-size:.88rem;line-height:1.65;margin:0}
 .ipp-profile-uncertain{margin:0}
 .ipp-profile-uncertain ul{margin:.45rem 0 0;padding-left:1.2rem}

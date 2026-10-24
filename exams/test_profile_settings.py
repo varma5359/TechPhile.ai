@@ -25,6 +25,7 @@ def make_image(image_format='PNG', name=None):
                               content_type=f'image/{extension}')
 
 
+@override_settings(STATICFILES_STORAGE='django.contrib.staticfiles.storage.StaticFilesStorage')
 class ProfileSettingsEndpointTests(TestCase):
     def setUp(self):
         self.user = User.objects.create_user(

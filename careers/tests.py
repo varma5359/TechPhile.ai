@@ -1147,7 +1147,10 @@ class CareerPreferencesJourneyTests(CareersBase):
             'experience_band': '3_5',
             'learning_path': LEVEL_EXPERIENCED,
         })
-        self.assertRedirects(saved, f'{settings_url}?tab=career')
+        self.assertRedirects(
+            saved,
+            reverse('careers:level_role_detail', args=[self.role.slug, LEVEL_EXPERIENCED]),
+        )
         profile = Profile.objects.get(user=self.user)
         self.assertEqual(profile.career_role, self.role)
         self.assertEqual(profile.experience_band, '3_5')

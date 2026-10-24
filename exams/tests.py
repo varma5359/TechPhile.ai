@@ -1,5 +1,5 @@
 from django.contrib.auth import get_user_model
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
 
@@ -75,6 +75,7 @@ class CareerLearningPreferencesFormTests(TestCase):
         self.assertIn('career_role', form.errors)
 
 
+@override_settings(STATICFILES_STORAGE='django.contrib.staticfiles.storage.StaticFilesStorage')
 class StudentDashboardTests(TestCase):
     def setUp(self):
         self.user = User.objects.create_user(username='dashboard-learner', password='pass12345')
@@ -106,6 +107,7 @@ class StudentDashboardTests(TestCase):
         self.assertContains(response, '78%')
 
 
+@override_settings(STATICFILES_STORAGE='django.contrib.staticfiles.storage.StaticFilesStorage')
 class CareerDashboardTests(TestCase):
     def setUp(self):
         self.user = User.objects.create_user(username='career-dashboard-learner', password='pass12345')
